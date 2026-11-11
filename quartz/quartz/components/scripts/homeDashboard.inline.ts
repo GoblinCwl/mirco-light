@@ -3,7 +3,7 @@ import { setupDomainDetails } from "./domainDetails"
 import { setupVisitorSky } from "./visitors"
 import { setActivityCategoryColors } from "./activityColors"
 import { setupAttendanceCalendar } from "./attendance"
-import { createActivityDetails, type ActivityDetails } from "./activityDetails"
+import { activitySceneLabel, createActivityDetails, type ActivityDetails } from "./activityDetails"
 import { setupQQContact } from "./qqContact"
 import { createActivityCategoryDetails, type ActivityCategory } from "./activityCategoryDetails"
 import { setupHomeSkeletonLayout } from "./homeSkeletonLayout"
@@ -180,13 +180,12 @@ const updateActivityStatus = () => {
   const controller = new AbortController()
   const currentStatus = document.querySelector<HTMLElement>("[data-activity-current-status]")
   const show = (state: string, label: string, scene?: string | null) => {
+    const text = activitySceneLabel({ state, label, scene: scene ?? null })
     dot.dataset.state = state
-    dot.setAttribute("aria-label", label)
-    const tooltip = scene ? `${label} · ${scene}` : label
-    if (dot.parentElement) dot.parentElement.title = tooltip
+    dot.setAttribute("aria-label", text)
+    if (dot.parentElement) dot.parentElement.title = text
     if (currentStatus) {
-      const text = state === "active" ? `活跃：${scene || "未命名场景"}` : state === "unknown" ? "—" : label
-      currentStatus.textContent = text
+      currentStatus.textContent = state === "unknown" ? "—" : text
     }
   }
   show("unknown", "状态未知")

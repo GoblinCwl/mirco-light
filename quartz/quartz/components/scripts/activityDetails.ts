@@ -31,8 +31,12 @@ const time = (value: string | null) => value && Number.isFinite(Date.parse(value
 
 export function activitySceneLabel(data: Pick<ActivityDetails, "state" | "scene" | "label">) {
   const state = data.state.toLowerCase()
-  if (state === "active") return data.scene || data.label || "活跃"
-  if (state === "afk") return "暂时离席"
+  if (state === "active") {
+    const scene = data.scene?.trim()
+    return scene && scene !== "未命名场景" ? scene : "已返航"
+  }
+  if (state === "afk") return "自由态"
+  if (state === "offline") return "已撤离"
   return data.label || "状态未知"
 }
 
@@ -108,9 +112,7 @@ export function createActivityDetails(button: HTMLElement) {
       star.setAttribute("aria-hidden", "true")
       const heading = element("div")
       const currentScene = activitySceneLabel(data)
-      const statusLabel = ({ active: "活跃", afk: "暂离", offline: "离线" } as Record<string, string>)[data.state.toLowerCase()] || data.label || "状态未知"
-      heading.append(element("small", "此刻的航向"), element("strong", statusLabel))
-      if (data.state.toLowerCase() === "active" && data.scene) heading.append(element("span", currentScene, "voyage-current-scene"))
+      heading.append(element("small", "此刻的航向"), element("strong", currentScene))
       hero.append(star, heading)
       body.append(hero)
       if (data.focus) {
