@@ -1,0 +1,243 @@
+@use "sidebarPanel";
+@use "../../styles/variables.scss" as *;
+
+.toc {
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+  min-height: 1.4rem;
+  flex: 0 0.5 auto;
+  margin-bottom: 1rem;
+
+  // Override the generic `div:has(> .overflow)` height rule. The graph above
+  // the TOC occupies 250px, so reserve it, the sidebar padding, and a bottom gap.
+  &:has(> .toc-content) {
+    max-height: calc(100vh - #{$topSpacing} - 250px - 6rem);
+    max-height: calc(100dvh - #{$topSpacing} - 250px - 6rem);
+  }
+
+  &:has(button.toc-header.collapsed) {
+    flex: 0 1 1.4rem;
+  }
+}
+
+button.toc-header {
+  background-color: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  color: var(--dark);
+  display: flex;
+  align-items: center;
+
+  & h3 {
+    @include sidebarPanel.heading;
+    display: inline-block;
+    margin: 0;
+  }
+
+  & .fold {
+    margin-left: 0.5rem;
+    transition: transform 0.3s ease;
+    opacity: 0.8;
+  }
+
+  &.collapsed .fold {
+    transform: rotateZ(-90deg);
+  }
+}
+
+ul.toc-content.overflow {
+  list-style: none;
+  position: relative;
+  margin: 0.5rem 0;
+  padding: 0;
+  max-height: calc(100% - 2rem);
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lightgray) transparent;
+  list-style: none;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--lightgray);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--gray);
+  }
+
+  & > li > a {
+    display: block;
+    color: var(--dark);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    opacity: 0.35;
+    transition:
+      0.5s ease opacity,
+      0.3s ease color;
+
+    &::first-line {
+      font-size: 0.9rem;
+      line-height: 1.35;
+    }
+
+    &.in-view {
+      opacity: 0.75;
+    }
+  }
+
+  @for $i from 0 through 6 {
+    & .depth-#{$i} {
+      padding-left: calc(1rem * #{$i});
+    }
+  }
+}
+
+.home-links-toc ul.toc-content.overflow {
+  .home-navigation-skeleton-icon,.home-navigation-placeholder-label::after {
+    display:block;flex:none;border-radius:4px;background:linear-gradient(105deg,var(--highlight) 20%,color-mix(in srgb,var(--gray) 20%,var(--light)) 48%,var(--highlight) 78%);
+    background-size:220% 100%;animation:home-navigation-shimmer 1.8s ease-in-out infinite;
+  }
+  .home-navigation-skeleton-icon { width:1.2rem;height:1.2rem; }
+  .home-navigation-placeholder-label {
+    position:relative;max-width:100%;color:transparent!important;
+    &::after {content:'';position:absolute;inset-inline:0;top:50%;height:.8em;transform:translateY(-50%);}
+  }
+  > li { display: flex; align-items: center; gap: 0.65rem; }
+  .home-link-icon {
+    display: inline-flex;
+    flex: 0 0 1.2rem;
+    > svg { width: 1.2rem; height: 1.2rem; fill: var(--secondary); stroke: none; }
+  }
+  > li > :is(a,.home-navigation-placeholder-label) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    height: auto !important;
+    padding: 0.4rem 0;
+    background: transparent;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    font-weight: 400;
+    opacity: 0.75;
+    &::first-line { font-size: inherit; line-height: inherit; }
+    &:hover { opacity: 1; color: var(--secondary); }
+    > svg:not(.external-icon) {
+      width: 1.2rem;
+      height: 1.2rem;
+      flex: 0 0 1.2rem;
+      fill: var(--secondary);
+      stroke: none;
+    }
+    .external-icon { display: none; }
+  }
+  > li > a { width:fit-content!important; }
+}
+@keyframes home-navigation-shimmer { from {background-position:100% 0;} to {background-position:-100% 0;} }
+@media(prefers-reduced-motion:reduce) { .home-links-toc .home-navigation-skeleton-icon,.home-links-toc .home-navigation-placeholder-label::after {animation:none;} }
+
+.home-links-toc > .home-links-title {
+  @include sidebarPanel.heading;
+  margin: 0;
+}
+
+.home-links-toc ul.toc-content.overflow > li > :is(a.home-icp,.home-navigation-placeholder-icp) {
+  margin: 0.65rem 0 0;
+  padding: 0.65rem 0 0;
+  border-top: 1px solid var(--lightgray);
+  color: var(--gray);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  opacity: 1;
+  &:hover { color: var(--tertiary); }
+  &.home-navigation-placeholder-icp::after { top:calc(.65rem + .75em); }
+}
+
+@media (min-width: 1200px) {
+  body[data-slug="index"] .sidebar.right > .home-links-toc {
+    margin-top: auto;
+    margin-bottom: 0;
+    flex: 0 0 auto;
+    order: 1;
+  }
+}
+
+// On phones, the homepage links finish the page after the graph and encounters.
+@media all and ($mobile) {
+  body[data-slug="index"] .page > #quartz-body > .sidebar.right > .home-links-toc {
+    display: flex;
+    flex: none;
+    width: 100%;
+    max-height: none;
+    margin: .5rem 0 0;
+    overflow: visible;
+    > .home-links-title { margin-bottom: .6rem; }
+    ul.toc-content.overflow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .35rem 1.3rem;
+      width: 100%;
+      max-height: none;
+      margin: 0;
+      padding: 0;
+      overflow: visible;
+      mask-image: none;
+      > li { flex: 0 0 auto; margin: 0; padding: 0; }
+      > li > :is(a,.home-navigation-placeholder-label) { padding: .45rem 0; opacity: 1; }
+      > li:has(> :is(a.home-icp,.home-navigation-placeholder-icp)) {
+        flex: 0 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        > :is(a.home-icp,.home-navigation-placeholder-icp) {
+          margin: 0;
+          padding: .2rem 0;
+          border: 0;
+          text-align: left;
+          overflow-wrap: anywhere;
+        }
+        > .home-navigation-placeholder-icp::after {top:50%;}
+      }
+      > .overflow-end { display: none; }
+    }
+  }
+}
+
+// Registration links retain the compact footer layout; only the first row divides sections.
+.home-links-toc ul.toc-content.overflow > li.home-registration-next > :is(a.home-icp,.home-navigation-placeholder-icp) {
+  margin-top: 0;
+  padding-top: .15rem;
+  border-top: 0;
+}
+.home-links-toc .home-registration-icon {
+  display: inline-flex;
+  flex: 0 0 1em;
+  width: 1em;
+  height: 1em;
+}
+.home-links-toc .home-registration-icon > svg { width: 100%; height: 100%; }
+
+.home-links-toc ul.toc-content.overflow > li > :is(a.home-icp,.home-navigation-placeholder-icp) { gap: .3rem; }
+
+.home-links-toc ul.toc-content.overflow > li.home-registration-divider { display: none; }
+@media all and ($mobile) {
+  body[data-slug="index"] .page > #quartz-body > .sidebar.right > .home-links-toc ul.toc-content.overflow > li.home-registration-divider {
+    display: block;
+    flex: 0 0 100%;
+    height: 0;
+    margin: .3rem 0;
+    border-top: 1px solid var(--lightgray);
+  }
+}

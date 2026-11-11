@@ -1,0 +1,31 @@
+.excalidraw-viewer {
+  margin: .65rem 0 1rem; padding: 0; overflow: hidden; border: 1px solid var(--lightgray);
+  border-radius: 7px; background: var(--moreLight); color: var(--darkgray);
+  .excalidraw-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .45rem .65rem; border-bottom: 1px solid var(--lightgray); }
+  .excalidraw-label { font-size: .85rem; color: var(--secondary); }
+  .excalidraw-controls { display: flex; align-items: center; gap: .15rem; }
+  button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; padding: 5px; border: 0; border-radius: 4px; background: transparent; color: var(--secondary); cursor: pointer; }
+  button:hover { background: var(--highlight); }
+  button:focus-visible, .excalidraw-viewport:focus-visible { outline: 2px solid var(--secondary); outline-offset: -2px; }
+  button > svg { display: block; flex: none; width: 19px; height: 19px; }
+  .excalidraw-zoom { min-width: 3rem; font-size: .8rem; text-align: center; font-variant-numeric: tabular-nums; }
+  .excalidraw-viewport { position: relative; width: 100%; height: clamp(24rem, 65svh, 42rem); overflow: hidden; touch-action: none; cursor: grab; user-select: none; outline: none; }
+  .excalidraw-viewport.is-dragging { cursor: grabbing; }
+  .excalidraw-viewport > svg { position: absolute; left: 0; top: 0; max-width: none; max-height: none; transform-origin: 0 0; }
+  .excalidraw-status { min-height: 24rem; display: flex; align-items: center; justify-content: center; gap: .5rem; font-size: .85rem; color: var(--secondary); }
+  > .excalidraw-status { height: calc(clamp(24rem, 65svh, 42rem) + 3rem); }
+  .excalidraw-viewport > .excalidraw-status { min-height: 0; height: 100%; }
+  .excalidraw-status > span { width: 23px; height: 23px; border: 2px solid var(--lightgray); border-top-color: var(--secondary); border-radius: 50%; animation: excalidraw-spin 1s linear infinite; }
+  &:fullscreen, &.is-web-fullscreen { box-sizing: border-box; display: flex !important; flex-direction: column; margin: 0; padding: 0; border: 0; border-radius: 0; background: var(--moreLight); }
+  &:fullscreen { width: 100%; height: 100%; }
+  &:fullscreen .excalidraw-viewport, &.is-web-fullscreen .excalidraw-viewport { flex: 1; min-height: 0; height: auto; }
+}
+// Shared flow fullscreen also works on article pages without Drive components.
+body.jit-fullscreen-host {
+  margin: 0 !important; padding: 0 !important; min-height: 0 !important;
+  .jit-fullscreen-hidden { display: none !important; }
+  .jit-fullscreen-path { display: contents !important; }
+  .excalidraw-viewer.is-web-fullscreen { position: static !important; display: flex !important; width: 100%; min-width: 0; max-width: none; max-height: none; }
+}
+@keyframes excalidraw-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .excalidraw-status > span { animation: none; } }

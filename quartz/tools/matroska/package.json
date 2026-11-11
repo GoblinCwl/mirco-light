@@ -1,0 +1,8 @@
+{
+  "name": "quartz-matroska-subtitles",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs", "test": "node --test reader.test.mjs" },
+  "dependencies": { "@cryguy/mkv-subtitle-extractor": "1.0.1" },
+  "devDependencies": { "esbuild": "0.27.2" }
+}

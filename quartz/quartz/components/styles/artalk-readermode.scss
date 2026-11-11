@@ -1,0 +1,16 @@
+// Artalk Comments styles to support ReaderMode
+
+.artalk-comments {
+  transition: opacity 280ms ease-out;
+
+  :root[reader-mode="on"] & {
+    opacity: 0;
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .artalk-comments { transition: none; }
+}

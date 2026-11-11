@@ -1,0 +1,5270 @@
+[
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "auto",
+        "name": "自动",
+        "bitrate": 0
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 80000000,
+      "EnableDirectPlay": true,
+      "EnableDirectStream": true,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 80000000,
+        "MaxStaticBitrate": 80000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "auto",
+        "name": "自动",
+        "bitrate": 0
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 80000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 80000000,
+        "MaxStaticBitrate": 80000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "auto",
+        "name": "自动",
+        "bitrate": 0
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 80000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 80000000,
+        "MaxStaticBitrate": 80000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "auto",
+        "name": "自动",
+        "bitrate": 0
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 80000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 80000000,
+        "MaxStaticBitrate": 80000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "auto",
+        "name": "自动",
+        "bitrate": 0
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 80000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 80000000,
+        "MaxStaticBitrate": 80000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "auto",
+        "name": "自动",
+        "bitrate": 0
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 80000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 80000000,
+        "MaxStaticBitrate": 80000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "auto",
+        "name": "自动",
+        "bitrate": 0
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 80000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 80000000,
+        "MaxStaticBitrate": 80000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "auto",
+        "name": "自动",
+        "bitrate": 0
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 80000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 80000000,
+        "MaxStaticBitrate": 80000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "original",
+        "name": "原画 · 3840×1608",
+        "bitrate": 2147483647
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 85000000,
+      "EnableDirectPlay": true,
+      "EnableDirectStream": true,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 85000000,
+        "MaxStaticBitrate": 85000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "original",
+        "name": "原画 · 3840×1608",
+        "bitrate": 2147483647
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 85000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 85000000,
+        "MaxStaticBitrate": 85000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "original",
+        "name": "原画 · 3840×1608",
+        "bitrate": 2147483647
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 85000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 85000000,
+        "MaxStaticBitrate": 85000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "original",
+        "name": "原画 · 3840×1608",
+        "bitrate": 2147483647
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 85000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 85000000,
+        "MaxStaticBitrate": 85000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "original",
+        "name": "原画 · 3840×1608",
+        "bitrate": 2147483647
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 85000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 85000000,
+        "MaxStaticBitrate": 85000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "original",
+        "name": "原画 · 3840×1608",
+        "bitrate": 2147483647
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 85000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 85000000,
+        "MaxStaticBitrate": 85000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "original",
+        "name": "原画 · 3840×1608",
+        "bitrate": 2147483647
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 85000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 85000000,
+        "MaxStaticBitrate": 85000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "original",
+        "name": "原画 · 3840×1608",
+        "bitrate": 2147483647
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 85000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 85000000,
+        "MaxStaticBitrate": 85000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "2160",
+        "name": "2160p · 30 Mbps",
+        "bitrate": 30000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 30000000,
+      "EnableDirectPlay": true,
+      "EnableDirectStream": true,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "2160",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "3840",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 30000000,
+        "MaxStaticBitrate": 30000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "2160",
+        "name": "2160p · 30 Mbps",
+        "bitrate": 30000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 30000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "2160",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "3840",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 30000000,
+        "MaxStaticBitrate": 30000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "2160",
+        "name": "2160p · 30 Mbps",
+        "bitrate": 30000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 30000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "2160",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "3840",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 30000000,
+        "MaxStaticBitrate": 30000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "2160",
+        "name": "2160p · 30 Mbps",
+        "bitrate": 30000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 30000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "2160",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "3840",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 30000000,
+        "MaxStaticBitrate": 30000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "2160",
+        "name": "2160p · 30 Mbps",
+        "bitrate": 30000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 30000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "2160",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "3840",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 30000000,
+        "MaxStaticBitrate": 30000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "2160",
+        "name": "2160p · 30 Mbps",
+        "bitrate": 30000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 30000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "2160",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "3840",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 30000000,
+        "MaxStaticBitrate": 30000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "2160",
+        "name": "2160p · 30 Mbps",
+        "bitrate": 30000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 30000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "2160",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "3840",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 30000000,
+        "MaxStaticBitrate": 30000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "2160",
+        "name": "2160p · 30 Mbps",
+        "bitrate": 30000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 30000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "2160",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "3840",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 30000000,
+        "MaxStaticBitrate": 30000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "1080",
+        "name": "1080p · 8 Mbps",
+        "bitrate": 8000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 8000000,
+      "EnableDirectPlay": true,
+      "EnableDirectStream": true,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "1080",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1920",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 8000000,
+        "MaxStaticBitrate": 8000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "1080",
+        "name": "1080p · 8 Mbps",
+        "bitrate": 8000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 8000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "1080",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1920",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 8000000,
+        "MaxStaticBitrate": 8000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "1080",
+        "name": "1080p · 8 Mbps",
+        "bitrate": 8000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 8000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "1080",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1920",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 8000000,
+        "MaxStaticBitrate": 8000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "1080",
+        "name": "1080p · 8 Mbps",
+        "bitrate": 8000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 8000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "1080",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1920",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 8000000,
+        "MaxStaticBitrate": 8000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "1080",
+        "name": "1080p · 8 Mbps",
+        "bitrate": 8000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 8000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "1080",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1920",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 8000000,
+        "MaxStaticBitrate": 8000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "1080",
+        "name": "1080p · 8 Mbps",
+        "bitrate": 8000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 8000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "1080",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1920",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 8000000,
+        "MaxStaticBitrate": 8000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "1080",
+        "name": "1080p · 8 Mbps",
+        "bitrate": 8000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 8000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "1080",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1920",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 8000000,
+        "MaxStaticBitrate": 8000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "1080",
+        "name": "1080p · 8 Mbps",
+        "bitrate": 8000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 8000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "1080",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1920",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 8000000,
+        "MaxStaticBitrate": 8000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "720",
+        "name": "720p · 4 Mbps",
+        "bitrate": 4000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 4000000,
+      "EnableDirectPlay": true,
+      "EnableDirectStream": true,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "720",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1280",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 4000000,
+        "MaxStaticBitrate": 4000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "720",
+        "name": "720p · 4 Mbps",
+        "bitrate": 4000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 4000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "720",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1280",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 4000000,
+        "MaxStaticBitrate": 4000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "720",
+        "name": "720p · 4 Mbps",
+        "bitrate": 4000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 4000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "720",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1280",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 4000000,
+        "MaxStaticBitrate": 4000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "720",
+        "name": "720p · 4 Mbps",
+        "bitrate": 4000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 4000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "720",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1280",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 4000000,
+        "MaxStaticBitrate": 4000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "720",
+        "name": "720p · 4 Mbps",
+        "bitrate": 4000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 4000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "720",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1280",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 4000000,
+        "MaxStaticBitrate": 4000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "720",
+        "name": "720p · 4 Mbps",
+        "bitrate": 4000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 4000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "720",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1280",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 4000000,
+        "MaxStaticBitrate": 4000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "720",
+        "name": "720p · 4 Mbps",
+        "bitrate": 4000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 4000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "720",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1280",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 4000000,
+        "MaxStaticBitrate": 4000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "720",
+        "name": "720p · 4 Mbps",
+        "bitrate": 4000000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 4000000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "720",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "1280",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 4000000,
+        "MaxStaticBitrate": 4000000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "480",
+        "name": "480p · 1.5 Mbps",
+        "bitrate": 1500000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 1500000,
+      "EnableDirectPlay": true,
+      "EnableDirectStream": true,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "480",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "854",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 1500000,
+        "MaxStaticBitrate": 1500000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "480",
+        "name": "480p · 1.5 Mbps",
+        "bitrate": 1500000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 1500000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "480",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "854",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 1500000,
+        "MaxStaticBitrate": 1500000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "480",
+        "name": "480p · 1.5 Mbps",
+        "bitrate": 1500000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 1500000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "480",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "854",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 1500000,
+        "MaxStaticBitrate": 1500000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "480",
+        "name": "480p · 1.5 Mbps",
+        "bitrate": 1500000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": -1,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 1500000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": -1,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "480",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "854",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 1500000,
+        "MaxStaticBitrate": 1500000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "480",
+        "name": "480p · 1.5 Mbps",
+        "bitrate": 1500000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 1500000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "480",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "854",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 1500000,
+        "MaxStaticBitrate": 1500000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "480",
+        "name": "480p · 1.5 Mbps",
+        "bitrate": 1500000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": false,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 1500000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": true,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "480",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "854",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 1500000,
+        "MaxStaticBitrate": 1500000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "480",
+        "name": "480p · 1.5 Mbps",
+        "bitrate": 1500000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": false,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 1500000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "480",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "854",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 1500000,
+        "MaxStaticBitrate": 1500000
+      }
+    }
+  },
+  {
+    "input": {
+      "deviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          },
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [
+          {
+            "Format": "ass",
+            "Method": "External"
+          }
+        ]
+      },
+      "quality": {
+        "id": "480",
+        "name": "480p · 1.5 Mbps",
+        "bitrate": 1500000
+      },
+      "maxBitrate": 80000000,
+      "userId": "user",
+      "mediaSourceId": "source",
+      "audioStreamIndex": 1,
+      "subtitleStreamIndex": 7,
+      "forceTranscode": true,
+      "audioSelectionRequired": true,
+      "sourceBitrate": 85000000,
+      "position": 2987.25
+    },
+    "output": {
+      "IsPlayback": true,
+      "AutoOpenLiveStream": true,
+      "UserId": "user",
+      "MediaSourceId": "source",
+      "AudioStreamIndex": 1,
+      "StartTimeTicks": 29872500000,
+      "MaxStreamingBitrate": 1500000,
+      "EnableDirectPlay": false,
+      "EnableDirectStream": false,
+      "EnableTranscoding": true,
+      "AllowVideoStreamCopy": false,
+      "SubtitleStreamIndex": 7,
+      "DeviceProfile": {
+        "DirectPlayProfiles": [
+          {
+            "Type": "Video",
+            "Container": "mp4,mkv",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac"
+          }
+        ],
+        "TranscodingProfiles": [
+          {
+            "Type": "Video",
+            "Protocol": "hls",
+            "Container": "ts",
+            "VideoCodec": "h264",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "6"
+          }
+        ],
+        "CodecProfiles": [
+          {
+            "Type": "Video",
+            "Conditions": [
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Height",
+                "Value": "480",
+                "IsRequired": true
+              },
+              {
+                "Condition": "LessThanEqual",
+                "Property": "Width",
+                "Value": "854",
+                "IsRequired": true
+              }
+            ]
+          }
+        ],
+        "SubtitleProfiles": [
+          {
+            "Format": "pgssub",
+            "Method": "Encode"
+          }
+        ],
+        "Name": "微光集网页播放器",
+        "MaxStreamingBitrate": 1500000,
+        "MaxStaticBitrate": 1500000
+      }
+    }
+  }
+]

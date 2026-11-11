@@ -1,0 +1,418 @@
+@use "driveLoading";
+@use "formSelect";
+// Shared switch dimensions for settings, service rows and service dialogs.
+@mixin serviceSwitch {
+  appearance:none;-webkit-appearance:none;box-sizing:border-box;position:relative;display:block;
+  flex:0 0 38px;width:38px;height:22px;min-height:22px;margin:0;padding:0;
+  border:1px solid var(--gray);border-radius:20px;background:var(--lightgray);box-shadow:none;cursor:pointer;
+  &::before{content:none;}
+  &::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--gray);transition:transform .18s ease;}
+  &:checked{border-color:var(--secondary);background:var(--secondary);&::after{transform:translateX(16px);background:var(--light);}}
+  &:focus{outline:none;}
+  &:focus-visible{outline:2px solid var(--secondary);outline-offset:3px;}
+  &:disabled{opacity:.45;cursor:default;}
+}
+// Shared management workspace: quiet surfaces, consistent controls, local scrolling.
+.observatory-dialog.observatory-settings-dialog {
+  width: min(1120px, calc(100% - 2.5rem));
+  max-width: 1120px;
+  height: min(820px, calc(100dvh - 3rem));
+  max-height: calc(100dvh - 3rem);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  outline: none;
+  border-radius: 14px;
+  &[open] { display: flex; flex-direction: column; }
+  > .observatory-auth-header {
+    display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto;
+    gap: 1rem; margin: 0; padding: .75rem 1.1rem;
+    border-bottom: 1px solid var(--lightgray);
+    > h2 { margin: 0; padding: 0; font-family: var(--headerFont); font-size: 1.12rem; line-height: 1.6; color: var(--dark); }
+    .observatory-manage-actions { display: flex; align-items: center; flex-shrink: 0; gap: 1.15rem;
+      > button { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; padding: .3rem 0; border: 0; background: transparent; color: var(--secondary); font-family: var(--bodyFont); cursor: pointer; > svg { width: 16px; height: 16px; } &:disabled { opacity: .5; cursor: wait; } }
+      .observatory-manage-close { width: 32px; height: 32px; padding: 0; color: var(--gray); > svg { width: 19px; height: 19px; } &:hover { color: var(--secondary); } }
+    }
+    .observatory-manage-logout { font-size: .78rem; }
+    .observatory-manage-logout:hover { text-decoration: underline; text-underline-offset: 3px; }
+  }
+  > .stellar-admin { flex: 1 1 auto; min-height: 0; margin: 0; }
+}
+.stellar-admin {
+  --stellar-muted: color-mix(in srgb, var(--darkgray) 80%, var(--light));
+  --stellar-surface: var(--moreLight);
+  --stellar-accent: color-mix(in srgb, var(--secondary) 8%, var(--light));
+  --stellar-danger: #b3485b;
+  --stellar-success: #427d6a;
+  --stellar-waiting: #956b2e;
+  color: var(--dark); min-width: 0; margin: 0;
+  [hidden] { display: none !important; }
+  *, *::before, *::after { box-sizing: border-box; }
+  [data-stellar-settings] { height: 100%; min-height: 0; }
+  button, input, select, textarea { font-family: var(--bodyFont); font-size: .85rem; }
+  [data-stellar-settings] :is(input, select, textarea) { font-family: var(--bodyFont); font-size: .85rem; }
+  button {
+    color: var(--secondary); background: transparent; border: 0; cursor: pointer;
+    line-height: 1.5; -webkit-tap-highlight-color: transparent;
+    &:disabled { opacity: .4; cursor: default; }
+    &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; border-radius: 4px; }
+  }
+  button, a { touch-action: manipulation; }
+  svg { display: block; flex-shrink: 0; width: 18px; height: 18px; }
+  input:not([type=checkbox]), select, textarea {
+    display: block; min-width: 0; width: 100%; margin: 0;
+    height: 2.3rem; padding: .4rem .7rem;
+    border: 1px solid var(--lightgray); border-radius: 7px;
+    background-color: var(--stellar-surface); color: var(--dark);
+    box-shadow: none; line-height: 1.5;
+    &:focus, &:focus-visible { outline: 2px solid var(--secondary); outline-offset: -2px; border-color: var(--secondary); box-shadow: none; }
+    &::placeholder { color: var(--gray); }
+    &:disabled { opacity: .55; }
+    &[readonly] { color: var(--darkgray); background-color: var(--highlight); }
+  }
+  select {
+    appearance: none; -webkit-appearance: none; padding-right: 2.3rem; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20' fill='none' stroke='%238999a3' stroke-width='1.7'%3E%3Cpath d='m5 8 5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right .8rem center;
+    option { background: var(--moreLight); color: var(--dark); }
+  }
+  [data-stellar-settings] select { @include formSelect.themed; height: 2.3rem; }
+
+  textarea { height: 6.5rem; min-height: 5rem; resize: vertical; line-height: 1.7; }
+  .stellar-admin-workspace { display: grid; grid-template-columns: 164px minmax(0, 1fr); min-height: 0; height: 100%; }
+  .stellar-admin-navigation {
+    display: flex; flex-direction: column; gap: .2rem;
+    min-height: 0; padding: .8rem .6rem;
+    border-right: 1px solid var(--lightgray);
+    background: color-mix(in srgb, var(--secondary) 2%, var(--light)); overflow: auto;
+  }
+  .stellar-admin-tab {
+    display: flex; align-items: center; gap: .65rem; position: relative;
+    min-width: 0; min-height: 38px; margin: 0; padding: .45rem .6rem;
+    text-align: left; border: 1px solid transparent; border-radius: 7px;
+    color: var(--stellar-muted); font-size: .85rem; font-weight: 500;
+    > span:first-of-type { flex: 1; }
+    > svg { width: 17px; height: 17px; }
+    &:hover { background: var(--highlight); color: var(--secondary); }
+    &[aria-selected=true] { background: var(--stellar-accent); color: var(--secondary); font-weight: 600; border-color: color-mix(in srgb, var(--secondary) 18%, transparent); }
+    .stellar-admin-tab-count { font-size: .65rem; opacity: .75; font-weight: 400; font-variant-numeric: tabular-nums; }
+    .stellar-admin-unsaved { position: absolute; top: 7px; right: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--stellar-waiting); }
+  }
+  .stellar-admin-content {
+    min-width: 0; min-height: 0; padding: 1rem 1.1rem 1.1rem;
+    overflow: auto; scrollbar-gutter: stable; overscroll-behavior: contain;
+  }
+  .stellar-admin-module { min-width: 0; outline: none; }
+  .stellar-admin-module-intro {
+    display: flex; align-items: center; justify-content: flex-start; gap: .8rem;
+    width: 100%; margin: 0 0 .9rem; padding: 0; border: 0;
+    > div { min-width: 0; }
+    h2 { margin: 0; padding: 0; color: var(--dark); font-size: 1.2rem; line-height: 1.4; }
+    p { margin: .25rem 0 0; font-size: .78rem; line-height: 1.7; color: var(--stellar-muted); }
+  }
+  .stellar-admin-module-icon { display: grid; place-items: center; flex: 0 0 40px; height: 40px; color: var(--secondary); background: var(--stellar-accent); border-radius: 10px; > svg { width: 22px; height: 22px; } }
+  .stellar-setting-card {
+    min-width: 0; margin: 0 0 .75rem; border: 1px solid var(--lightgray); border-radius: 10px;
+    > h3 { margin: 0; padding: .55rem .8rem; border-bottom: 1px solid var(--lightgray); border-radius: 10px 10px 0 0; background: var(--stellar-accent); font-size: .8rem; line-height: 1.5; font-weight: 600; color: var(--secondary); }
+  }
+  .stellar-setting-row {
+    display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.3fr);
+    column-gap: 1rem; row-gap: .1rem; align-items: center;
+    margin: 0 .8rem; padding: .65rem 0 .4rem; border-bottom: 1px solid var(--lightgray);
+    &:last-child { border: 0; }
+    .stellar-setting-copy { min-width: 0; grid-column: 1; grid-row: 1 / 3; align-self: start; padding-top: .35rem; }
+    label { font-size: .82rem; line-height: 1.5; color: var(--dark); font-weight: 500; cursor: pointer; }
+    small { display: block; margin: .2rem 0 0; font-size: .71rem; line-height: 1.7; color: var(--stellar-muted); }
+    .stellar-setting-control { display: flex; align-items: center; justify-content: flex-end; gap: .65rem; min-width: 0; grid-column: 2; }
+    input:not([type=checkbox]), select, textarea { flex: 1; width: 0; }
+    .stellar-setting-password {
+      flex: 1; min-width: 0;
+      > label { display: block; margin: 0; }
+      .drive-password-field { position: relative; display: flex; width: 100%; min-width: 0; }
+      input.drive-masked-password { width: 100%; padding-right: 2.75rem; -webkit-text-security: disc;
+        &.is-plain { -webkit-text-security: none; }
+      }
+      button.drive-password-toggle {
+        position: absolute; top: 50%; right: .45rem; transform: translateY(-50%);
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 2rem; height: 2rem; min-height: 2rem; padding: 0; border: 0; border-radius: 4px;
+        background: transparent; box-shadow: none; color: var(--darkgray);
+        > svg { display: block; width: 1rem; height: 1rem; }
+        &:hover { color: var(--secondary); background: var(--highlight); }
+        &:focus-visible { outline: 2px solid var(--tertiary); outline-offset: 1px; }
+      }
+    }
+    .stellar-setting-control:has(textarea) { align-items: start; }
+    .stellar-setting-control > button {
+      flex: 0 0 3.5rem; min-height: 2.3rem; padding: .35rem .5rem; border: 1px solid var(--lightgray); border-radius: 7px;
+      font-size: .76rem; white-space: nowrap;
+      &:disabled { opacity: .45; }
+    }
+    .stellar-setting-status { &:empty {display:none;} grid-column: 2; display: block; min-height: .95rem; margin: 0; font-size: .69rem; line-height: 1.6; text-align: right; color: var(--stellar-success); overflow-wrap: anywhere; &.is-error { color: var(--stellar-danger); } }
+    input[type=checkbox] { @include serviceSwitch; }
+    .stellar-switch-label { margin-right: auto; font-size: .74rem; color: var(--stellar-muted); white-space: nowrap; }
+  }
+  .stellar-setting-label-line { display:flex; align-items:baseline; flex-wrap:wrap; gap:.55rem; }
+  button.stellar-asset-preview { padding:0; font-size:.72rem; font-weight:400; &:hover { text-decoration:underline; text-underline-offset:3px; } }
+  .stellar-avatar-dialog {
+    position:fixed; inset:0; width:min(22rem,calc(100% - 2rem)); max-height:85dvh; margin:auto; padding:1rem 1.1rem;
+    border:1px solid var(--lightgray); border-radius:10px; background:var(--light); color:var(--dark); overflow:auto; outline:none;
+    &::backdrop { background:rgb(0 0 0 / 35%); }
+    >header { display:flex; align-items:center; justify-content:space-between; gap:1rem; width:100%; margin:0 0 1rem; padding:0; >h2 { margin:0; font-size:1rem; line-height:1.5; } >button { display:grid; place-items:center; width:30px; height:30px; padding:0; color:var(--gray); &:hover { color:var(--secondary); } } }
+    >img { display:block; width:100%; max-height:60dvh; aspect-ratio:1; margin:0; border-radius:8px; object-fit:contain; background:var(--stellar-accent); }
+    >p { margin:.75rem 0; font-size:.8rem; line-height:1.7; text-align:center; color:var(--stellar-muted); }
+  }
+  .stellar-input-with-unit { position: relative; flex: 1; min-width: 0;
+    > input:not([type=checkbox]) { width: 100%; padding-right: 3.3rem; font-variant-numeric: tabular-nums; }
+    > span { position: absolute; right: .8rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--stellar-muted); font-size: .73rem; }
+    input[type=number] { appearance: textfield; -moz-appearance: textfield; &::-webkit-inner-spin-button, &::-webkit-outer-spin-button { appearance: none; margin: 0; } }
+  }
+  .data-admin-tabs {
+    display: flex; width: fit-content; max-width: 100%; gap: .2rem; margin: 0 0 .8rem; padding: .25rem;
+    border: 1px solid var(--lightgray); background: var(--stellar-surface); border-radius: 8px;
+    > button { padding: .45rem .9rem; border-radius: 5px; font-size: .8rem; color: var(--stellar-muted); &[aria-pressed=true] { background: var(--stellar-accent); color: var(--secondary); font-weight: 600; } }
+  }
+  .friend-admin { min-width: 0; }
+  .friend-admin-heading {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .65rem;
+    width: 100%; margin: 0 0 .9rem; padding: 0; border: 0;
+    > span { color: var(--stellar-muted); font-size: .76rem; }
+    h3 { margin: 0; font-size: .95rem; line-height: 1.5; }
+  }
+  .friend-admin :is(.friend-admin-heading,.friend-admin-actions) > button:not(.stellar-admin-add), .feedback-admin-actions > button {
+    padding: .3rem 0; font-size: .76rem;
+    &:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 3px; }
+  }
+  button.stellar-admin-add, .friend-admin-submit, .stellar-navigation-save,
+  .stellar-setting-row .stellar-setting-control > button, .stellar-action-button {
+    display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
+    padding: .5rem .85rem; min-height: 2.25rem; border: 1px solid var(--secondary); border-radius: 6px; background: var(--secondary); color: var(--light); font-size: .76rem; font-weight: 500;
+    &:hover:not(:disabled) { background: var(--secondary); color: var(--light); filter: brightness(1.08); text-decoration: none; }
+  }
+  button.stellar-admin-add::before { content: '+'; font-size: 1rem; font-weight: 400; line-height: 1; }
+  .friend-admin-list { border: 1px solid var(--lightgray); border-radius: 9px; padding: 0 .9rem; }
+  .friend-admin-row {
+    display: flex; align-items: center; gap: .75rem; min-width: 0; padding: .65rem 0; border-bottom: 1px solid var(--lightgray);
+    &:last-child { border: 0; }
+  }
+  .friend-admin-avatar {
+    position: relative; display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; overflow: hidden;
+    border-radius: 8px; background: var(--stellar-accent); border: 1px solid var(--lightgray); color: var(--secondary);
+    > img { position: absolute; display: block; inset: 0; width: 100%; height: 100%; margin: 0; border-radius: 0; object-fit: cover; }
+  }
+  .friend-admin-copy { flex: 1; min-width: 0; > strong { display: block; color: var(--dark); font-weight: 600; font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; } }
+  .friend-admin-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem .5rem; margin-top: .2rem; > small { font-size: .68rem; line-height: 1.5; color: var(--stellar-muted); overflow-wrap: anywhere; } }
+  .stellar-admin-badge { display: inline-flex; align-items: center; width: fit-content; gap: .3rem; padding: .12rem .4rem; border-radius: 4px; font-size: .65rem; line-height: 1.5; white-space: nowrap; color: var(--stellar-success); background: color-mix(in srgb, var(--stellar-success) 9%, var(--light));
+    &::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+    &[data-state='待审核'], &[data-state='待处理'] { color: var(--stellar-waiting); background: color-mix(in srgb, var(--stellar-waiting) 9%, var(--light)); }
+    &[data-state='已失效'] { color: var(--stellar-danger); background: color-mix(in srgb, var(--stellar-danger) 9%, var(--light)); }
+  }
+  .friend-admin-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .25rem .7rem; max-width: 46%; }
+  button.is-danger { color: var(--stellar-danger); }
+  .friend-admin-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; > label { display: flex; min-width: 0; flex-direction: column; gap: .4rem; color: var(--darkgray); font-size: .78rem; font-weight: 500; } .is-wide { grid-column: 1 / -1; } }
+  .friend-admin-form { padding: .8rem; border: 1px solid var(--lightgray); border-radius: 9px; }
+  .friend-admin-footer { display: flex; justify-content: flex-end; padding-top: .7rem; }
+  .friend-admin-status { min-height: 1.4em; margin: .5rem 0 0; color: var(--stellar-success); font-size: .72rem; line-height: 1.7; &.is-error { color: var(--stellar-danger); } }
+  .friend-admin-empty, .data-admin-note { color: var(--stellar-muted); font-size: .72rem; line-height: 1.8; overflow-wrap: anywhere; margin: 0 0 .85rem; }
+  .friend-admin-empty { padding: 1rem 0; margin: 0; }
+  .friend-admin-review-link { align-self: start; background: transparent; color: var(--secondary); font-size: .74rem; &:hover { text-decoration: underline; text-underline-offset: 3px; } }
+  .data-admin-search { flex: 1; max-width: 24rem; }
+  .stellar-admin-pagination {
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .85rem;
+    > span { color: var(--stellar-muted); font-size: .7rem; text-align: center; }
+    > button { min-width: 3.4rem; padding: .35rem .55rem; border: 1px solid var(--lightgray); border-radius: 5px; font-size: .72rem; &:hover:not(:disabled) { background: var(--stellar-accent); text-decoration: none; } }
+  }
+  .stellar-navigation-toolbar { display: flex; justify-content: flex-end; margin: 0; padding: .5rem .8rem; }
+  .stellar-navigation-list { min-width: 0; padding: 0 .9rem; }
+  .stellar-navigation-item { min-width: 0; border-top: 1px solid var(--lightgray); }
+  .stellar-navigation-summary { display: flex; align-items: center; gap: .75rem; min-width: 0; padding: .6rem 0;
+    > small { flex-shrink: 0; padding: .15rem .4rem; border-radius: 4px; color: var(--stellar-muted); background: var(--highlight); font-size: .65rem; font-variant-numeric: tabular-nums; }
+    > button { padding: .35rem 0 .35rem .35rem; font-size: .76rem; &:hover { text-decoration: underline; text-underline-offset: 3px; } }
+  }
+  .stellar-navigation-icon { display: grid; place-items: center; flex: 0 0 34px; height: 34px; border-radius: 8px; color: var(--secondary); background: var(--stellar-accent); > svg { width: 19px; height: 19px; fill: currentColor; } }
+  .stellar-navigation-copy { flex: 1; min-width: 0; > strong { display: block; color: var(--dark); font-size: .84rem; line-height: 1.5; } > span { display: block; margin-top: .15rem; color: var(--stellar-muted); font-size: .69rem; line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+  .stellar-navigation-editor { display: grid; grid-template-columns: minmax(0, 1fr) 6rem; gap: .65rem; padding: .65rem; margin: 0 0 .65rem; border-radius: 7px; background: var(--stellar-accent);
+    .stellar-navigation-field { display: flex; min-width: 0; flex-direction: column; gap: .35rem; > span { font-size: .75rem; font-weight: 500; color: var(--darkgray); } }
+    .field-address { grid-column: 1 / -1; }
+    .field-icon { grid-column: 1 / -1; textarea { height:8rem; min-height:6rem; font-family:var(--codeFont); font-size:.75rem; line-height:1.5; tab-size:2; } }
+  }
+  .stellar-navigation-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-end; gap: .85rem;
+    > span { min-width: 0; margin-right: auto; font-size: .7rem; color: var(--stellar-success); overflow-wrap: anywhere; &.is-error { color: var(--stellar-danger); } }
+    > button { font-size: .76rem; }
+  }
+  .feedback-admin-list { display: grid; gap: .6rem; margin-block: .7rem; }
+  .feedback-admin-item { min-width: 0; padding: .7rem .8rem; border: 1px solid var(--lightgray); border-radius: 9px;
+    > header { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-start; gap: .45rem .65rem; width: 100%; margin: 0; padding: 0; border: 0; }
+    > header > a { min-width: 0; color: var(--secondary); background: transparent; font-size: .83rem; font-weight: 600; overflow-wrap: anywhere; }
+  }
+  .feedback-admin-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; margin-left: auto; }
+  .feedback-admin-meta { margin: .5rem 0; color: var(--stellar-muted); font-size: .69rem; line-height: 1.7; overflow-wrap: anywhere; }
+  .feedback-admin-description { margin: .75rem 0 0; padding: .7rem .8rem; border-radius: 6px; background: var(--stellar-surface); color: var(--darkgray); font-size: .81rem; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .stellar-admin-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; height: 100%; min-height: 240px; padding: 2rem; text-align: center;
+    > strong { font-size: .95rem; color: var(--dark); }
+    > span:last-of-type { color: var(--stellar-muted); font-size: .78rem; line-height: 1.7; }
+    > button { margin-top: .5rem; padding: .5rem 1rem; border: 1px solid var(--lightgray); border-radius: 6px; }
+    .stellar-admin-loading-symbol { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: .35rem; color: var(--secondary); animation: stellar-admin-breathe 1.4s ease-in-out infinite; >svg { width: 32px; height: 32px; } }
+    &.is-error .stellar-admin-loading-symbol { animation: none; color: var(--stellar-danger); }
+  }
+  :is(.stellar-admin-content,.stellar-admin-navigation,textarea) { scrollbar-width: thin; scrollbar-color: var(--lightgray) transparent; &::-webkit-scrollbar { width: 6px; height: 6px; } &::-webkit-scrollbar-thumb { border-radius: 4px; background: var(--lightgray); } &::-webkit-scrollbar-track { background: transparent; } }
+}
+:root[saved-theme='dark'] .stellar-admin { --stellar-danger: #e2919e; --stellar-success: #89b6a4; --stellar-waiting: #d4b47c; input, select { color-scheme: dark; } }
+@keyframes stellar-admin-breathe { 50% { opacity: .35; transform: scale(.85); } }
+@media (max-width: 950px) and (min-width: 701px) {
+  .stellar-admin {
+    .stellar-admin-workspace { grid-template-columns: 148px minmax(0, 1fr); }
+    .stellar-admin-navigation { padding-inline: .5rem; }
+    .stellar-admin-content { padding: .9rem; }
+    .stellar-setting-row { grid-template-columns: minmax(0, 1fr); .stellar-setting-copy { grid-row: 1; padding-top: 0; } .stellar-setting-control, .stellar-setting-status { &:empty {display:none;} grid-column: 1; } .stellar-setting-control { margin-top: .4rem; } }
+    .friend-admin-row { flex-wrap: wrap; }
+    .friend-admin-actions { max-width: none; width: 100%; padding-left: 52px; justify-content: flex-start; }
+  }
+}
+@media (max-width: 700px) {
+  .observatory-dialog.observatory-settings-dialog { width: calc(100% - 1rem); height: calc(100dvh - 1.5rem); max-height: calc(100dvh - 1.5rem); border-radius: 11px;
+    > .observatory-auth-header { padding: .75rem 1rem; > h2 { font-size: 1rem; } .observatory-manage-actions { gap: .75rem; } }
+  }
+  .stellar-admin {
+    .stellar-admin-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    .stellar-admin-navigation { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; padding: .65rem; border-right: 0; border-bottom: 1px solid var(--lightgray); }
+    .stellar-admin-tab { justify-content: center; gap: .4rem; min-height: 36px; padding: .45rem .3rem; font-size: .76rem; > span:first-of-type { flex: 0 1 auto; } > svg { width: 15px; height: 15px; } .stellar-admin-tab-count { display: none; } }
+    .stellar-admin-content { padding: .8rem .75rem 1rem; }
+    .stellar-admin-module-intro { align-items: start; gap: .65rem; margin-bottom: .8rem; h2 { font-size: 1.05rem; } p { font-size: .74rem; } }
+    .stellar-admin-module-icon { flex-basis: 34px; height: 34px; border-radius: 8px; > svg { width: 19px; height: 19px; } }
+    .stellar-setting-card > h3 { padding: .65rem .85rem; }
+    .stellar-setting-row { grid-template-columns: minmax(0, 1fr); margin-inline: .85rem; padding-top: .65rem; .stellar-setting-copy { grid-row: 1; padding-top: 0; } .stellar-setting-control, .stellar-setting-status { &:empty {display:none;} grid-column: 1; } .stellar-setting-control { margin-top: .4rem; } }
+    [data-stellar-settings] :is(input, select, textarea) { font-size: 16px; }
+    .friend-admin-row { flex-wrap: wrap; }
+    .friend-admin-actions { width: 100%; max-width: none; justify-content: flex-start; padding-left: 52px; gap: .4rem .85rem; }
+    .friend-admin-fields { grid-template-columns: minmax(0, 1fr); gap: .85rem; }
+    .friend-admin-form { padding: .85rem; }
+    .friend-admin-heading:has(.data-admin-search) { align-items: stretch; flex-wrap: nowrap; .data-admin-search { width: 0; } .stellar-admin-add { flex-shrink: 0; } }
+    .data-admin-tabs { width: 100%; > button { flex: 1; padding-inline: .5rem; } }
+    .feedback-admin-item { padding: .8rem; }
+    .feedback-admin-actions { width: 100%; margin: .1rem 0 0; }
+  }
+}
+@media (prefers-reduced-motion: reduce) { .stellar-admin .stellar-admin-loading-symbol { animation: none; } .stellar-admin input[type=checkbox]::after { transition: none; } }
+
+@media (max-width: 1199px) {
+  .observatory-dialog.observatory-settings-dialog {
+    position: fixed; inset: auto env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    width: min(100dvw, 48rem); max-width: calc(100dvw - env(safe-area-inset-left) - env(safe-area-inset-right));
+    height: 88svh; max-height: calc(100dvh - env(safe-area-inset-top) - .5rem);
+    margin: 0 auto; border-bottom: 0; border-radius: 16px 16px 0 0;
+    &:modal { animation: stellar-admin-sheet 160ms ease-out; }
+    .stellar-admin-content { padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); }
+  }
+}
+@keyframes stellar-admin-sheet { from { transform: translateY(1rem); opacity: .5; } to { transform: translateY(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .observatory-dialog.observatory-settings-dialog:modal { animation: none; } }
+
+.stellar-build-actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; }
+.stellar-build-actions p { margin: 0 0 .4rem; font-size: .82rem; line-height: 1.65; color: var(--gray); }
+.stellar-build-actions button { flex-shrink: 0; }
+.stellar-build-status { font-size: .78rem; color: var(--secondary); }
+.stellar-build-status.is-error { color: light-dark(#b33c49, #ef96a1); }
+@media (max-width: 600px) { .stellar-build-actions { align-items: stretch; flex-direction: column; } }
+
+.stellar-admin {
+  .stellar-list-message { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; min-height: 190px; padding: 1.5rem 1rem; text-align: center; > svg { width: 26px; height: 26px; margin-bottom: .2rem; color: var(--stellar-muted); opacity: .7; } > strong { font-size: .85rem; font-weight: 500; color: var(--darkgray); } > p { max-width: 30rem; margin: 0; font-size: .75rem; line-height: 1.7; color: var(--stellar-muted); overflow-wrap: anywhere; } > button { margin-top: .35rem; padding: .4rem .8rem; border: 1px solid var(--lightgray); border-radius: 6px; font-size: .76rem; } }
+  .friend-admin-status:empty { display: none; }
+}
+
+
+
+.stellar-admin {
+ .data-admin-toolbar {display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;>select{flex:0 1 16rem;min-width:10rem;} >input{flex:1;min-width:8rem;} >button{flex:none;}}
+ .data-admin-body{min-height:12rem;}
+ .data-admin-loading{min-height:12rem;display:flex;align-items:center;justify-content:center;.drive-loading{@include driveLoading.spinner;}}
+ .data-admin-table-wrap{overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--lightgray) transparent;}
+ .data-admin-table {width:100%;min-width:30rem;table-layout:fixed;border-collapse:collapse;font:.8rem/1.6 var(--bodyFont);th,td{padding:.65rem .5rem;border-bottom:1px solid var(--lightgray);text-align:left;}th{color:var(--stellar-muted);font-size:.72rem;font-weight:500;}td>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--darkgray);}th:last-child{width:7rem;} .data-admin-row-actions{white-space:nowrap;>button{padding:.25rem .35rem;}}
+ }
+ .data-admin-fields {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem 1rem;margin:1rem 0;}
+ .data-admin-field {display:flex;flex-direction:column;gap:.4rem;min-width:0;color:var(--darkgray);font:.8rem/1.5 var(--bodyFont);&.is-wide{grid-column:1/-1;} >input,>textarea,>select{width:100%;} >textarea{height:auto;min-height:6rem;resize:vertical;} >input[type=file]{height:auto;padding:.5rem;} >a{font-size:.75rem;color:var(--secondary);}}
+ @media(max-width:767px){.data-admin-fields{grid-template-columns:minmax(0,1fr);}.data-admin-toolbar>select{flex-basis:100%;}}
+}
+
+// Alert records use the same management controls and theme as the other modules.
+.stellar-admin {
+  .alert-toolbar { display: grid; grid-template-columns: 8.5rem minmax(0,1fr) 2.3rem 2.3rem; align-items: center; gap: .5rem; margin: 0 0 .75rem;
+    > button { display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border: 1px solid var(--lightgray); border-radius: 7px; &:hover { background: var(--highlight); } }
+  }
+  .alert-list { min-height: 190px; &[aria-busy=true] { opacity: .65; } }
+  .alert-record { display: grid; grid-template-columns: 24px minmax(0,1fr) auto; gap: .7rem; padding: .9rem 0; border-bottom: 1px solid var(--lightgray); &:last-child { border: 0; } }
+  .alert-record-icon { color: var(--stellar-danger); padding-top: .15rem; > svg { width: 21px; height: 21px; } }
+  .alert-record[data-level=warning] .alert-record-icon, .alert-record[data-level=warning] .alert-level { color: var(--stellar-waiting); }
+  .alert-record-copy { min-width: 0; > strong { display: block; color: var(--dark); font-size: .88rem; font-weight: 600; line-height: 1.7; overflow-wrap: anywhere; } > p { margin: .25rem 0; color: var(--darkgray); font-size: .79rem; line-height: 1.7; overflow-wrap: anywhere; } }
+  .alert-record-context { display: flex; flex-wrap: wrap; gap: .3rem .7rem; color: var(--stellar-muted); font-size: .73rem; line-height: 1.7; margin-bottom: .2rem; }
+  .alert-level { color: var(--stellar-danger); font-weight: 600; }
+  .alert-record-meta { display: flex; flex-wrap: wrap; gap: .15rem .9rem; color: var(--stellar-muted); font-size: .72rem; line-height: 1.8; overflow-wrap: anywhere; }
+  .alert-record-count { color: var(--darkgray); font-size: .76rem; font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: .15rem; }
+  @media (max-width: 600px) {
+    .alert-toolbar { grid-template-columns: minmax(0,1fr) 2.3rem 2.3rem; > select { grid-column: 1 / -1; } }
+    .alert-record { grid-template-columns: 21px minmax(0,1fr) auto; gap: .5rem; }
+    .alert-record-meta { flex-direction: column; }
+  }
+}
+
+.stellar-admin .service-manager {
+ .service-manager-heading{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;margin:.5rem 0;.service-manager-list+&{margin-top:1.25rem;}h3{flex:1;margin:0;}button{padding:.35rem .6rem;border:1px solid var(--lightgray);border-radius:5px;color:var(--secondary);background:var(--moreLight);font:inherit;cursor:pointer;}}
+ .service-manager-note{margin:.5rem 0 .8rem;font-size:.78rem;color:var(--gray);line-height:1.6;}
+ .service-manager-row{display:flex;align-items:center;gap:.65rem;min-width:0;padding:.75rem 0;border-bottom:1px solid var(--lightgray);}
+ .service-manager-icon{display:flex;flex:0 0 20px;color:var(--secondary);svg{width:20px;height:20px;}}
+ .service-manager-copy{flex:1;min-width:0;strong,small{display:block;overflow-wrap:anywhere;}strong{font-size:.86rem;color:var(--dark);}small{font-size:.73rem;color:var(--gray);margin-top:.2rem;}}
+ .service-manager-actions{display:flex;align-items:center;gap:.6rem;flex:none;button{padding:.2rem;color:var(--secondary);background:none;border:0;cursor:pointer;font:inherit;font-size:.8rem;&:disabled{color:var(--gray);cursor:default;}}input[role=switch]{@include serviceSwitch;}}
+}
+.drive-action-body label.service-edit-switch{display:flex;flex-direction:row;align-items:center;gap:.5rem;input[role=switch]{@include serviceSwitch;}}
+
+.stellar-navigation-add{display:flex;align-items:center;justify-content:center;width:100%;min-height:38px;border:0;border-top:1px solid var(--lightgray);background:transparent;color:var(--secondary);cursor:pointer;border-radius:0 0 7px 7px;padding:8px;gap:.4rem;svg{display:block}&:hover span{text-decoration:underline;text-underline-offset:.2em;}}
+
+.service-auth-fields{display:grid;gap:.75rem}.service-auth-fields:empty{display:none}.service-manager input:disabled{opacity:.65}
+
+// Lists share one enclosing surface, row dividers and empty-state geometry.
+.stellar-admin {
+  :is(.friend-admin-list,.feedback-admin-list,.service-manager-list,.alert-list) {
+    min-width:0; margin-block:.7rem; padding:0 .9rem; border:1px solid var(--lightgray); border-radius:9px;
+  }
+  .feedback-admin-list { display:block; }
+  :is(.feedback-admin-item,.alert-record,.service-manager-row) {
+    margin:0; padding:.75rem 0; border:0; border-bottom:1px solid var(--lightgray); border-radius:0;
+    &:last-child { border-bottom:0; }
+  }
+  .data-admin-body:has(> .stellar-list-message) { border:1px solid var(--lightgray); border-radius:9px; }
+  .stellar-list-message { box-sizing:border-box; min-height:190px; }
+  .stellar-admin-pagination:empty { display:none; }
+  .data-admin-category optgroup { font:600 .75rem/1.7 var(--bodyFont); color:var(--secondary); padding:.45rem .25rem .2rem; }
+  .data-admin-category optgroup option { font:400 .82rem/1.5 var(--bodyFont); color:var(--darkgray); padding:.5rem .8rem; }
+}
+.stellar-admin .stellar-security-form {
+  display:grid;gap:.8rem;max-width:30rem;padding:.8rem 1rem 1rem;
+  &[hidden] {display:none;}
+  >label {display:grid;gap:.35rem;font-size:.8rem;}
+  >button {justify-self:end;}
+  .drive-password-field {position:relative;display:flex;align-items:center;}
+  .drive-password-field>input {width:100%;padding-right:2.6rem;}
+  .drive-password-toggle {position:absolute;right:.5rem;display:grid;place-items:center;padding:.4rem;color:var(--secondary);border:0;background:transparent;}
+}
+
+.stellar-admin .stellar-list-message .drive-loading { @include driveLoading.spinner; }
+
+.stellar-admin .data-admin-table-wrap { border:1px solid var(--lightgray);border-radius:9px; }
+
+.stellar-admin .stellar-action-button {
+ justify-self:end;width:auto;white-space:nowrap;
+ >svg{width:1rem;height:1rem;flex:none;}
+ &:disabled{opacity:.45;cursor:default;}
+}
+.stellar-admin .stellar-security-row {grid-template-columns:minmax(0,1fr) auto;padding:.8rem 0;align-items:center;> .stellar-setting-copy{grid-row:auto;padding:0;>strong{font-size:.85rem;font-weight:500;}}}
+.stellar-admin dialog.stellar-password-dialog {
+ width:min(26rem,calc(100vw - 2rem));padding:0;border-radius:9px;
+ >header{display:flex;align-items:center;justify-content:space-between;margin:0;padding:.9rem 1rem;border-bottom:1px solid var(--lightgray);width:auto;}
+ h2{font-size:1rem;margin:0;}header>button{display:grid;place-items:center;padding:.25rem;border:0;background:transparent;color:var(--secondary);>svg{width:1.1rem;height:1.1rem;}}
+ .stellar-security-form{padding:1rem;margin:0;gap:.7rem;}
+}
+
+.stellar-admin textarea.svg-icon-code,.drive-action-dialog textarea.svg-icon-code {height:8rem;min-height:6rem;font-family:var(--codeFont);font-size:.75rem;line-height:1.5;tab-size:2;}
+.drive-action-body .service-icon-field >span {display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.drive-action-body .service-icon-field .service-manager-icon {display:grid;place-items:center;width:20px;height:20px;color:var(--secondary);>svg{width:20px;height:20px;}}
+@media(prefers-reduced-motion:reduce){.drive-action-body .service-edit-switch input::after{transition:none;}}

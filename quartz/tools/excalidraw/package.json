@@ -1,0 +1,8 @@
+{
+  "name": "quartz-excalidraw-preview",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs" },
+  "dependencies": { "@excalidraw/utils": "0.1.8", "lz-string": "1.5.0" },
+  "devDependencies": { "esbuild": "0.27.2" }
+}

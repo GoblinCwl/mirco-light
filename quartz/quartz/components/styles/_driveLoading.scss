@@ -1,0 +1,6 @@
+@mixin spinner {
+  position: relative; display: block; width: 1.75rem; height: 1.75rem; color: var(--secondary);
+  &::before { content: ""; position: absolute; inset: 0; box-sizing: border-box; border: 2px solid color-mix(in srgb, currentColor 14%, transparent); border-top-color: currentColor; border-right-color: color-mix(in srgb, currentColor 45%, transparent); border-radius: 50%; animation: drive-verify-spin 1s linear infinite; }
+  > i { position: absolute; top: 50%; left: 50%; width: .55rem; height: .55rem; background: currentColor; transform: translate(-50%, -50%); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+  @media (prefers-reduced-motion: reduce) { &::before { animation: none; } }
+}

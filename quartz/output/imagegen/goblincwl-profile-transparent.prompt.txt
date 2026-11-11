@@ -1,0 +1,10 @@
+Tool: built-in image_gen (imagegen skill), background-extraction.
+Scope: only GoblinCwl's website avatar; Toki assets and bindings unchanged.
+Reference: goblincwl-profile-refined.png.
+Production alpha cleanup: remove low-alpha matte residue at native resolution, then downsample with antialiasing to 512px WebP.
+Native cutout: goblincwl-profile-transparent.png.
+Website asset: quartz/static/avatars/goblincwl-profile-transparent-v1.webp.
+CSS backgrounds: light #c7dced, dark #25354b.
+
+Generation prompt:
+Remove only the pale-blue background from this finished avatar to genuine transparency. Preserve every opaque character pixel, pose, face, hair, eyes, ears, shirt, tie, tail, and separate gold star. No redraw or restyling. Remove the backdrop also inside the top hair loop and between tail and torso. Keep pale gray hair shadows and white clothing opaque. Preserve framing and clean alpha edges with no blue matte.

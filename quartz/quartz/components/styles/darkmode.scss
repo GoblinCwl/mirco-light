@@ -1,0 +1,68 @@
+.darkmode {
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  background: none;
+  border: none;
+  width: 20px;
+  height: 32px;
+  margin: 0;
+  text-align: inherit;
+  flex-shrink: 0;
+
+  & svg {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: calc(50% - 10px);
+    fill: var(--darkgray);
+    transform-origin: center;
+    pointer-events: none;
+    transition:
+      opacity 360ms ease,
+      transform 600ms cubic-bezier(.22, 1, .36, 1),
+      visibility 0s linear 600ms;
+  }
+}
+
+:root[saved-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root[saved-theme="light"] {
+  color-scheme: light;
+}
+
+:root[saved-theme="dark"] .darkmode {
+  & > .dayIcon {
+    opacity: 0;
+    visibility: hidden;
+    transform: rotate(70deg) scale(0.55);
+    transition-delay: 0s, 0s, 600ms;
+  }
+  & > .nightIcon {
+    opacity: 1;
+    visibility: visible;
+    transform: rotate(0) scale(1);
+    transition-delay: 0s;
+  }
+}
+
+:root .darkmode {
+  & > .dayIcon {
+    opacity: 1;
+    visibility: visible;
+    transform: rotate(0) scale(1);
+    transition-delay: 0s;
+  }
+  & > .nightIcon {
+    opacity: 0;
+    visibility: hidden;
+    transform: rotate(-55deg) scale(0.55);
+    transition-delay: 0s, 0s, 600ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .darkmode > svg { transition: none; }
+}

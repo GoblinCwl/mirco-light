@@ -1,0 +1,15 @@
+node_modules
+public
+public-cache
+.git
+.gitignore
+README.md
+LICENSE
+.DS_Store
+*.log
+.vscode
+.idea
+*.tar
+output/
+quartz/.quartz-cache/
+tsconfig.tsbuildinfo

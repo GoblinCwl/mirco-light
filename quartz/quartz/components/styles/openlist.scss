@@ -1,0 +1,399 @@
+@use "../../styles/variables.scss" as *;
+@use "directoryList";
+@use "driveLoading";
+@use "mediaOverview";
+
+body[data-slug^="Share/"] {
+  .center > hr, .center > .page-footer { display: none; }
+  .center.has-share-comments > .page-footer { display: block; padding-top: 1.5rem; border-top: 1px solid var(--lightgray); }
+  [data-drive-share-tags][hidden], [data-drive-share-comments][hidden] { display: none !important; }
+  #quartz-body > .sidebar.right:not(:has(.drive-operations)) { display: none; }
+
+}
+.drive-page {
+  padding-block: 0 3rem;
+  min-width: 0;
+  [hidden] { display: none !important; }
+  :is(button, input, select):not(:where(.password-gate *)) { font: inherit; }
+  :is(button, select):not(:where(.password-gate *)) {
+    color: var(--secondary); background: transparent; border: 1px solid var(--lightgray);
+    border-radius: 6px; padding: 0.4rem 0.7rem; cursor: pointer;
+    &:hover:not(:disabled) { background: var(--highlight); border-color: var(--secondary); }
+  }
+  button:disabled:not(:where(.password-gate *)) { cursor: default; opacity: 0.45; }
+  :is(button, input, select, a):focus-visible:not(:where(.password-gate *)) { outline: 2px solid var(--secondary); outline-offset: 2px; }
+  input:not(:where(.password-gate *)) {
+    min-width: 0; box-sizing: border-box; background: transparent; border: 1px solid var(--lightgray);
+    color: var(--dark); border-radius: 6px; padding: 0.55rem 0.65rem;
+  }
+  a { background: transparent; }
+  .drive-heading {
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+    margin: 1rem 0 1.5rem; gap: 1rem;
+    &:not(:has(.drive-context:not(:empty))) { display: none; }
+  }
+  .drive-context { color: var(--gray); font-size: 0.85rem; margin: 0; &:empty { display: none; } }
+  .drive-stage { position: relative; display: flow-root; min-height: 24rem; }
+  .drive-gate {
+    box-sizing: border-box; width: min(100%, 34rem);
+    margin: clamp(2rem, 6svh, 4rem) auto 0;
+    padding: .5rem clamp(1.5rem, 4vw, 2.25rem);
+    text-align: center;
+    .lock-header > h2 { margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.4; }
+
+  }
+  .drive-stage:has(> :is(.drive-unlock-content, .drive-gate):not([hidden])) { min-height: 0; }
+  .drive-unlock-content { min-height: 0; }
+  .drive-preview-body {
+    min-height: 18rem; display: flex; justify-content: center; align-items: center; overflow: auto;
+    > img, > video { display: block; max-width: 100%; max-height: 78dvh; object-fit: contain; }
+    > audio { width: min(100%, 34rem); margin-block: 3rem; }
+    > iframe { width: 100%; height: 78dvh; border: 1px solid var(--lightgray); border-radius: 8px; background: white; }
+    > pre { box-sizing: border-box; width: 100%; margin: 0; padding: 1.2rem; font-size: 0.85rem; background: var(--highlight); white-space: pre; overflow: auto; > code { background: transparent; } }
+    &:has(> pre) { display: block; min-height: 0; }
+  }
+  .drive-preview-unsupported { text-align: center; padding: 2rem; .drive-file-icon { width: 3rem; height: 3rem; margin: auto; } p { font-size: 0.9rem; color: var(--gray); } }
+  .drive-metadata {
+    margin: 0 0 1.5rem; overflow-wrap: anywhere; line-height: 1.8;
+    h1 { font-size: 1.35rem; margin: 0 0 0.65rem; }
+    h2, h3 { font-size: 1.1rem; margin: 0.8rem 0 0.5rem; }
+    h4, h5, h6 { font-size: 0.85rem; margin: 0.75rem 0; }
+    p { font-size: 0.9rem; color: var(--darkgray); margin: 0.4rem 0; }
+    pre { overflow: auto; }
+    &.drive-readme { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--lightgray); }
+  }
+  .drive-message { margin: 0; line-height: 1.8rem; font-size: 0.8rem; color: var(--gray); overflow-wrap: anywhere; &:empty { display: none; } &.is-error { color: #c46772; } }
+  .drive-file-icon { display: inline-flex; flex-shrink: 0; width: 1.6rem; height: 1.6rem; color: var(--secondary); > svg { width: 100%; height: 100%; } }
+  .drive-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 20rem; box-sizing: border-box; padding: 2rem; color: var(--gray); text-align: center; font-size: 0.9rem; > .drive-file-icon { width: 2.5rem; height: 2.5rem; opacity: 0.55; } p { margin: 1rem 0; } button { font-size: 0.85rem; } }
+}
+
+.drive-page .drive-loading-overlay {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  z-index: 2; border-radius: inherit; background: transparent; cursor: progress;
+}
+
+.drive-page [data-drive-page-loading] {
+  position: fixed; inset: auto; left: var(--drive-loader-x, 50%); top: calc(50dvh - 16px);
+  width: max-content; height: max-content; transform: translate(-50%, -50%);
+  z-index: 25; pointer-events: none; background: transparent;
+}
+.drive-page .drive-loading-badge { display: grid; place-items: center; }
+
+.drive-page .drive-loading {
+  @include driveLoading.spinner;
+}
+// A known file download fills this ring; ordinary page requests keep rotating.
+.drive-page .drive-loading-progress { display: none; position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.drive-page [data-drive-page-loading].has-progress {
+  .drive-loading::before { animation: none; border-color: color-mix(in srgb, currentColor 14%, transparent); }
+  .drive-loading-progress { display: block; }
+  circle { stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: calc(100 - var(--drive-progress, 0) * 100); transition: stroke-dashoffset 100ms linear; }
+}
+// A completed transfer can still be parsing: keep the full ring and spin its star.
+.drive-page [data-drive-page-loading].is-rendering .drive-loading > i { animation: drive-preview-star-spin 1.2s linear infinite; }
+@keyframes drive-preview-star-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) { .drive-page .drive-loading::before { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .drive-page [data-drive-page-loading].is-rendering .drive-loading > i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .drive-page .drive-loading-progress circle { transition: none; } }
+
+.drive-page {
+  .drive-list-caption { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 1.5rem; margin: .6rem 0 .15rem; color: var(--gray); font-size: .8rem; > p { margin: 0; } > span { color: var(--secondary); } }
+  .drive-file-table {
+    @include directoryList.table;
+    width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .9rem;
+    th, td { box-sizing: border-box; padding: .8rem .6rem; border: 0; text-align: left; vertical-align: middle; }
+    thead { border-bottom: 1px solid var(--lightgray); }
+    thead th { padding-top: .25rem; }
+    th { color: var(--gray); font-size: .75rem; font-weight: 400; }
+    th button {
+      display: inline-flex; align-items: center; gap: .35rem; max-width: 100%; padding: .25rem 0; border: 0; border-radius: 0;
+      font: inherit; color: var(--gray); white-space: nowrap;
+      &:hover:not(:disabled) { color: var(--secondary); background: transparent; }
+      &.is-sorted { color: var(--secondary); }
+    }
+    .drive-sort-indicator { font-size: .7rem; font-family: var(--codeFont); min-width: .65rem; }
+    &:not(.has-directory-tags) .drive-tags-cell { display: none; }
+    tr { border-bottom: 1px solid var(--directory-row-border); }
+    tbody tr { &.is-selected { background: color-mix(in srgb, var(--secondary) 8%, transparent); } }
+    .drive-select-cell { width: 2.1rem; padding-left: .25rem; padding-right: .25rem; text-align: center; }
+    .drive-kind-cell { width: 2.7rem; text-align: center; > .drive-file-icon { vertical-align: middle; } }
+    tbody td { padding-block: var(--directory-row-padding); }
+    .drive-size-cell { @include directoryList.detail; width: 6.5rem; }
+    .drive-modified-cell { @include directoryList.detail; width: 11rem; }
+    .drive-name-cell { min-width: 0; padding-left: .25rem; font-size: .95rem; }
+    .drive-entry-name { display: flex; align-items: center; gap: .3rem; min-width: 0; > .encrypted-mark { flex-shrink: 0; } }
+    .drive-file-open { @include directoryList.name; display: inline-flex; max-width: 100%; align-items: center; min-width: 0; padding: 0; .encrypted-mark { flex-shrink: 0; } }
+    .drive-file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .drive-file-icon { @include directoryList.icon; opacity: 1; }
+    input[type="checkbox"] {
+      display: inline-block; position: relative; vertical-align: middle; transform: none; margin: 0; padding: 0; width: 16px; height: 16px;
+      border-radius: 4px; cursor: pointer; background: transparent; accent-color: var(--secondary);
+      &:checked { background: var(--secondary); border-color: var(--secondary); }
+      &:indeterminate { background: var(--secondary); border-color: var(--secondary); &::after { content: ""; position: absolute; width: 8px; height: 2px; left: 3px; top: 6px; background: var(--light); border: 0; transform: none; } }
+    }
+    .drive-list-empty { padding: 2rem .5rem; text-align: center; color: var(--gray); font-size: .85rem; }
+  }
+}
+@media all and ($mobile) {
+  .drive-page .drive-file-table {
+    --directory-row-padding: .75rem;
+    th, td { padding: .7rem .3rem; }
+    .drive-select-cell { width: 1.6rem; }
+    .drive-kind-cell { width: 2rem; padding-inline: .15rem; > button { font-size: .65rem; gap: .1rem; } }
+    tbody td { padding-block: var(--directory-row-padding); }
+    .drive-size-cell { width: 3.4rem; font-size: .75rem; }
+    .drive-modified-cell { width: 5.6rem; font-size: .75rem; line-height: 1.5; }
+    .drive-tags-cell { display:none; }
+    .drive-name-cell { font-size: .95rem; padding-left: .25rem; }
+  }
+}
+@media (prefers-reduced-motion: reduce) { .drive-page .drive-file-table tbody tr { transition: none; } }
+
+@media screen and (max-width: 500px) {
+  .drive-page .drive-gate { padding-inline: 1rem; }
+}
+
+.drive-page .drive-image-view {
+  .drive-image-select-all { display: flex; align-items: center; gap: .5rem; width: fit-content; margin: .4rem 0 .9rem; font-size: .8rem; color: var(--darkgray); cursor: pointer; }
+  input[type="checkbox"] { box-sizing: border-box; width: 16px; height: 16px; min-width: 16px; margin: 0; padding: 0; accent-color: var(--secondary); cursor: pointer; }
+  .drive-image-folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr)); gap: .5rem; margin-bottom: 1rem; }
+  .drive-image-folder { display: flex; align-items: center; gap: .5rem; min-width: 0; padding: .65rem; border: 1px solid var(--lightgray); border-radius: 6px; .drive-entry-name { display: flex; align-items: center; gap: .3rem; min-width: 0; } .drive-file-icon { width: 1.2rem; height: 1.2rem; } }
+  .drive-file-open { display: inline-block; max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--headerFont); font-size: .9rem; font-weight: 600; color: var(--secondary); @media(hover:hover) and (pointer:fine){&:hover { text-decoration: underline; text-underline-offset: .2em; }} }
+  .drive-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); gap: 1rem; }
+  .drive-image-card { position: relative; min-width: 0; padding: .4rem; border: 2px solid transparent; border-radius: 7px; > input { position: absolute; top: .9rem; left: .9rem; z-index: 1; } > .drive-file-open { margin: .45rem .15rem .1rem; max-width: calc(100% - .3rem); } }
+  :is(.drive-image-card, .drive-image-folder).is-selected { border-color: var(--secondary); background: var(--highlight); }
+  .drive-image-thumbnail { box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--gray) 40%, var(--lightgray)); display: grid; place-items: center; height: 150px; border-radius: 5px; overflow: hidden; background: var(--highlight); > img { display: block; width: 100%; height: 100%; object-fit: cover; } > .drive-file-icon { width: 2.5rem; height: 2.5rem; color: var(--secondary); } &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; } }
+  .drive-image-thumbnail {
+    > :is(img, .drive-file-icon, .drive-thumbnail-loading) { grid-area: 1 / 1; }
+    > img { opacity: 1; transition: opacity 180ms ease; }
+    &.is-loading > img { opacity: 0; }
+    > .drive-thumbnail-loading { pointer-events: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .drive-image-thumbnail > img { transition: none; } }
+  .drive-image-empty { color: var(--darkgray); font-size: .9rem; padding: 1.5rem 0; text-align: center; }
+}
+
+.drive-page {
+  .drive-preview-body { position: relative; min-width: 0; background: transparent; border-radius: 6px; }
+  .drive-preview-content { min-width: 0; width: 100%; background: var(--moreLight); border-radius: 6px; }
+  .drive-renderer-frame { display: block; width: 100%; height: 70dvh; min-height: 22rem; border: 0; border-radius: 6px; background: var(--moreLight); }
+  .drive-preview-image { display: block; max-width: 100%; max-height: 75dvh; object-fit: contain; margin: auto; border-radius: 5px; }
+  .drive-preview-body:has(> .drive-preview-download) { background: transparent; }
+  .drive-preview-download {
+    display: flex; flex-direction: column; align-items: center; gap: .75rem;
+    padding: 2rem 1.5rem; text-align: center; overflow-wrap: anywhere;
+    > .drive-file-icon { width: 4rem; height: 4rem; flex-shrink: 0; color: var(--secondary); }
+    > strong { max-width: min(100%, 32rem); margin-top: .5rem; font-family: var(--headerFont); font-size: 1.15rem; font-weight: 600; line-height: 1.5; color: var(--dark); }
+    > p { margin: 0; max-width: 36rem; color: var(--darkgray); font-size: .85rem; line-height: 1.6; }
+    > .drive-preview-filesize { font-variant-numeric: tabular-nums; }
+    > .drive-preview-note { margin-top: .5rem; }
+  }
+  .drive-preview-note { color: var(--darkgray); font-size: .85rem; }
+  button.drive-archive-back { display: inline-flex; align-items: center; align-self: flex-start; gap: .4rem; min-height: 2.25rem; margin: 0 0 .8rem; padding: .35rem .75rem; border: 1px solid var(--secondary); border-radius: 5px; background: var(--secondary); color: var(--light); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer;
+    > svg { width: 1rem; height: 1rem; }
+    &:hover:not(:disabled) { border-color: var(--tertiary); background: var(--tertiary); color: var(--light); text-decoration: none; }
+  }
+  .drive-archive-preview { box-sizing: border-box; padding: 1rem 1.25rem .25rem; }
+  .drive-archive-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; padding-bottom: .9rem; }
+  .drive-archive-path { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; min-width: 0; font-size: .85rem; line-height: 1.6; overflow-wrap: anywhere;
+    :is(button, .drive-archive-current) { display: inline-flex; align-items: center; gap: .4rem; min-width: 0; }
+    button { padding: 0; border: 0; color: var(--secondary); background: transparent; font: inherit; cursor: pointer; &:hover { background: transparent; text-decoration: underline; text-underline-offset: .2em; } }
+    .drive-file-icon { width: 1.1rem; height: 1.1rem; flex-shrink: 0; color: var(--secondary); }
+  }
+  .drive-archive-current { color: var(--dark); font-weight: 600; }
+  .drive-archive-separator { color: var(--gray); }
+  .drive-archive-count { color: var(--darkgray); font-size: .75rem; white-space: nowrap; }
+  .drive-archive-comment { margin: 0 0 .9rem; padding-left: .7rem; border-left: 2px solid var(--lightgray); color: var(--darkgray); font-size: .8rem; line-height: 1.6; overflow-wrap: anywhere; }
+  .drive-archive-columns { display: flex; justify-content: space-between; padding: .55rem 0 .55rem 2rem; border-block: 1px solid var(--lightgray); color: var(--gray); font-size: .75rem; }
+  .drive-archive-row { display: grid; grid-template-columns: 1.2rem minmax(0, 1fr) auto; align-items: center; gap: .8rem; min-height: 3.2rem; padding: .55rem 0; box-sizing: border-box; border-bottom: 1px solid color-mix(in srgb, var(--lightgray) 65%, transparent);
+    &:last-child { border-bottom: 0; }
+    > .drive-file-icon { width: 1.2rem; height: 1.2rem; color: var(--secondary); }
+    > button { justify-self: start; max-width: 100%; min-width: 0; padding: .15rem 0; border: 0; background: transparent; color: var(--secondary); font-family: var(--headerFont); font-size: .95rem; font-weight: 600; line-height: 1.5; text-align: left; overflow-wrap: anywhere; cursor: pointer;
+      &:hover { background: transparent; text-decoration: underline; text-underline-offset: .2em; }
+    }
+  }
+  .drive-archive-size { font-size: .78rem; font-variant-numeric: tabular-nums; color: var(--darkgray); white-space: nowrap; }
+  .drive-archive-empty { margin: 0; padding: 2rem 1rem; text-align: center; color: var(--darkgray); font-size: .85rem; }
+  .drive-archive-gate { display: flex; flex-direction: column; align-items: center; padding: 2rem .5rem; gap: 1rem; text-align: center;
+    > .drive-file-icon { width: 3rem; height: 3rem; color: var(--secondary); }
+    > strong { color: var(--dark); font-size: 1rem; font-weight: 600; }
+  }
+  .drive-archive-password { display: grid; grid-template-columns: minmax(0, 1fr) 2.8rem; gap: .65rem; width: min(100%, 23rem); margin-top: .25rem;
+    .password-field { position: relative; width: 100%; min-width: 0; }
+    input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 2.8rem; padding: .65rem 3rem .65rem .85rem; background: var(--moreLight); border: 1px solid var(--lightgray); border-radius: 5px; color: var(--dark); font: inherit; font-size: .9rem; outline: none;
+      &:focus-visible { border-color: var(--secondary); box-shadow: 0 0 0 1px var(--secondary); }
+    }
+    button[type="submit"] { display: grid; place-items: center; padding: 0; border: 1px solid var(--secondary); border-radius: 5px; background: var(--secondary); color: var(--light); cursor: pointer;
+      &:hover:not(:disabled) { background: var(--tertiary); border-color: var(--tertiary); }
+      &:disabled { opacity: .45; cursor: default; }
+      > svg { width: 1.15rem; height: 1.15rem; }
+    }
+    .password-visibility-toggle { color: var(--darkgray); background: transparent; border: 0;
+      &:hover { color: var(--secondary); background: var(--highlight); }
+    }
+    input::-ms-reveal { display: none; }
+  }
+  .drive-archive-error { margin: 0; font-size: .8rem; color: #c76c6c; }
+
+}
+
+.drive-page {
+  .drive-image-viewer { min-width: 0; &:fullscreen { background: var(--moreLight); display: flex; flex-direction: column; .drive-image-viewport { flex: 1; max-height: none; } } }
+  .drive-image-viewport { position: relative; display: grid; place-items: center; min-height: 18rem; height: min(60dvh, 36rem); overflow: hidden; touch-action: none; background: var(--moreLight); border-radius: 6px; > img { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center; user-select: none; } }
+  .drive-image-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .35rem; margin-top: .65rem; button { border: 0; padding: .3rem .5rem; background: transparent; color: var(--secondary); font-size: .85rem; &:hover { text-decoration: underline; background: transparent; } } > span { font-size: .75rem; color: var(--darkgray); margin-left: .5rem; } }
+}
+
+.drive-page .drive-preview-content { position: relative; }
+.drive-page .drive-file-page { padding-top: .5rem; }
+
+// File previews fill the remaining viewport; long content scrolls inside once.
+.drive-page:has([data-drive-preview]:not([hidden])) {
+  padding-bottom: 0;
+  .drive-stage { min-height: 0; }
+  .drive-preview-body {
+    display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
+    height: var(--drive-preview-height, 50dvh); min-height: 0; overflow: hidden;
+  }
+  .drive-preview-content { flex: 0 1 auto; min-height: 0; max-height: 100%; overflow: auto; }
+  .drive-preview-content:has(> .drive-renderer-frame) { flex: 1; height: 100%; overflow: hidden; background: transparent; }
+  .drive-renderer-frame { height: 100%; min-height: 0; }
+  .drive-renderer-frame.is-content-sized:not(.is-web-fullscreen) { height: min(100%, var(--drive-content-height)); }
+  .drive-preview-download { box-sizing: border-box; height: 100%; justify-content: flex-start; padding-top: clamp(2rem, 10dvh, 6rem); overflow: auto; }
+  .drive-archive-back { flex-shrink: 0; }
+  .drive-image-viewer { max-height: var(--drive-preview-height); display: flex; flex-direction: column; }
+  .drive-image-viewport { height: auto; min-height: 0; max-height: calc(var(--drive-preview-height) - 3rem); > img { max-height: calc(var(--drive-preview-height) - 3rem); } }
+  .drive-image-controls { flex-shrink: 0; }
+  .drive-image-viewer:fullscreen { height: 100%; max-height: none; .drive-image-viewport { flex: 1; max-height: none; > img { max-height: 100%; } } }
+}
+
+// Expand the isolated player across the page without moving/reloading its iframe.
+@media (max-width: 1199px) {
+  .drive-page:has([data-drive-preview]:not([hidden])) {
+    .drive-preview-body { height: auto; max-height: none; overflow: visible; }
+    .drive-preview-content { flex: none; max-height: none; overflow: auto; }
+    .drive-preview-content:has(> .drive-renderer-frame) { flex: none; height: auto; }
+    .drive-preview-content:has(> .drive-renderer-frame[data-preview-kind="video"], > .drive-renderer-frame[data-preview-kind="aliyun_video"]) { max-width: 100%; overflow: hidden; }
+    .drive-renderer-frame:not(.is-web-fullscreen) { height: max(22rem, 70svh); min-height: 0; }
+    .drive-renderer-frame.is-content-sized:not(.is-web-fullscreen) { height: var(--drive-content-height); }
+    .drive-preview-download { height: auto; overflow: visible; padding-bottom: 2rem; }
+    .drive-image-viewer, .drive-image-viewport { height: auto; max-height: none; }
+    .drive-image-viewport > img, .drive-preview-image { max-height: none; }
+    .drive-image-viewer:fullscreen .drive-image-viewport > img { max-height: 100%; }
+  }
+}
+
+// Videos and their following synopsis use document flow at every viewport size.
+// A long synopsis must never consume the player's available height.
+.drive-page:has([data-drive-preview]:not([hidden])) .drive-preview-body:has(.drive-renderer-frame:is([data-preview-kind="video"], [data-preview-kind="aliyun_video"])) {
+  height:auto; min-height:0; max-height:none; overflow:visible;
+  .drive-preview-content { flex:none; height:auto; min-height:0; max-height:none; overflow:hidden; }
+  &:has(.has-player-panel-overflow) {
+    .drive-preview-content { overflow:visible;background:transparent;z-index:30; }
+    .drive-renderer-frame.has-player-panel-overflow:not(.is-web-fullscreen) {
+      position:relative;z-index:30;margin-top:calc(-1 * var(--drive-menu-offset));
+      height:calc(var(--drive-content-height) + var(--drive-menu-offset));
+      background:transparent;clip-path:var(--drive-menu-clip);border-radius:0;
+    }
+  }
+  .drive-renderer-frame:not(.is-web-fullscreen) {
+    display:block; width:100%; height:var(--drive-content-height,auto); min-height:0; max-height:none; aspect-ratio:16 / 9;
+  }
+}
+
+// Keep the iframe in flow while the host document is locked to the viewport.
+body.jit-fullscreen-host {
+  margin: 0 !important; padding: 0 !important; min-height: 0 !important;
+  .jit-fullscreen-hidden { display: none !important; }
+  .jit-fullscreen-path { display: contents !important; }
+  .drive-renderer-frame.is-web-fullscreen {
+    position: static !important; display: block; inset: auto; margin: 0;
+    width: 100%; min-width: 0; height: 100dvh; min-height: 0;
+    max-width: none; max-height: none; border: 0; border-radius: 0; background: transparent;
+  }
+}
+
+// Renderer readiness is part of the page loader, with no second indicator or mask.
+.drive-page[data-drive-loading] [data-drive-content] { opacity: 0; pointer-events: none; }
+.drive-page :is(.drive-preview-body, .drive-preview-content)[aria-busy="true"] { opacity: 0; pointer-events: none; }
+.drive-page .drive-renderer-frame.is-loading { opacity: 0; pointer-events: none; }
+
+// Transition from the existing hidden state instead of restarting a keyframe
+// whenever loading selectors change during the player's initial handshake.
+.drive-page .drive-renderer-frame:is([data-preview-kind="video"], [data-preview-kind="aliyun_video"]) {
+  transition: opacity 320ms ease-out;
+}
+.drive-page[data-drive-loading] .drive-renderer-frame:is([data-preview-kind="video"], [data-preview-kind="aliyun_video"]) {
+  opacity: 0;
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .drive-page .drive-renderer-frame:is([data-preview-kind="video"], [data-preview-kind="aliyun_video"]) { transition: none !important; }
+}
+
+@media (max-width: 500px) {
+  .drive-page .drive-archive-preview { padding-inline: .85rem; }
+  .drive-page .drive-archive-row { gap: .6rem; }
+  .drive-page .drive-archive-columns { padding-left: 1.8rem; }
+}
+
+.drive-page .drive-file-actions {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: .65rem; margin-top: .85rem; flex-shrink: 0;
+  > .drive-file-action {
+    display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+    min-height: 2.5rem; max-width: 100%; padding: .5rem .9rem;
+    border: 1px solid var(--secondary); border-radius: 5px; background: var(--secondary); color: var(--light);
+    font-size: .85rem; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; text-decoration: none;
+    &:hover { border-color: var(--tertiary); background: var(--tertiary); color: var(--light); text-decoration: none; }
+    &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; }
+  }
+}
+
+.drive-page .drive-file-actions > a.drive-url-link {
+  color: #347bb7; text-decoration: underline; text-underline-offset: .2em; overflow-wrap: anywhere; font-size: .9rem;
+  &:hover { color: #286496; }
+  &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; }
+}
+[saved-theme="dark"] .drive-page .drive-file-actions > a.drive-url-link { color: #87b8df; &:hover { color: #afd5f3; } }
+
+body[data-slug^="Share/"] [data-page-modified] time.is-unavailable { font-weight: 700; }
+
+body[data-slug^="Share/"] [data-drive-share-tags][data-password-tag-slot] {
+  margin-top: .75rem;
+  margin-bottom: calc(1rem + 1.6em + .25rem);
+}
+
+.drive-page {
+  .drive-media-summary { margin: .25rem 0 1.5rem; p { margin: 0 0 .65rem; } }
+  .drive-media-overview { color: var(--darkgray); font-size: .9rem; line-height: 1.7; white-space: pre-line; text-wrap: wrap; }
+  .drive-media-overview-panel { @include mediaOverview.panel; }
+  .drive-media-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(150px,1fr)); gap: 1.6rem 1rem; padding-block: .5rem 1rem; }
+  .drive-media-card { position: relative; min-width: 0; display: flex; flex-direction: column; gap: .4rem; &.is-selected .drive-media-poster { outline: 3px solid var(--secondary); outline-offset: 2px; } }
+  .drive-media-poster { position: relative; display: flex; justify-content: center; align-items: center; width: min(100%, 133.333px); height: auto; aspect-ratio: 2 / 3; margin-inline: auto; overflow: hidden; border-radius: 8px; background: transparent; cursor: pointer; > img { position: absolute; inset: 0; display: block; max-width: 100%; max-height: 100%; width: 100%; height: 100%; margin: 0; border-radius: 8px; object-fit: cover; object-position: center; pointer-events: none; } > .drive-file-icon { width: 2rem; height: 2rem; opacity: .65; pointer-events: none; } }
+  .drive-media-card.is-episode .drive-media-poster { width: 100%; height: auto; aspect-ratio: 16 / 9; > img { position: absolute; width: 100%; height: 100%; object-fit: cover; } }
+  .drive-media-caption { display: flex; flex-direction: column; gap: 0; min-width: 0; > small { text-align: center; } }
+  .drive-media-title { display: block; box-sizing: border-box; max-width: 100%; padding: .25rem .2rem 0; font-family: var(--headerFont); font-size: .9rem; font-weight: 600; color: var(--secondary); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; background: transparent; }
+  .drive-media-detail, .drive-media-source { color: var(--gray); font-size: .85rem; font-weight: 400; line-height: 1.5; }
+  .drive-media-detail { display: flex; justify-content: center; align-items: baseline; gap: .65rem; }
+  .drive-media-summary .drive-media-detail { justify-content: flex-start; }
+  .drive-media-card { background: transparent; > small { text-align: center; } }
+  .drive-media-source { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media(max-width:600px) { .drive-media-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.2rem .8rem; } }
+}
+.center:has([data-openlist]) .breadcrumb-container:not([data-drive-breadcrumb-ready]) { visibility: hidden; }
+body:has(.drive-page.is-media-view) [data-drive-preview-selector],
+.drive-page.is-media-view .drive-file-actions { display: none; }
+body:has(.drive-page[data-share-mode-pending]) :is([data-drive-preview-selector], [data-drive-operation-groups], [data-drive-operations-launch]) { display: none; }
+@media (pointer: coarse) { .drive-page :is(a, button, [role="button"]) { -webkit-tap-highlight-color: transparent; } }
+
+.drive-preview-content { position: relative; }
+.drive-player-error { position: absolute; z-index: 3; top: 18%; left: 50%; transform: translateX(-50%); max-width: calc(100% - 2rem); padding: .65rem .9rem; border: 1px solid var(--lightgray); border-radius: 8px; background: var(--moreLight); color: var(--darkgray); font-size: .85rem; line-height: 1.7; text-align: center; pointer-events: none; }
+
+body[data-slug^="Share/"] .center:has([data-openlist]) .article-title:not([data-drive-title-ready]):not([data-drive-title-retained]) { visibility: hidden; }
+
+html:has(body.drive-web-fullscreen-host){height:100%;scrollbar-gutter:auto;}
+body.drive-web-fullscreen-host{inset:0!important;touch-action:manipulation;}
+
+@keyframes drive-verify-spin { to { transform: rotate(360deg); } }

@@ -1,0 +1,153 @@
+@use "sidebarPanel";
+@use "../../styles/variables.scss" as *;
+
+.article-viewport { display: contents; }
+body:has(article#content > #lock) .graph { display: none !important; }
+
+.graph {
+  width: 100%; min-width: 0;
+  & > h3 { @include sidebarPanel.heading; }
+
+  & > .graph-outer {
+    border-radius: 5px;
+    border: 1px solid var(--lightgray);
+    box-sizing: border-box;
+    height: 250px;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+
+    > .graph-container { width: 100%; height: 100%; min-width: 0; }
+    canvas { display: block; }
+
+    & > .global-graph-icon {
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: var(--dark);
+      opacity: 0.5;
+      width: 24px;
+      height: 24px;
+      position: absolute;
+      padding: 0.2rem;
+      margin: 0.3rem;
+      top: 0;
+      right: 0;
+      border-radius: 4px;
+      background-color: transparent;
+      transition: background-color 0.5s ease;
+      cursor: pointer;
+      &:hover {
+        background-color: var(--lightgray);
+      }
+    }
+  }
+
+  & > .global-graph-outer {
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100%;
+    background: color-mix(in srgb, var(--light) 92%, transparent);
+    --graph-node-fill: var(--tertiary);
+    --graph-node-contrast: var(--light);
+    display: none;
+    overflow: hidden;
+
+    &.active {
+      display: inline-block;
+    }
+
+    .graph-type-filters {
+      position: absolute; z-index: 2; bottom: .75rem; right: .75rem; max-width:calc(100% - 1.5rem);box-sizing:border-box;flex-wrap:wrap;justify-content:flex-end;
+      display: flex; align-items: center; gap: 1rem; margin: 0; padding: 0; list-style: none;
+      > li { margin: 0; padding: 0; }
+      button {
+        display: inline-flex; align-items: center; gap: .4rem; padding: .35rem 0;
+        border: 0; background: transparent; color: var(--darkgray); opacity: .42;
+        font: 500 .8rem/1.5 var(--bodyFont); cursor: pointer;
+        transition: color 150ms ease, opacity 150ms ease, text-shadow 150ms ease;
+        > svg { flex: none; width: 1rem; height: 1rem; color: var(--graph-node-fill); transition: filter 150ms ease; }
+        &[aria-pressed="true"] { color: var(--tertiary); opacity: 1; }
+        &:hover:not(:disabled) { opacity: 1; color: var(--secondary); text-shadow: 0 0 4px color-mix(in srgb, var(--tertiary) 65%, transparent), 0 0 12px color-mix(in srgb, var(--tertiary) 45%, transparent); > svg { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--tertiary) 85%, transparent)) drop-shadow(0 0 6px color-mix(in srgb, var(--tertiary) 65%, transparent)); } }
+        &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 4px; border-radius: 2px; }
+        &:disabled { opacity: .3; cursor: not-allowed; }
+      }
+
+    }
+
+    & > .global-graph-container {
+      border: 1px solid var(--lightgray);
+      background-color: var(--light);
+      border-radius: 5px;
+      box-sizing: border-box;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      height: 80vh;
+      width: 80vw;
+      canvas {opacity:1;transition:opacity .28s ease;}
+      &::after {
+        content:"";position:absolute;top:50%;left:50%;translate:-50% -50%;
+        width:5px;height:5px;border-radius:50%;background:var(--secondary);
+        box-shadow:-18px 8px 0 color-mix(in srgb,var(--tertiary) 60%,transparent),18px -8px 0 color-mix(in srgb,var(--secondary) 55%,transparent);
+        opacity:0;pointer-events:none;transition:opacity .2s ease;
+      }
+      &[data-loading] {
+        canvas {opacity:0;}
+        &::after {opacity:.65;animation:graph-loading-breathe 1.6s ease-in-out infinite;}
+      }
+      .graph-node-title {
+        position: absolute; z-index: 1; top: .85rem; left: 50%; translate: -50% 0;
+        box-sizing: border-box; width: max-content; max-width: min(28rem, calc(100% - 2rem));
+        padding: .5rem .75rem; border: 1px solid var(--lightgray); border-radius: 6px;
+        background: var(--light); color: var(--dark); font: .85rem/1.6 var(--bodyFont);
+        overflow-wrap: anywhere; pointer-events: none;
+        &[hidden] { display: none; }
+      }
+
+      @media all and not ($desktop) {
+        width: 90%;
+      }
+    }
+  }
+}
+@media all and ($mobile) {
+  .graph > .global-graph-outer {
+    height:100dvh;
+    .graph-type-filters {gap:.35rem .8rem;max-width:calc(100% - 1.5rem);}
+    >.global-graph-container {height:calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-height:80dvh;min-width:0;}
+  }
+}
+@keyframes graph-loading-breathe {50%{opacity:.25;scale:.85;}}
+@media (prefers-reduced-motion:reduce){.global-graph-container[data-loading]::after{animation:none!important;}}
+
+@media all and not ($desktop) {
+  body:not([data-slug="index"]) .sidebar.right > .graph.desktop-only { display: none; }
+  body:not([data-slug="index"]) .mobile-article-graph {
+    display: block;
+    flex-shrink: 0;
+    margin: 1.25rem 0 0.5rem;
+    width: 100%;
+  }
+}
+
+@media all and not ($desktop) {
+  body:not([data-slug="index"]) .center > .article-viewport {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-height: 100svh;
+    padding-bottom: 16px;
+    flex-shrink: 0;
+    > article { flex: 1 0 auto; min-height: 0; }
+    > .page-header, > article, > hr, > .graph, > .page-footer { flex-shrink: 0; }
+    > hr { width: 100%; box-sizing: border-box; }
+    @media all and ($mobile) { min-height: calc(100svh - 75px); }
+  }
+}
+
+.global-graph-container >.graph-load-error{position:absolute;inset:40% 1rem auto;text-align:center;color:var(--gray);font:.85rem/1.6 var(--bodyFont);}

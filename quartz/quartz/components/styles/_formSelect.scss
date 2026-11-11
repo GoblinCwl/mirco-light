@@ -1,0 +1,52 @@
+@mixin themed {
+  min-height: 2.8rem;
+  padding: .65rem .8rem;
+  line-height: 1.5;
+  background-color: var(--moreLight);
+  border: 1px solid var(--lightgray);
+  border-radius: 5px;
+  box-shadow: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 160ms ease;
+  &:focus, &:focus-visible {
+    outline: 2px solid var(--secondary);
+    outline-offset: -2px;
+    border-color: var(--secondary);
+    box-shadow: none;
+  }
+  option { color: var(--darkgray); background: var(--moreLight); }
+  @supports (appearance: base-select) {
+    &, &::picker(select) { appearance: base-select; }
+    & { display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: .75rem; background-image: none; }
+    &::picker-icon { flex-shrink: 0; margin-left: auto; color: var(--secondary); transition: transform 150ms ease; }
+    &:open::picker-icon { transform: rotate(180deg); }
+    &::picker(select) {
+      box-sizing: border-box;
+      min-width: anchor-size(width);
+      margin-block: .35rem;
+      padding: .3rem;
+      max-height: 16rem;
+      overflow-y: auto;
+      border: 1px solid var(--lightgray);
+      border-radius: 7px;
+      background: var(--moreLight);
+      color: var(--darkgray);
+      box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
+      scrollbar-width: thin;
+      scrollbar-color: var(--lightgray) transparent;
+    }
+    option {
+      padding: .55rem .65rem;
+      border-radius: 4px;
+      gap: .6rem;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      font: inherit;
+      &:hover, &:focus { background: var(--highlight); outline: none; }
+      &:checked { background: var(--highlight); color: var(--secondary); font-weight: 600; }
+      &::checkmark { color: var(--secondary); }
+    }
+  }
+  @media (prefers-reduced-motion: reduce) { &, &::picker-icon { transition: none; } }
+}

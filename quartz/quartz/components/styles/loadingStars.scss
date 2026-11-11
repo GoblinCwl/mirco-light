@@ -1,0 +1,30 @@
+.loading-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 1.5rem;
+  color: var(--secondary);
+
+  > i {
+    display: block;
+    width: 0.4rem;
+    height: 0.4rem;
+    background: currentColor;
+    opacity: 0.25;
+    clip-path: polygon(50% 0, 63% 37%, 100% 50%, 63% 63%, 50% 100%, 37% 63%, 0 50%, 37% 37%);
+    animation: loading-star-drift 1.8s ease-in-out infinite;
+    &:nth-child(2) { animation-delay: 0.18s; }
+    &:nth-child(3) { width: 0.6rem; height: 0.6rem; animation-delay: 0.36s; }
+    &:nth-child(4) { animation-delay: 0.54s; }
+    &:nth-child(5) { animation-delay: 0.72s; }
+  }
+}
+
+@keyframes loading-star-drift {
+  0%, 100% { opacity: 0.25; transform: translateY(1px) scale(0.8); }
+  50% { opacity: 0.85; transform: translateY(-2px) scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-stars > i { animation: none; opacity: 0.6; }
+}

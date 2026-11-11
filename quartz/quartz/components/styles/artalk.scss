@@ -1,0 +1,382 @@
+@use "./commentShared" as comment;
+
+/* Artalk Comments base styles */
+
+/* 适配项目的配色方案 - 从Quartz的CSS变量中获取 */
+:root {
+  --artalk-custom-light: var(--light);
+  --artalk-custom-lightgray: var(--lightgray);
+  --artalk-custom-gray: var(--gray);
+  --artalk-custom-darkgray: var(--darkgray);
+  --artalk-custom-dark: var(--dark);
+  --artalk-custom-secondary: var(--secondary);
+  --artalk-custom-tertiary: var(--tertiary);
+  --artalk-custom-highlight: var(--highlight);
+  --artalk-custom-main: var(--at-color-main, #0083ff);
+  --artalk-custom-morelight: var(--moreLight); /* 使用Quartz配置中的moreLight值 */
+}
+
+html[data-theme="dark"] {
+  --artalk-custom-light: var(--light);
+  --artalk-custom-lightgray: var(--lightgray);
+  --artalk-custom-gray: var(--gray);
+  --artalk-custom-darkgray: var(--darkgray);
+  --artalk-custom-dark: var(--dark);
+  --artalk-custom-secondary: var(--secondary);
+  --artalk-custom-tertiary: var(--tertiary);
+  --artalk-custom-highlight: var(--highlight);
+  --artalk-custom-main: var(--at-color-main, #0083ff);
+  --artalk-custom-morelight: var(--moreLight); /* 使用Quartz配置中的moreLight值 */
+}
+
+.artalk-comments {
+  visibility: visible; /* 默认显示，以防JavaScript失效 */
+  opacity: 1;
+  
+  /* 初始隐藏状态，直到CSS加载完成 */
+  &.artalk-loading {
+    visibility: hidden;
+  }
+  
+}
+
+/* 确保在没有JavaScript的情况下也有基本的可见性 */
+#artalk-comments {
+  visibility: visible;
+}
+
+/* The ID selector above would otherwise override .artalk-loading. */
+#artalk-comments.artalk-loading {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+// Artalk creates the editor first, then inserts the empty state or comments
+// after its API request. Animate each part when it actually becomes visible.
+#artalk-comments:not(.artalk-loading) :is(.atk-main-editor, .atk-list-no-comment, .atk-comment) {
+  animation: artalk-content-enter 480ms ease-out both;
+}
+
+@keyframes artalk-content-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #artalk-comments:not(.artalk-loading) :is(.atk-main-editor, .atk-list-no-comment, .atk-comment) {
+    animation: none;
+  }
+}
+
+/* Restricted pages show comments without an editor or its closed-state notice. */
+#artalk-comments[data-admin-only="true"]:not([data-admin-editor="true"]) .atk-main-editor,
+#artalk-comments.artalk-admin-only-pending .atk-main-editor {
+  display: none !important;
+}
+
+// Restricted editors use their border rather than a closed-comment notice.
+#artalk-comments[data-admin-only="true"] .atk-comment-closed { display: none !important; }
+#artalk-comments[data-admin-only="true"][data-admin-editor="true"] .atk-main-editor {
+  box-sizing: border-box;
+  border: 2px dashed var(--secondary);
+  border-inline-start: 4px solid var(--secondary);
+  box-shadow: none;
+}
+
+/* Artalk 的动态样式会在本站样式之后加载，因此需要提高优先级。 */
+#artalk-comments .atk-copyright {
+  display: none !important;
+}
+
+/* 重写Artalk的loading动画颜色，使用项目配色 */
+.artalk .atk-loading-spinner svg circle {
+  animation: atkCustomColor 6s ease-in-out infinite;
+}
+
+@keyframes atkCustomColor {
+  0%, to {
+    stroke: var(--artalk-custom-secondary);
+  }
+
+  40% {
+    stroke: var(--artalk-custom-tertiary);
+  }
+
+  66% {
+    stroke: var(--artalk-custom-main);
+  }
+
+  80%, 90% {
+    stroke: var(--artalk-custom-darkgray);
+  }
+}
+
+/* 重写loading图标颜色 */
+.artalk .atk-loading-icon {
+  border-top-color: var(--artalk-custom-secondary) !important;
+  border-left-color: var(--artalk-custom-secondary) !important;
+}
+
+/* 适配loading状态的动画颜色 */
+.artalk .atk-list-read-more .atk-list-read-more-inner .atk-loading-icon {
+  border-top-color: var(--artalk-custom-secondary) !important;
+  border-left-color: var(--artalk-custom-secondary) !important;
+}
+
+/* 适配加载更多按钮的悬停效果 */
+.artalk .atk-list-read-more .atk-list-read-more-inner:hover {
+  background: var(--at-color-bg-grey);
+}
+
+/* 适配加载错误状态的颜色 */
+.artalk .atk-list-read-more.atk-err .atk-text {
+  color: var(--artalk-custom-darkgray) !important;
+}
+
+/* 覆盖Artalk暗色模式背景色，使用项目配色方案 */
+.artalk.atk-dark-mode, .atk-layer-wrap.atk-dark-mode {
+  --at-color-bg: var(--artalk-custom-light) !important; /* Artalk暗色模式下使用当前主题的背景色 */
+  --at-color-bg-transl: var(--artalk-custom-light) !important;
+}
+
+/* 覆盖Artalk浅色模式背景色，使用项目配色方案 */
+.artalk:not(.atk-dark-mode), .atk-layer-wrap:not(.atk-dark-mode) {
+  --at-color-bg: var(--artalk-custom-light) !important; /* Artalk浅色模式下使用当前主题的背景色 */
+  --at-color-bg-transl: var(--artalk-custom-light) !important;
+}
+
+/* 确保加载遮罩使用正确的背景色 */
+.artalk .atk-full-layer,
+.artalk .atk-loading {
+  background: var(--at-color-bg) !important;
+}
+
+/* 确保错误层使用正确的背景色 */
+.artalk .atk-error-layer {
+  background-color: var(--at-color-bg-transl) !important;
+}
+
+/* Artalk编辑器背景色和边框色，使用moreLight作为背景，lightgray作为边框 */
+.artalk .atk-main-editor {
+  background-color: var(--artalk-custom-morelight) !important;
+  border-color: var(--artalk-custom-lightgray) !important;
+}
+
+/* 在暗色模式下覆盖编辑器样式 */
+html[data-theme="dark"] .artalk .atk-main-editor {
+  background-color: var(--artalk-custom-morelight) !important;
+  border-color: var(--artalk-custom-lightgray) !important;
+}
+
+/* Artalk文本区域背景色，使用moreLight作为背景 */
+.artalk .atk-textarea-wrap {
+  background-color: var(--artalk-custom-morelight) !important;
+}
+
+/* Artalk文本输入框背景色，使用moreLight作为背景 */
+.artalk .atk-textarea-wrap .atk-textarea {
+  background-color: var(--artalk-custom-morelight) !important;
+}
+
+/* 在暗色模式下覆盖文本区域样式 */
+html[data-theme="dark"] .artalk .atk-textarea-wrap {
+  background-color: var(--artalk-custom-morelight) !important;
+}
+
+/* 在暗色模式下覆盖文本输入框样式 */
+html[data-theme="dark"] .artalk .atk-textarea-wrap .atk-textarea {
+  background-color: var(--artalk-custom-morelight) !important;
+}
+
+/* Keep comment headers minimal; omit custom text badges such as administrator labels. */
+#artalk-comments .atk-main-editor input[name="link"] {
+  display: none !important;
+}
+
+#artalk-comments :is(.atk-avatar, .atk-nick, .atk-reply-at),
+#artalk-comments :is(.atk-avatar, .atk-nick) a {
+  cursor: default;
+  text-decoration: none;
+}
+
+#artalk-comments .atk-header .atk-badge,
+#artalk-comments .atk-header .atk-region-badge {
+  display: none !important;
+}
+
+/* Adapt Artalk's DOM to the same presentation used by the all-comments page. */
+#artalk-comments .atk-comment {
+  @include comment.row;
+  margin-bottom: 0;
+  padding: 0;
+  > .atk-avatar { @include comment.avatar; float: none; }
+  > .atk-main { min-width: 0; margin-left: 0; }
+  > .atk-main > .atk-header {
+    @include comment.header;
+    .atk-item { margin: 0; }
+    .atk-item.atk-nick, .atk-item.atk-nick a { @include comment.name; }
+    .atk-date { @include comment.metadata; }
+    .atk-reply-at {
+      font-size: 13px;
+      opacity: 1;
+      .atk-nick { @include comment.name; opacity: 1; }
+    }
+  }
+  > .atk-main > .atk-body > .atk-content { @include comment.content; }
+  > .atk-main > .atk-footer {
+    margin-top: 0;
+    .atk-actions { font-size: 0.85rem; color: var(--darkgray); }
+  }
+  > .atk-comment-children { grid-column: 1 / -1; }
+}
+
+// Space wrappers once; comment margins and Artalk's reply-wrapper margins
+// otherwise accumulate into oversized gaps, especially between replies.
+#artalk-comments .atk-comment-wrap { margin-block: 0; }
+#artalk-comments .atk-comment-wrap + .atk-comment-wrap { margin-top: 1rem; }
+#artalk-comments .atk-list-body > .atk-comment-wrap:first-child { margin-top: .5rem; }
+// Artalk nests replies inside .atk-main. Match the compact transition from
+// the parent's actions to its first reply for every reply in the same floor.
+#artalk-comments .atk-comment-children {
+  margin-top: 0;
+  &:empty { display: none; }
+  > .atk-comment-wrap { margin-block: 0; border-bottom-width: 0; }
+  > .atk-comment-wrap + .atk-comment-wrap { margin-top: 0; }
+}
+
+/* Administrator identity is expressed through nickname color only. */
+#artalk-comments .atk-comment > .atk-main > .atk-header .atk-nick.comment-admin-name,
+#artalk-comments .atk-comment > .atk-main > .atk-header .atk-nick.comment-admin-name a {
+  @include comment.admin-name;
+}
+
+/* Folded and long comments use the site's subtle borders and theme colors. */
+#artalk-comments .atk-comment > .atk-main > .atk-body {
+  > .atk-collapsed {
+    @include comment.collapsed;
+    .atk-text { color: var(--darkgray); opacity: 0.7; }
+    .atk-show-btn { @include comment.expand-action; margin-left: 0.5rem; }
+  }
+  > .atk-content.atk-type-collapsed {
+    border: 0;
+    border-radius: 0;
+    margin-bottom: 0.5rem;
+    padding: 0;
+    background: transparent;
+  }
+}
+
+#artalk-comments .atk-comment .atk-height-limit {
+  &::after { background: linear-gradient(transparent, var(--light)); }
+}
+
+#artalk-comments .atk-comment .atk-height-limit-btn {
+  @include comment.expand-action;
+  padding: 0.25rem 0.8rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--light);
+  font-size: 0.85rem;
+  &:hover { background: var(--light); }
+}
+
+#artalk-comments .atk-comment .atk-reply-at .atk-nick.comment-admin-name,
+#artalk-comments .atk-comment .atk-reply-at .atk-nick.comment-admin-name a,
+#artalk-comments .atk-comment .atk-reply-to .atk-nick.comment-admin-name,
+#artalk-comments .atk-comment .atk-reply-to .atk-nick.comment-admin-name a {
+  @include comment.admin-name;
+}
+
+/* Prevent the notification iframe's light first paint from flashing in dark mode. */
+.atk-sidebar-iframe-wrap {
+  background: var(--light);
+  iframe {
+    background: var(--light);
+    visibility: hidden;
+    &[data-notification-theme-ready="true"] { visibility: visible; }
+  }
+}
+
+/* Hide the page-wide close switch to prevent accidental moderation changes.
+ * Comment policy comes from the page; administrators use the editor directly. */
+#artalk-comments [data-action="admin-close-comment"] {
+  display: none !important;
+}
+
+/* Hide notification/control-center entry points in the embedded comment list. */
+#artalk-comments [data-action="open-sidebar"] {
+  display: none !important;
+}
+
+/* Reserve the editor, list heading and first comment before Artalk downloads. */
+// Match the server-rendered comment container before Artalk initializes too.
+body:not([data-slug="index"]):not([data-slug^="Share/"]) .center:is(.has-bottom-comments, :has(> .page-footer #artalk-comments:not([hidden]))) {
+  --comment-initial-height: 432px;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100svh - 24px);
+  > article, > .article-viewport > article {
+    flex-grow: 1;
+    min-height: max(0px, calc(100svh - var(--comment-layout-overhead, 100svh)));
+  }
+  > .page-footer { min-height: var(--comment-initial-height); }
+  > .page-header, > article, > hr, > .page-footer { flex-shrink: 0; }
+  > hr, > .article-viewport > hr { width: 100%; box-sizing: border-box; }
+  #artalk-comments {
+    display: flex;
+    flex-direction: column;
+    min-height: var(--comment-initial-height);
+  }
+  #artalk-comments > .atk-list { margin-top: auto; }
+  #artalk-comments .atk-list-body { min-height: 150px; overflow: visible; }
+  #artalk-comments .atk-list-no-comment { min-height: 150px; height: auto; margin: 0; box-sizing: border-box; }
+  #artalk-comments .atk-main-editor {
+    // Includes the account/input header, whether or not it is visible yet.
+    display: flex;
+    flex-direction: column;
+    min-height: 224px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    > .atk-textarea-wrap {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      > .atk-textarea {
+        flex: 1;
+        box-sizing: border-box;
+      }
+    }
+    > .atk-bottom { flex-shrink: 0; }
+  }
+  #artalk-comments .atk-list-header { min-height: 48px; box-sizing: border-box; }
+  @media (width < 1200px) {
+    > .article-viewport > article {
+      // The first-screen wrapper sizes the article before scripts initialize.
+      flex: 1 0 auto;
+      min-height: 0;
+    }
+  }
+  @media (max-width: 800px) {
+    // The mobile toolbar occupies 70px plus the grid's 5px gap.
+    min-height: calc(100svh - 75px - 24px);
+  }
+}
+
+body:not([data-slug="index"]):not([data-slug^="Share/"]) .center:has(#artalk-comments[data-admin-only="true"]:not([data-admin-editor="true"]):not([hidden])) {
+  --comment-initial-height: 198px;
+  --comment-layout-reserve: 432px;
+  > article, > .article-viewport > article { flex-grow: 0; }
+  #artalk-comments > .atk-list { margin-top: 0; }
+  @media (width < 1200px) {
+    > .article-viewport { min-height: calc(100svh - (432px - var(--comment-initial-height))); }
+    > .article-viewport > article { flex-grow: 1; }
+  }
+  @media (max-width: 800px) {
+    > .article-viewport { min-height: calc(100svh - 75px - (432px - var(--comment-initial-height))); }
+  }
+}
+
+.page-footer:has(#artalk-comments[hidden]) { display: none; }
+#artalk-comments[hidden] { display: none !important; }

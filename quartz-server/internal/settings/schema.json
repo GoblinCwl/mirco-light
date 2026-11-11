@@ -1,0 +1,556 @@
+[
+  {
+    "key": "api.jellyfin.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "Jellyfin",
+    "label": "服务地址",
+    "type": "url",
+    "default": "http://jellyfin:8096",
+    "max": 1000
+  },
+  {
+    "key": "api.jellyfin.token",
+    "public": false,
+    "group": "服务接入",
+    "category": "Jellyfin",
+    "label": "API Key",
+    "type": "password",
+    "default": "",
+    "max": 16384,
+    "help": "留空沿用服务器原有凭据；仅管理员可读取和修改。"
+  },
+  {
+    "key": "api.jellyfin.publicUrl",
+    "public": true,
+    "group": "服务接入",
+    "category": "Jellyfin",
+    "label": "公开媒体地址",
+    "type": "url",
+    "default": "https://media.goblincwl.site",
+    "max": 1000
+  },
+  {
+    "key": "api.danmu.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "弹幕 API",
+    "label": "服务地址",
+    "type": "url",
+    "default": "http://danmu-api:9321",
+    "max": 1000
+  },
+  {
+    "key": "api.danmu.token",
+    "public": false,
+    "group": "服务接入",
+    "category": "弹幕 API",
+    "label": "API Token",
+    "type": "password",
+    "default": "",
+    "max": 16384,
+    "help": "留空沿用服务器原有凭据；仅管理员可读取和修改。"
+  },
+  {
+    "key": "api.fontinass.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "Fontinass",
+    "label": "字幕 API 地址",
+    "type": "url",
+    "default": "http://fontinass:8012",
+    "max": 1000
+  },
+  {
+    "key": "api.fontinass.health",
+    "public": false,
+    "group": "服务接入",
+    "category": "Fontinass",
+    "label": "状态检测地址",
+    "type": "url",
+    "default": "http://fontinass:8011/",
+    "max": 1000
+  },
+  {
+    "key": "api.gitea.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "Gitea",
+    "label": "服务地址",
+    "type": "url",
+    "default": "http://gitea:3000",
+    "max": 1000
+  },
+  {
+    "key": "api.artalk.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "Artalk",
+    "label": "服务地址",
+    "type": "url",
+    "default": "http://artalk:23366",
+    "max": 1000
+  },
+  {
+    "key": "api.artalk.email",
+    "public": false,
+    "group": "服务接入",
+    "category": "Artalk",
+    "label": "管理员邮箱",
+    "type": "text",
+    "default": "",
+    "max": 1000
+  },
+  {
+    "key": "api.artalk.password",
+    "public": false,
+    "group": "服务接入",
+    "category": "Artalk",
+    "label": "管理员密码",
+    "type": "password",
+    "default": "",
+    "max": 16384,
+    "help": "留空沿用服务器原有凭据；仅管理员可读取和修改。"
+  },
+  {
+    "key": "api.artalk.publicUrl",
+    "public": true,
+    "group": "服务接入",
+    "category": "Artalk",
+    "label": "前台评论地址",
+    "type": "endpoint",
+    "default": "/artalk",
+    "max": 1000
+  },
+  {
+    "key": "api.beszel.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "Beszel",
+    "label": "服务地址",
+    "type": "url",
+    "default": "http://beszel:8090",
+    "max": 1000
+  },
+  {
+    "key": "api.beszel.token",
+    "public": false,
+    "group": "服务接入",
+    "category": "Beszel",
+    "label": "API Token（可选）",
+    "type": "password",
+    "default": "",
+    "max": 16384,
+    "help": "留空沿用服务器原有凭据；仅管理员可读取和修改。"
+  },
+  {
+    "key": "api.activitywatch.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "ActivityWatch",
+    "label": "服务地址",
+    "type": "url",
+    "default": "http://host.docker.internal:5600",
+    "max": 1000
+  },
+  {
+    "key": "api.activitywatch.categorySet",
+    "public": false,
+    "group": "服务接入",
+    "category": "ActivityWatch",
+    "label": "分类集",
+    "type": "text",
+    "default": "cwl",
+    "max": 1000
+  },
+  {
+    "key": "api.astrbot.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "AstrBot",
+    "label": "服务地址",
+    "type": "url",
+    "default": "http://astrbot:6185",
+    "max": 1000
+  },
+  {
+    "key": "api.astrbot.token",
+    "public": false,
+    "group": "服务接入",
+    "category": "AstrBot",
+    "label": "场景 API Key",
+    "type": "password",
+    "default": "",
+    "max": 16384,
+    "help": "留空沿用服务器原有凭据；仅管理员可读取和修改。"
+  },
+  {
+    "key": "api.napcat.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "NapCat",
+    "label": "WebUI API 地址",
+    "type": "url",
+    "default": "http://napcat:6099/api",
+    "max": 1000
+  },
+  {
+    "key": "api.napcat.token",
+    "public": false,
+    "group": "服务接入",
+    "category": "NapCat",
+    "label": "WebUI Token",
+    "type": "password",
+    "default": "",
+    "max": 16384,
+    "help": "留空沿用服务器原有凭据；仅管理员可读取和修改。"
+  },
+  {
+    "key": "api.openlist.publicUrl",
+    "public": true,
+    "group": "服务接入",
+    "category": "OpenList",
+    "label": "公开文件地址",
+    "type": "url",
+    "default": "https://drive.goblincwl.site",
+    "max": 1000
+  },
+  {
+    "key": "openlist.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "OpenList",
+    "label": "服务地址",
+    "type": "url",
+    "default": "http://openlist:5244",
+    "max": 1000,
+    "help": "由星枢服务端访问的 OpenList 地址。"
+  },
+  {
+    "key": "openlist.username",
+    "public": false,
+    "group": "服务接入",
+    "category": "OpenList",
+    "label": "管理员账号",
+    "type": "text",
+    "default": "admin",
+    "max": 200
+  },
+  {
+    "key": "openlist.password",
+    "public": false,
+    "group": "服务接入",
+    "category": "OpenList",
+    "label": "管理员密码",
+    "type": "password",
+    "default": "",
+    "max": 1024,
+    "help": "星枢登录后自动登录此管理员账户，访客不会获取这些配置。"
+  },
+  {
+    "key": "content.ignorePatterns",
+    "public": false,
+    "group": "内容发布",
+    "label": "构建排除",
+    "type": "textarea",
+    "default": "index.md\nResources/**\nPrivate/日记/**\n.obsidian\n**/.syncthing*\n**/*sync-conflict*\n**/!(*.md)",
+    "max": 16000,
+    "help": "每行一条 glob。命中后不生成页面和附件，原链接无法访问。"
+  },
+  {
+    "key": "content.unlistedPatterns",
+    "public": false,
+    "group": "内容发布",
+    "label": "隐藏展示",
+    "type": "textarea",
+    "default": "Work/**",
+    "max": 16000,
+    "help": "每行一条 glob，例如 Work/**。保留原链接，从首页、目录、搜索、标签及 RSS 隐藏。隐藏不等于访问权限。"
+  },
+  {
+    "key": "profile.avatar",
+    "group": "首页展示",
+    "label": "首页头像",
+    "type": "asset",
+    "default": "/static/avatars/goblincwl-profile-transparent-v1.webp",
+    "max": 1000,
+    "help": "可填写本站 /static/ 路径或 https 图片地址。"
+  },
+  {
+    "key": "site.description",
+    "group": "首页展示",
+    "label": "网站简介",
+    "type": "text",
+    "default": "零散的梦，汇聚成未尽的星河。",
+    "max": 200
+  },
+  {
+    "key": "site.aboutRoute",
+    "group": "首页展示",
+    "category": "星垣",
+    "label": "关于文章路由",
+    "type": "article-route",
+    "default": "",
+    "max": 1000,
+    "help": "填写本站文章路径，例如 /Memo/微光集介绍；保存后立即生效，关于入口始终显示。"
+  },
+  {
+    "key": "navigation.items",
+    "group": "寻径",
+    "label": "寻径链接",
+    "type": "navigation",
+    "default": "[{\"label\":\"Steam\",\"href\":\"https://steamcommunity.com/id/goblincwl/\",\"icon\":\"steam\",\"order\":50},{\"label\":\"RSS 订阅\",\"href\":\"/index.xml\",\"icon\":\"rss\",\"order\":60}]",
+    "max": 262144
+  },
+  {
+    "key": "video.volume",
+    "group": "视频",
+    "category": "播放默认值",
+    "label": "默认音量",
+    "type": "number",
+    "default": 0.7,
+    "min": 0,
+    "max": 2,
+    "step": 0.05
+  },
+  {
+    "key": "video.quality",
+    "group": "视频",
+    "category": "播放默认值",
+    "label": "默认画质",
+    "type": "select",
+    "default": "lowest",
+    "options": [
+      [
+        "lowest",
+        "最低可用画质"
+      ],
+      [
+        "auto",
+        "自动"
+      ],
+      [
+        "original",
+        "原画"
+      ],
+      [
+        "1080",
+        "1080p"
+      ],
+      [
+        "720",
+        "720p"
+      ],
+      [
+        "480",
+        "480p"
+      ],
+      [
+        "360",
+        "360p"
+      ]
+    ]
+  },
+  {
+    "key": "video.pgsRender",
+    "group": "视频",
+    "category": "字幕",
+    "label": "浏览器渲染 PGS",
+    "type": "boolean",
+    "default": false,
+    "help": "与 Jellyfin Web 一样默认关闭。开启后使用同款 libpgs，设备不支持、原生全屏无法显示或渲染失败时使用 Jellyfin 烧录。"
+  },
+  {
+    "key": "video.subtitleBurnIn",
+    "group": "视频",
+    "category": "字幕",
+    "label": "字幕烧录",
+    "type": "select",
+    "default": "auto",
+    "options": [
+      [
+        "auto",
+        "自动"
+      ],
+      [
+        "onlyimageformats",
+        "仅图片字幕"
+      ],
+      [
+        "allcomplexformats",
+        "所有复杂格式"
+      ],
+      [
+        "all",
+        "所有字幕"
+      ]
+    ],
+    "help": "与 Jellyfin Web 同含义；自动优先外置渲染，不支持或渲染失败时交给 Jellyfin 烧录。"
+  },
+  {
+    "key": "video.skip",
+    "group": "视频",
+    "category": "播放默认值",
+    "label": "默认跳过片头片尾",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "key": "danmuku.opacity",
+    "group": "视频",
+    "category": "弹幕默认值",
+    "label": "不透明度",
+    "type": "number",
+    "default": 0.7,
+    "min": 0.1,
+    "max": 1,
+    "step": 0.05
+  },
+  {
+    "key": "danmuku.pcSize",
+    "group": "视频",
+    "category": "弹幕默认值",
+    "label": "PC 字号",
+    "type": "number",
+    "default": 25,
+    "min": 12,
+    "max": 60,
+    "step": 1
+  },
+  {
+    "key": "danmuku.mobileSize",
+    "group": "视频",
+    "category": "弹幕默认值",
+    "label": "移动端字号",
+    "type": "number",
+    "default": 16,
+    "min": 12,
+    "max": 40,
+    "step": 1
+  },
+  {
+    "key": "danmuku.pcSpeed",
+    "group": "视频",
+    "category": "弹幕默认值",
+    "label": "PC 移动时长（秒）",
+    "type": "number",
+    "default": 10,
+    "min": 1,
+    "max": 20,
+    "step": 1,
+    "help": "数值越大，移动越慢。"
+  },
+  {
+    "key": "danmuku.mobileSpeed",
+    "group": "视频",
+    "category": "弹幕默认值",
+    "label": "移动端移动时长（秒）",
+    "type": "number",
+    "default": 5,
+    "min": 1,
+    "max": 20,
+    "step": 1
+  },
+  {
+    "key": "danmuku.area",
+    "group": "视频",
+    "category": "弹幕默认值",
+    "label": "显示区域",
+    "type": "select",
+    "default": "50%",
+    "options": [
+      [
+        "25%",
+        "四分之一屏"
+      ],
+      [
+        "50%",
+        "半屏"
+      ],
+      [
+        "75%",
+        "四分之三屏"
+      ],
+      [
+        "100%",
+        "全屏"
+      ]
+    ]
+  },
+  {
+    "key": "graph.newDays",
+    "group": "星轨",
+    "label": "新文章星标保留天数",
+    "type": "number",
+    "default": 7,
+    "min": 1,
+    "max": 90,
+    "step": 1
+  },
+  {
+    "key": "graph.loneStars",
+    "group": "星轨",
+    "label": "孤星特效",
+    "type": "boolean",
+    "default": true
+  },
+  {
+    "key": "graph.adminOrbit",
+    "group": "星轨",
+    "label": "星枢环绕周期（秒）",
+    "type": "number",
+    "default": 36,
+    "min": 12,
+    "max": 180,
+    "step": 1
+  },
+  {
+    "key": "profile.name",
+    "group": "首页展示",
+    "label": "本人昵称",
+    "type": "text",
+    "default": "GoblinCwl",
+    "max": 80
+  },
+  {
+    "key": "profile.email",
+    "group": "首页展示",
+    "label": "联系邮箱",
+    "type": "text",
+    "default": "goblincwl@qq.com",
+    "max": 160
+  },
+  {
+    "key": "profile.qq",
+    "group": "首页展示",
+    "label": "QQ",
+    "type": "text",
+    "default": "2395025802",
+    "max": 32
+  },
+  {
+    "key": "profile.qqLink",
+    "group": "首页展示",
+    "label": "QQ 联系链接",
+    "type": "url",
+    "default": "https://qm.qq.com/q/VH63remw4S",
+    "max": 1000
+  },
+  {
+    "key": "friends.items",
+    "public": false,
+    "group": "数据管理",
+    "label": "友链列表",
+    "type": "friends",
+    "default": "[{\"id\":\"example-friend\",\"name\":\"远方来信\",\"url\":\"https://example.com/\",\"avatar\":\"/static/Profile.png\",\"description\":\"在技术与生活之间，记录一些值得留下的片刻。\",\"example\":true},{\"id\":\"example-moon\",\"name\":\"月面电台\",\"url\":\"https://example.com/moon\",\"avatar\":\"/static/friends/toki-demo.png\",\"description\":\"记录音乐、夜晚与不期而遇的灵感。\",\"example\":true},{\"id\":\"example-forest\",\"name\":\"林间手记\",\"url\":\"https://example.com/forest\",\"avatar\":\"/static/avatars/goblincwl-profile-transparent-v1.webp\",\"description\":\"关于自然、阅读与缓慢生活的文字。\",\"example\":true},{\"id\":\"example-orbit\",\"name\":\"轨道之外\",\"url\":\"https://example.com/orbit\",\"avatar\":\"/static/Profile.png\",\"description\":\"探索代码、设计与创造的边界。\",\"example\":true},{\"id\":\"example-tide\",\"name\":\"潮汐档案\",\"url\":\"https://example.com/tide\",\"avatar\":\"/static/friends/toki-demo.png\",\"description\":\"收集旅行途中遇见的人与风景。\",\"example\":true},{\"id\":\"example-paper\",\"name\":\"纸间星河\",\"url\":\"https://example.com/paper\",\"avatar\":\"/static/avatars/goblincwl-profile-transparent-v1.webp\",\"description\":\"读书、电影，以及那些未完成的故事。\",\"example\":true},{\"id\":\"example-light\",\"name\":\"光的回声\",\"url\":\"https://example.com/light\",\"avatar\":\"/static/Profile.png\",\"description\":\"用影像留住日常里的微光。\",\"example\":true},{\"id\":\"example-north\",\"name\":\"北辰工坊\",\"url\":\"https://example.com/north\",\"avatar\":\"/static/friends/toki-demo.png\",\"description\":\"一个喜欢折腾软硬件的个人小站。\",\"example\":true}]"
+  },
+  {
+    "key": "icp.items",
+    "group": "寻径",
+    "category": "备案信息",
+    "label": "备案信息",
+    "type": "navigation",
+    "default": "[{\"label\":\"湘ICP备2026004810号\",\"href\":\"http://beian.miit.gov.cn\",\"icon\":\"\",\"order\":10}]",
+    "max": 262144
+  }
+]

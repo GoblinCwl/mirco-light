@@ -1,0 +1,68 @@
+@use "../../styles/variables.scss" as *;
+
+// Shared directory rows: page lists, Drive tables, and compact hover lists.
+@mixin tokens {
+  --directory-row-padding: .85rem;
+  --directory-name-size: .95rem;
+  --directory-icon-size: 1.3rem;
+  --directory-row-border: color-mix(in srgb, var(--lightgray) 65%, transparent);
+}
+@mixin name {
+  font-family: var(--headerFont); font-size: var(--directory-name-size); font-weight: 600;
+  line-height: 1.55; color: var(--secondary); background: transparent;
+  @media(hover:hover) and (pointer:fine){ &:hover { color: var(--secondary); text-decoration: underline; text-underline-offset: .2em; } }
+}
+@mixin icon {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: var(--directory-icon-size); height: var(--directory-icon-size); color: var(--secondary);
+  > svg { display: block; width: 100%; height: 100%; }
+}
+@mixin detail {
+  color: color-mix(in srgb, var(--darkgray) 70%, var(--gray));
+  font-size: .8rem; line-height: 1.6; font-variant-numeric: tabular-nums;
+}
+@mixin table {
+  @include tokens;
+  width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .9rem;
+  th, td { box-sizing: border-box; padding: .8rem .6rem; border: 0; text-align: left; vertical-align: middle; }
+  thead { border-bottom: 1px solid var(--lightgray); }
+  thead th { padding-top: .25rem; color: var(--gray); font-size: .75rem; font-weight: 400; }
+  .directory-column-label { display: inline-flex; align-items: center; padding: .25rem 0; }
+  th button {
+    display: inline-flex; align-items: center; gap: .35rem; max-width: 100%; padding: .25rem 0;
+    border: 0; border-radius: 0; font: inherit; color: var(--gray); background: transparent; white-space: nowrap; cursor: pointer;
+    &:hover:not(:disabled), &.is-sorted { color: var(--secondary); background: transparent; }
+  }
+  .drive-sort-indicator { font-size: .7rem; font-family: var(--codeFont); min-width: .65rem; }
+  tbody tr { border-bottom: 1px solid var(--directory-row-border); }
+  tbody td { padding-block: var(--directory-row-padding); }
+  .drive-modified-cell time {white-space:nowrap;}
+  .directory-date-compact{display:none;}
+  @media all and ($mobile){.directory-date-full{display:none;}.directory-date-compact{display:inline;}}
+  .drive-kind-cell { width: 2.7rem; text-align: center; > .drive-file-icon { vertical-align: middle; } }
+  .drive-name-cell { min-width: 0; padding-left: .25rem; font-size: var(--directory-name-size); }
+  .drive-file-open { @include name; display: inline-flex; max-width: 100%; align-items: center; min-width: 0; padding: 0; .encrypted-mark { flex-shrink: 0; } }
+  .drive-file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .drive-entry-name { display: flex; align-items: center; gap: .3rem; min-width: 0; > .encrypted-mark { flex-shrink: 0; } }
+  ul.directory-tags {
+    display: flex; flex: 0 1 auto; flex-wrap: nowrap; align-items: center;
+    min-width: 0; max-width: 100%; gap: .4rem; margin: 0; padding: 0;
+    overflow: hidden; list-style: none;
+    > li { flex: 0 0 auto; margin: 0; padding: 0; line-height: 1; white-space: nowrap; &:first-child { flex: 0 1 auto; min-width: 0; } }
+    a.tag-link {
+      display: block; box-sizing: border-box; height: 1.45rem; margin: 0; padding: 0;
+      border: 0; border-radius: 0;
+      color: var(--secondary); background: transparent;
+      font-family: "Microsoft YaHei", "PingFang SC", var(--bodyFont), sans-serif;
+      font-size: .875rem; font-weight: 500; line-height: 1.45rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      &::before { color: var(--secondary); }
+      @media(hover:hover) and (pointer:fine){ &:hover { color: var(--secondary); text-decoration: underline; text-underline-offset: .2em; } }
+    }
+    .directory-tags-more { color: var(--darkgray); font-family: var(--bodyFont); font-size: .8rem; font-weight: 400; line-height: 1.4; }
+  }
+  .drive-tags-cell { width: 9rem; @media all and ($mobile) { display:none; } }
+  thead .drive-tags-cell { color: var(--darkgray); }
+  .drive-file-icon { @include icon; }
+  .drive-modified-cell { @include detail; width: 11rem; }
+}

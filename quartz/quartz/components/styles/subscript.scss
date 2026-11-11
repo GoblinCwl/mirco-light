@@ -1,0 +1,15 @@
+.subscript-wrapper {
+  display: inline;
+  cursor: help;
+  vertical-align: baseline;
+
+  .subscript {
+    border-bottom: 1px dotted currentColor;
+    color: #007acc;
+    display: inline;
+    white-space: nowrap;
+    line-height: normal;
+    margin: 0;
+    padding: 0;
+  }
+}

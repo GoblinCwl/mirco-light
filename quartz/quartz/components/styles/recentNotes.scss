@@ -1,0 +1,81 @@
+@use "../../styles/variables.scss" as *;
+
+.recent-notes {
+  & > h3 {
+    margin: 0.5rem 0 0 0;
+    font-size: 1rem;
+  }
+
+  & > ul.recent-ul {
+    list-style: none;
+    margin-top: 1rem;
+    padding-left: 0;
+
+    & > li {
+      margin: 1rem 0;
+      .section > .desc > h3 > a {
+        background-color: transparent;
+      }
+
+      .section > .meta {
+        margin: 0 0 0.5rem 0;
+        opacity: 0.6;
+      }
+    }
+  }
+}
+
+// 最近在写固定最下面
+.recent-notes{
+  margin-top: auto;
+}
+
+// 使 internal 链接样式与 explorer 中的链接样式一致
+.recent-notes .internal {
+  color: var(--dark);
+  opacity: 0.75;
+  pointer-events: all;
+  font-family: var(--headerFont), serif;
+  font-size: 0.875rem;
+  font-weight: $semiBoldWeight;
+  line-height: 1.5rem;
+
+  &.active {
+    opacity: 1;
+    color: var(--tertiary);
+  }
+
+  &:hover {
+    color: var(--tertiary);
+  }
+}
+
+// 缩小日期字体并去除line-height
+.recent-notes .meta {
+  font-size: 0.75rem !important;
+  line-height: 0.5 !important;
+}
+
+// 间距
+.recent-notes .recent-li{
+  margin: 0.5rem 0 !important;
+}
+
+.recent-notes .recent-li .desc > h3 > a {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.recent-content-icon { display:inline-flex; width:.8rem; height:.8rem; margin-right:.3rem; vertical-align:-.08rem; color:var(--secondary); svg { width:100%; height:100%; } }
+
+.recent-notes .recent-skeleton {
+ >span {display:flex;align-items:center;>i{display:block;border-radius:3px;background:linear-gradient(100deg,var(--highlight) 30%,var(--lightgray) 50%,var(--highlight) 70%);background-size:200% 100%;animation:recent-skeleton-shimmer 1.5s ease-in-out infinite;}}
+ .recent-skeleton-title {height:1.5rem;>i{height:.65rem;}}
+ .recent-skeleton-date {height:.375rem;margin-bottom:.5rem;>i{width:5.5rem;height:.3rem;}}
+}
+@keyframes recent-skeleton-shimmer {from{background-position:200% 0;}to{background-position:-200% 0;}}
+@media(prefers-reduced-motion:reduce){.recent-notes .recent-skeleton >span>i{animation:none;}}

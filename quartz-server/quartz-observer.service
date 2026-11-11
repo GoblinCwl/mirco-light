@@ -1,0 +1,15 @@
+[Unit]
+Description=Quartz container lifecycle observer
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/docker/quartz4/quartz-server/bin/quartz-observer
+Environment=QUARTZ_JOURNAL_DIR=%h/docker/quartz4/runtime/chronicle
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+UMask=0077
+
+[Install]
+WantedBy=default.target

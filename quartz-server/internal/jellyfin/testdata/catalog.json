@@ -1,0 +1,314 @@
+{
+  "rows": [
+    [
+      "series",
+      "/media/show",
+      "TV.Series",
+      "节目名",
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "season",
+      "/media/show/Season 01",
+      "TV.Season",
+      "节目名",
+      "节目名",
+      1,
+      null,
+      "series",
+      null
+    ],
+    [
+      "episode",
+      "/media/show/Season 01/E01.mkv",
+      "TV.Episode",
+      "起航",
+      "节目名",
+      1,
+      1,
+      "series",
+      "season"
+    ],
+    [
+      "movie",
+      "/media/film/movie.mkv",
+      "Movies.Movie",
+      "电影标题",
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  ],
+  "info": {
+    "series": {
+      "ImageTags": {
+        "Primary": "series-poster"
+      },
+      "ProviderIds": {
+        "Tmdb": "94605"
+      }
+    },
+    "season": {
+      "ImageTags": {
+        "Primary": "season-poster"
+      }
+    },
+    "episode": {
+      "ImageTags": {
+        "Primary": "episode-frame"
+      }
+    },
+    "movie": {
+      "ImageTags": {
+        "Primary": "movie-poster"
+      },
+      "BackdropImageTags": [
+        "background"
+      ],
+      "ProductionYear": 2026,
+      "Overview": "<b>简介</b>",
+      "ProviderIds": {
+        "Tmdb": "123"
+      }
+    }
+  },
+  "cases": [
+    {
+      "physical": "/media/film",
+      "meta": {
+        "name": "film",
+        "is_dir": true
+      },
+      "children": [
+        {
+          "name": "movie.mkv",
+          "is_dir": false
+        },
+        {
+          "name": "movie.ass",
+          "is_dir": false
+        },
+        {
+          "name": "poster.jpg",
+          "is_dir": false
+        },
+        {
+          "name": "notes.pdf",
+          "is_dir": false
+        }
+      ],
+      "expected": {
+        "current": {
+          "title": "电影标题",
+          "type": "Movie",
+          "collectionScope": "movie",
+          "year": 2026,
+          "overview": "简介",
+          "index": null,
+          "season": null,
+          "image": "https://proxy.test/image/movie",
+          "poster": "https://proxy.test/image/movie",
+          "posterKey": "[\"movie\",\"movie-poster\"]",
+          "backdrop": "https://proxy.test/image/movie/Backdrop",
+          "jellyfinUrl": "https://media.test/web/#/details?id=movie",
+          "tmdbUrl": "https://www.themoviedb.org/movie/123"
+        },
+        "breadcrumbs": [],
+        "entries": [
+          {
+            "name": "movie.mkv",
+            "media": {
+              "title": "电影标题",
+              "type": "Movie",
+              "collectionScope": "movie",
+              "year": 2026,
+              "overview": "简介",
+              "index": null,
+              "season": null,
+              "image": "https://proxy.test/image/movie",
+              "poster": "https://proxy.test/image/movie",
+              "posterKey": "[\"movie\",\"movie-poster\"]",
+              "backdrop": "https://proxy.test/image/movie/Backdrop",
+              "jellyfinUrl": "https://media.test/web/#/details?id=movie",
+              "tmdbUrl": "https://www.themoviedb.org/movie/123"
+            }
+          },
+          {
+            "name": "notes.pdf"
+          }
+        ],
+        "autoFile": "movie.mkv",
+        "collapseMovieParent": false
+      }
+    },
+    {
+      "physical": "/media/show/Season 01",
+      "meta": {
+        "name": "Season 01",
+        "is_dir": true
+      },
+      "children": [
+        {
+          "name": "E01.mkv",
+          "is_dir": false
+        },
+        {
+          "name": "extras",
+          "is_dir": true
+        }
+      ],
+      "ancestors": [
+        {
+          "path": "/show",
+          "physical": "/media/show"
+        }
+      ],
+      "expected": {
+        "current": {
+          "title": "节目名",
+          "type": "Season",
+          "collectionScope": "series",
+          "episodeCount": 1,
+          "overview": "",
+          "index": 1,
+          "season": null,
+          "image": "https://proxy.test/image/season",
+          "poster": "https://proxy.test/image/season",
+          "posterKey": "[\"season\",\"season-poster\"]",
+          "jellyfinUrl": "https://media.test/web/#/details?id=season",
+          "tmdbUrl": "https://www.themoviedb.org/tv/94605/season/1"
+        },
+        "breadcrumbs": [
+          {
+            "path": "/show",
+            "media": {
+              "title": "节目名",
+              "type": "Series",
+              "collectionScope": "series",
+              "seasonCount": 1,
+              "episodeCount": 1,
+              "overview": "",
+              "index": null,
+              "season": null,
+              "image": "https://proxy.test/image/series",
+              "poster": "https://proxy.test/image/series",
+              "posterKey": "[\"series\",\"series-poster\"]",
+              "jellyfinUrl": "https://media.test/web/#/details?id=series",
+              "tmdbUrl": "https://www.themoviedb.org/tv/94605"
+            }
+          }
+        ],
+        "entries": [
+          {
+            "name": "E01.mkv",
+            "media": {
+              "title": "起航",
+              "type": "Episode",
+              "collectionScope": "series",
+              "overview": "",
+              "index": 1,
+              "season": 1,
+              "image": "https://proxy.test/image/episode",
+              "poster": "https://proxy.test/image/season",
+              "posterKey": "[\"season\",\"season-poster\"]",
+              "jellyfinUrl": "https://media.test/web/#/details?id=episode",
+              "tmdbUrl": "https://www.themoviedb.org/tv/94605/season/1/episode/1"
+            }
+          },
+          {
+            "name": "extras"
+          }
+        ],
+        "collapseMovieParent": false
+      }
+    },
+    {
+      "physical": "/media/show",
+      "meta": {
+        "name": "show",
+        "is_dir": true
+      },
+      "children": [
+        {
+          "name": "Season 01",
+          "is_dir": true
+        },
+        {
+          "name": "poster.jpg",
+          "is_dir": false
+        }
+      ],
+      "expected": {
+        "current": {
+          "title": "节目名",
+          "type": "Series",
+          "collectionScope": "series",
+          "seasonCount": 1,
+          "episodeCount": 1,
+          "overview": "",
+          "index": null,
+          "season": null,
+          "image": "https://proxy.test/image/series",
+          "poster": "https://proxy.test/image/series",
+          "posterKey": "[\"series\",\"series-poster\"]",
+          "jellyfinUrl": "https://media.test/web/#/details?id=series",
+          "tmdbUrl": "https://www.themoviedb.org/tv/94605"
+        },
+        "breadcrumbs": [],
+        "entries": [
+          {
+            "name": "Season 01",
+            "media": {
+              "title": "节目名",
+              "type": "Season",
+              "collectionScope": "series",
+              "episodeCount": 1,
+              "overview": "",
+              "index": 1,
+              "season": null,
+              "image": "https://proxy.test/image/season",
+              "poster": "https://proxy.test/image/season",
+              "posterKey": "[\"season\",\"season-poster\"]",
+              "jellyfinUrl": "https://media.test/web/#/details?id=season",
+              "tmdbUrl": "https://www.themoviedb.org/tv/94605/season/1"
+            }
+          }
+        ],
+        "autoDirectory": "Season 01",
+        "collapseMovieParent": false
+      }
+    },
+    {
+      "physical": "/media/show/Season 01/E01.mkv",
+      "meta": {
+        "name": "E01.mkv",
+        "is_dir": false
+      },
+      "children": [],
+      "expected": {
+        "current": {
+          "title": "起航",
+          "type": "Episode",
+          "collectionScope": "series",
+          "overview": "",
+          "index": 1,
+          "season": 1,
+          "image": "https://proxy.test/image/episode",
+          "poster": "https://proxy.test/image/season",
+          "posterKey": "[\"season\",\"season-poster\"]",
+          "jellyfinUrl": "https://media.test/web/#/details?id=episode",
+          "tmdbUrl": "https://www.themoviedb.org/tv/94605/season/1/episode/1"
+        },
+        "breadcrumbs": [],
+        "entries": [],
+        "collapseMovieParent": false
+      }
+    }
+  ]
+}

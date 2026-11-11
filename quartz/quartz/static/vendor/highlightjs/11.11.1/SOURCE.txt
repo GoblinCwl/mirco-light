@@ -1,0 +1,4 @@
+Highlight.js 11.11.1
+Source: https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js
+License: BSD-3-Clause (see LICENSE)
+Unmodified upstream browser build.

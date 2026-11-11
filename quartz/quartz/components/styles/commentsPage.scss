@@ -1,0 +1,54 @@
+@use "./commentShared" as comment;
+
+.all-comments {
+  font-family: var(--bodyFont);
+  color: var(--darkgray);
+  .comments-summary { color: inherit; font-size: 1rem; }
+  .comments-status { padding-block: 1.5rem; color: inherit; font-size: 1rem; opacity: 0.6; }
+  .comments-list { margin-top: 2em; }
+  [hidden] { display: none !important; }
+  .comments-item { @include comment.row; }
+  .comments-avatar { @include comment.avatar; }
+  .comments-item-header {
+    @include comment.header;
+    strong { @include comment.name; }
+    strong.comment-admin-name { @include comment.admin-name; }
+    time, .comments-reply { @include comment.metadata; }
+  }
+  .comments-content { @include comment.content; }
+  a.comments-source {
+    display: inline-block;
+    max-width: 100%;
+    color: var(--secondary);
+    background: transparent;
+    font-family: var(--headerFont);
+    font-size: 0.9rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    &:hover { color: var(--tertiary); }
+  }
+  button {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--secondary);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    &:hover:not(:disabled) { border-color: var(--secondary); }
+    &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; }
+    &:disabled { opacity: 0.35; cursor: default; }
+  }
+}
+
+.all-comments .comments-item-header .comments-reply {
+  opacity: 1;
+  color: var(--gray);
+  .comments-reply-target {
+    color: var(--secondary);
+    background: transparent;
+    font-weight: 400;
+    &.comment-admin-name { @include comment.admin-name; }
+  }
+}

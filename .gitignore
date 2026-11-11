@@ -1,0 +1,43 @@
+# Local runtime data, backups, and generated site output
+/runtime/
+/backups/
+/artalk-data/
+/public/
+
+# Editor settings and temporary files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating system files
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Local environment files (keep publishable examples)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Dependencies and build caches
+node_modules/
+.quartz-cache/
+public-cache/
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
+
+# Logs, test output, and temporary files
+*.log
+coverage/
+coverage.out
+*.test
+.cache/
+.pytest_cache/
+.tmp/
+*.tmp
+*.temp

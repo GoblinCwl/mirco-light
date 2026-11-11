@@ -1,0 +1,13 @@
+@use "driveLoading";
+@use "./videoPreview";
+.repo-hover-card {
+  min-width:0;color:var(--darkgray);
+  >div {font:.9rem/1.7 var(--bodyFont);}
+  img {max-width:100%;height:auto;}
+  pre {overflow:auto;background:var(--moreLight);padding:.75rem;border-radius:5px;}
+  table {display:block;max-width:100%;overflow:auto;}
+  h1,h2,h3 {line-height:1.4;}
+}
+.hover-preview-loading { display:flex;align-items:center;justify-content:center;gap:.65rem;min-height:10rem;color:var(--gray);font-size:.85rem; }
+
+.hover-preview-loading .drive-loading { @include driveLoading.spinner; }

@@ -1,0 +1,78 @@
+@use "../../styles/variables.scss" as *;
+@use "directoryList";
+
+ul.section-ul {
+  list-style: none;
+  margin-top: 2em;
+  padding-left: 0;
+}
+
+li.section-li {
+  margin-bottom: 1em;
+
+  & > .section {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 3fr) minmax(0, 1fr);
+    column-gap: 1rem;
+    align-items: baseline;
+
+    & > .desc {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    @media all and ($mobile) {
+      grid-template-columns: max-content minmax(0, 1fr);
+      column-gap: 0.75rem;
+      & > .tags {
+        display: none;
+      }
+    }
+
+    & > .desc > h3 > a {
+      background-color: transparent;
+    }
+
+    & .meta {
+      margin: 0;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.6;
+    }
+  }
+}
+
+// modifications in popover context
+.popover .section {
+  grid-template-columns: max-content minmax(0, 1fr) !important;
+
+  & > .tags {
+    display: none;
+  }
+}
+
+
+.source-labeled > .section-li > .section {
+  grid-template-columns: 3.5rem minmax(0, 3fr) minmax(0, 1fr);
+  > .meta { font-size: .75rem; font-weight: 600; letter-spacing: .04em; }
+  @media all and ($mobile) { grid-template-columns: 3.5rem minmax(0, 1fr); }
+}
+
+// Directory pages use the same table structure and row styles as Drive.
+table.directory-table {
+  @include directoryList.table;
+  @media all and ($mobile) {
+    --directory-row-padding:.75rem;
+    th,td { padding:.7rem .3rem; }
+    .drive-kind-cell { width:2rem; padding-inline:.15rem; }
+    .drive-modified-cell { width:5.6rem; font-size:.75rem; line-height:1.5; }
+    .drive-tags-cell { display:none; }
+    .drive-name-cell { padding-left:.25rem; }
+  }
+}
+.directory-page .page-listing >p { min-height:1.5rem; margin:.6rem 0 .15rem; color:var(--gray); font-size:.8rem; line-height:1.5rem; }
+.center:has(.directory-page) >hr { display:none; }
+.popover table.directory-table {
+  --directory-row-padding:.55rem; --directory-name-size:.9rem; --directory-icon-size:1.1rem;
+  .drive-modified-cell,.drive-tags-cell { display:none; }
+}

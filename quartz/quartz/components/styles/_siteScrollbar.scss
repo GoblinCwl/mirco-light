@@ -1,0 +1,9 @@
+@mixin thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--lightgray) transparent;
+  &::-webkit-scrollbar { width: 5px; height: 5px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: var(--lightgray); border-radius: 999px; }
+  &::-webkit-scrollbar-thumb:hover { background: var(--gray); }
+  &::-webkit-scrollbar-corner { background: transparent; }
+}

@@ -1,0 +1,1334 @@
+{
+  "date": "2026-11-10",
+  "engines": {
+    "chromium": "153",
+    "firefox": "155",
+    "webkit": "26.5"
+  },
+  "unitTests": {
+    "frontend": 57,
+    "backend": 57,
+    "passed": 114
+  },
+  "typecheck": "passed",
+  "browserMatrix": {
+    "total": 114,
+    "passed": 114,
+    "groups": [
+      {
+        "engine": "chromium",
+        "group": "seeks",
+        "total": 2,
+        "passed": 2,
+        "cases": [
+          {
+            "id": "repeat-4k-seeks",
+            "passed": true,
+            "seconds": 129,
+            "initialReadySeconds": 33.407,
+            "subtitle": "none",
+            "videoFrames": 112,
+            "initialWidth": 3840,
+            "initialHeight": 1608,
+            "initialVideoCodec": "avc1.424033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "repeat-subrip-seeks",
+            "passed": true,
+            "seconds": 53,
+            "initialReadySeconds": 28.917,
+            "subtitle": "vtt",
+            "videoFrames": 408,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          }
+        ]
+      },
+      {
+        "engine": "chromium",
+        "group": "main",
+        "total": 10,
+        "passed": 10,
+        "cases": [
+          {
+            "id": "subrip-resume-seek-switch",
+            "passed": true,
+            "seconds": 36,
+            "initialReadySeconds": 13.904,
+            "subtitle": "vtt",
+            "videoFrames": 126,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "subrip-second-film",
+            "passed": true,
+            "seconds": 55,
+            "initialReadySeconds": 38.82,
+            "subtitle": "vtt",
+            "videoFrames": 122,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "ass-real-movie",
+            "passed": true,
+            "seconds": 37,
+            "initialReadySeconds": 22.649,
+            "subtitle": "ass",
+            "videoFrames": 123,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "pgs-godfather",
+            "passed": true,
+            "seconds": 52,
+            "initialReadySeconds": 8.966,
+            "subtitle": "pgs",
+            "videoFrames": 121,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "pgs-godfather2",
+            "passed": true,
+            "seconds": 43,
+            "initialReadySeconds": 29.31,
+            "subtitle": "pgs",
+            "videoFrames": 57,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "pgs-godfather3",
+            "passed": true,
+            "seconds": 21,
+            "initialReadySeconds": 7.379,
+            "subtitle": "pgs",
+            "videoFrames": 56,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "h264-cropped-4k",
+            "passed": true,
+            "seconds": 80,
+            "initialReadySeconds": 21.816,
+            "subtitle": "none",
+            "videoFrames": 95,
+            "initialWidth": 3840,
+            "initialHeight": 1608,
+            "initialVideoCodec": "avc1.424033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "ass-episode",
+            "passed": true,
+            "seconds": 42,
+            "initialReadySeconds": 13.736,
+            "subtitle": "ass",
+            "videoFrames": 787,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "auto-policy",
+            "passed": true,
+            "seconds": 42,
+            "initialReadySeconds": 16.239,
+            "subtitle": "none",
+            "videoFrames": 121,
+            "initialWidth": 3840,
+            "initialHeight": 1608,
+            "initialVideoCodec": "avc1.424033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "original-hdr-multi-audio",
+            "passed": true,
+            "seconds": 75,
+            "initialReadySeconds": 17.478,
+            "subtitle": "pgs",
+            "videoFrames": 126,
+            "initialWidth": 3840,
+            "initialHeight": 2160,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          }
+        ]
+      },
+      {
+        "engine": "chromium",
+        "group": "fixtures",
+        "total": 8,
+        "passed": 8,
+        "cases": [
+          {
+            "id": "fixture-movtext",
+            "passed": true,
+            "seconds": 8,
+            "initialReadySeconds": 5.357,
+            "subtitle": "vtt",
+            "videoFrames": 121,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-subrip",
+            "passed": true,
+            "seconds": 8,
+            "initialReadySeconds": 6.121,
+            "subtitle": "vtt",
+            "videoFrames": 122,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-ssa",
+            "passed": true,
+            "seconds": 9,
+            "initialReadySeconds": 4.445,
+            "subtitle": "ass",
+            "videoFrames": 122,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-ass",
+            "passed": true,
+            "seconds": 23,
+            "initialReadySeconds": 5.712,
+            "subtitle": "ass",
+            "videoFrames": 122,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-pgs-burn",
+            "passed": true,
+            "seconds": 11,
+            "initialReadySeconds": 6.329,
+            "subtitle": "pgs",
+            "videoFrames": 148,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-pgs-client",
+            "passed": true,
+            "seconds": 10,
+            "initialReadySeconds": 5.597,
+            "subtitle": "pgs",
+            "videoFrames": 392,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-webvtt",
+            "passed": true,
+            "seconds": 11,
+            "initialReadySeconds": 8.456,
+            "subtitle": "vtt",
+            "videoFrames": 122,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "no-subtitle-direct",
+            "passed": true,
+            "seconds": 6,
+            "initialReadySeconds": 4.662,
+            "subtitle": "none",
+            "videoFrames": 323,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          }
+        ]
+      },
+      {
+        "engine": "chromium",
+        "group": "mobile",
+        "total": 3,
+        "passed": 3,
+        "cases": [
+          {
+            "id": "mobile-subrip-resume",
+            "passed": true,
+            "seconds": 20,
+            "initialReadySeconds": 11.372,
+            "subtitle": "vtt",
+            "videoFrames": 254,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "mobile-ass",
+            "passed": true,
+            "seconds": 15,
+            "initialReadySeconds": 6.484,
+            "subtitle": "ass",
+            "videoFrames": 188,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "mobile-pgs",
+            "passed": true,
+            "seconds": 48,
+            "initialReadySeconds": 29.089,
+            "subtitle": "pgs",
+            "videoFrames": 57,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          }
+        ]
+      },
+      {
+        "engine": "chromium",
+        "group": "recovery",
+        "total": 13,
+        "passed": 13,
+        "cases": [
+          {
+            "id": "background-isolation",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "retry-after-error",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "switch-rollback",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "controls",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "ordinary-preview",
+            "passed": true
+          },
+          {
+            "id": "large-danmaku",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "asset-retry",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "subtitle-user-pause",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "playing-switch",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "subtitle-fallback",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "timeline",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "themes",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "gesture-start",
+            "passed": true,
+            "afterExitStatus": 404
+          }
+        ]
+      },
+      {
+        "engine": "chromium",
+        "group": "stream",
+        "total": 2,
+        "passed": 2,
+        "cases": [
+          {
+            "id": "stream-rollback",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "stream-retry",
+            "passed": true,
+            "afterExitStatus": 404
+          }
+        ]
+      },
+      {
+        "engine": "firefox",
+        "group": "seeks",
+        "total": 2,
+        "passed": 2,
+        "cases": [
+          {
+            "id": "repeat-4k-seeks",
+            "passed": true,
+            "seconds": 124,
+            "initialReadySeconds": 24.398,
+            "subtitle": "none",
+            "videoFrames": 116,
+            "initialWidth": 3840,
+            "initialHeight": 1608,
+            "initialVideoCodec": "avc1.424033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "repeat-subrip-seeks",
+            "passed": true,
+            "seconds": 58,
+            "initialReadySeconds": 19.028,
+            "subtitle": "vtt",
+            "videoFrames": 129,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          }
+        ]
+      },
+      {
+        "engine": "firefox",
+        "group": "main",
+        "total": 10,
+        "passed": 10,
+        "cases": [
+          {
+            "id": "subrip-resume-seek-switch",
+            "passed": true,
+            "seconds": 58,
+            "initialReadySeconds": 20.764,
+            "subtitle": "vtt",
+            "videoFrames": 55,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "subrip-second-film",
+            "passed": true,
+            "seconds": 50,
+            "initialReadySeconds": 28.069,
+            "subtitle": "vtt",
+            "videoFrames": 55,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "hvc1.2.4.L150.B0",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "ass-real-movie",
+            "passed": true,
+            "seconds": 27,
+            "initialReadySeconds": 10.878,
+            "subtitle": "ass",
+            "videoFrames": 53,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "hvc1.2.4.L120.B0",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "pgs-godfather",
+            "passed": true,
+            "seconds": 66,
+            "initialReadySeconds": 36.566,
+            "subtitle": "pgs",
+            "videoFrames": 53,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "pgs-godfather2",
+            "passed": true,
+            "seconds": 60,
+            "initialReadySeconds": 38.839,
+            "subtitle": "pgs",
+            "videoFrames": 53,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "pgs-godfather3",
+            "passed": true,
+            "seconds": 41,
+            "initialReadySeconds": 21.645,
+            "subtitle": "pgs",
+            "videoFrames": 53,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "h264-cropped-4k",
+            "passed": true,
+            "seconds": 100,
+            "initialReadySeconds": 17.874,
+            "subtitle": "none",
+            "videoFrames": 52,
+            "initialWidth": 3840,
+            "initialHeight": 1608,
+            "initialVideoCodec": "avc1.424033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "ass-episode",
+            "passed": true,
+            "seconds": 56,
+            "initialReadySeconds": 20.84,
+            "subtitle": "ass",
+            "videoFrames": 752,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "auto-policy",
+            "passed": true,
+            "seconds": 40,
+            "initialReadySeconds": 28.898,
+            "subtitle": "none",
+            "videoFrames": 91,
+            "initialWidth": 1920,
+            "initialHeight": 804,
+            "initialVideoCodec": "avc1.424033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "original-hdr-multi-audio",
+            "passed": true,
+            "seconds": 81,
+            "initialReadySeconds": 29.065,
+            "subtitle": "pgs",
+            "videoFrames": 54,
+            "initialWidth": 3840,
+            "initialHeight": 2160,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          }
+        ]
+      },
+      {
+        "engine": "firefox",
+        "group": "fixtures",
+        "total": 8,
+        "passed": 8,
+        "cases": [
+          {
+            "id": "fixture-movtext",
+            "passed": true,
+            "seconds": 12,
+            "initialReadySeconds": 9.2,
+            "subtitle": "vtt",
+            "videoFrames": 11,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-subrip",
+            "passed": true,
+            "seconds": 12,
+            "initialReadySeconds": 9.914,
+            "subtitle": "vtt",
+            "videoFrames": 12,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.42401E",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "fixture-ssa",
+            "passed": true,
+            "seconds": 16,
+            "initialReadySeconds": 9.821,
+            "subtitle": "ass",
+            "videoFrames": 12,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.42401E",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "fixture-ass",
+            "passed": true,
+            "seconds": 32,
+            "initialReadySeconds": 9.641,
+            "subtitle": "ass",
+            "videoFrames": 12,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.42401E",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "fixture-pgs-burn",
+            "passed": true,
+            "seconds": 18,
+            "initialReadySeconds": 9.564,
+            "subtitle": "pgs",
+            "videoFrames": 12,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.42401E",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "fixture-pgs-client",
+            "passed": true,
+            "seconds": 12,
+            "initialReadySeconds": 9.042,
+            "subtitle": "pgs",
+            "videoFrames": 12,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.42401E",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "fixture-webvtt",
+            "passed": true,
+            "seconds": 8,
+            "initialReadySeconds": 5.649,
+            "subtitle": "vtt",
+            "videoFrames": 12,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.42401E",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "no-subtitle-direct",
+            "passed": true,
+            "seconds": 9,
+            "initialReadySeconds": 6.917,
+            "subtitle": "none",
+            "videoFrames": 31,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          }
+        ]
+      },
+      {
+        "engine": "firefox",
+        "group": "mobile",
+        "total": 3,
+        "passed": 3,
+        "cases": [
+          {
+            "id": "mobile-subrip-resume",
+            "passed": true,
+            "seconds": 22,
+            "initialReadySeconds": 13.033,
+            "subtitle": "vtt",
+            "videoFrames": 116,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "mobile-ass",
+            "passed": true,
+            "seconds": 28,
+            "initialReadySeconds": 18.907,
+            "subtitle": "ass",
+            "videoFrames": 113,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "hvc1.2.4.L120.B0",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "mobile-pgs",
+            "passed": true,
+            "seconds": 55,
+            "initialReadySeconds": 33.404,
+            "subtitle": "pgs",
+            "videoFrames": 53,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          }
+        ]
+      },
+      {
+        "engine": "firefox",
+        "group": "recovery",
+        "total": 13,
+        "passed": 13,
+        "cases": [
+          {
+            "id": "background-isolation",
+            "passed": true,
+            "afterExitStatus": 404,
+            "independentlyRerun": true
+          },
+          {
+            "id": "retry-after-error",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "switch-rollback",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "controls",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "ordinary-preview",
+            "passed": true
+          },
+          {
+            "id": "large-danmaku",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "asset-retry",
+            "passed": true,
+            "afterExitStatus": 404,
+            "independentlyRerun": true
+          },
+          {
+            "id": "subtitle-user-pause",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "playing-switch",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "subtitle-fallback",
+            "passed": true,
+            "afterExitStatus": 404,
+            "independentlyRerun": true
+          },
+          {
+            "id": "timeline",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "themes",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "gesture-start",
+            "passed": true,
+            "afterExitStatus": 404
+          }
+        ]
+      },
+      {
+        "engine": "firefox",
+        "group": "stream",
+        "total": 2,
+        "passed": 2,
+        "cases": [
+          {
+            "id": "stream-rollback",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "stream-retry",
+            "passed": true,
+            "afterExitStatus": 404
+          }
+        ]
+      },
+      {
+        "engine": "webkit",
+        "group": "seeks",
+        "total": 2,
+        "passed": 2,
+        "cases": [
+          {
+            "id": "repeat-4k-seeks",
+            "passed": true,
+            "seconds": 129,
+            "initialReadySeconds": 27.948,
+            "subtitle": "none",
+            "videoFrames": 28,
+            "initialWidth": 3840,
+            "initialHeight": 1608,
+            "initialVideoCodec": "avc1.424033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "repeat-subrip-seeks",
+            "passed": true,
+            "seconds": 72,
+            "initialReadySeconds": 27.008,
+            "subtitle": "vtt",
+            "videoFrames": 55,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          }
+        ]
+      },
+      {
+        "engine": "webkit",
+        "group": "main",
+        "total": 10,
+        "passed": 10,
+        "cases": [
+          {
+            "id": "subrip-resume-seek-switch",
+            "passed": true,
+            "seconds": 78,
+            "initialReadySeconds": 32.457,
+            "subtitle": "vtt",
+            "videoFrames": 55,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "subrip-second-film",
+            "passed": true,
+            "seconds": 44,
+            "initialReadySeconds": 27.943,
+            "subtitle": "vtt",
+            "videoFrames": 55,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "hvc1.2.4.L150.B0",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "ass-real-movie",
+            "passed": true,
+            "seconds": 38,
+            "initialReadySeconds": 23.176,
+            "subtitle": "ass",
+            "videoFrames": 55,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "hvc1.2.4.L120.B0",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "pgs-godfather",
+            "passed": true,
+            "seconds": 59,
+            "initialReadySeconds": 24.051,
+            "subtitle": "pgs",
+            "videoFrames": 54,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "pgs-godfather2",
+            "passed": true,
+            "seconds": 52,
+            "initialReadySeconds": 28.525,
+            "subtitle": "pgs",
+            "videoFrames": 54,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "pgs-godfather3",
+            "passed": true,
+            "seconds": 52,
+            "initialReadySeconds": 35.562,
+            "subtitle": "pgs",
+            "videoFrames": 54,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "h264-cropped-4k",
+            "passed": true,
+            "seconds": 95,
+            "initialReadySeconds": 33.397,
+            "subtitle": "none",
+            "videoFrames": 14,
+            "initialWidth": 3840,
+            "initialHeight": 1608,
+            "initialVideoCodec": "avc1.424033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "ass-episode",
+            "passed": true,
+            "seconds": 47,
+            "initialReadySeconds": 28.299,
+            "subtitle": "ass",
+            "videoFrames": 55,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "auto-policy",
+            "passed": true,
+            "seconds": 50,
+            "initialReadySeconds": 32.187,
+            "subtitle": "none",
+            "videoFrames": 58,
+            "initialWidth": 1920,
+            "initialHeight": 804,
+            "initialVideoCodec": "avc1.424033",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "original-hdr-multi-audio",
+            "passed": true,
+            "seconds": 115,
+            "initialReadySeconds": 35.42,
+            "subtitle": "pgs",
+            "videoFrames": 54,
+            "initialWidth": 3840,
+            "initialHeight": 2160,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          }
+        ]
+      },
+      {
+        "engine": "webkit",
+        "group": "fixtures",
+        "total": 8,
+        "passed": 8,
+        "cases": [
+          {
+            "id": "fixture-movtext",
+            "passed": true,
+            "seconds": 21,
+            "initialReadySeconds": 16.412,
+            "subtitle": "vtt",
+            "videoFrames": 14,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-subrip",
+            "passed": true,
+            "seconds": 15,
+            "initialReadySeconds": 10.896,
+            "subtitle": "vtt",
+            "videoFrames": 14,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-ssa",
+            "passed": true,
+            "seconds": 18,
+            "initialReadySeconds": 13.566,
+            "subtitle": "ass",
+            "videoFrames": 13,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-ass",
+            "passed": true,
+            "seconds": 36,
+            "initialReadySeconds": 8.999,
+            "subtitle": "ass",
+            "videoFrames": 13,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-pgs-burn",
+            "passed": true,
+            "seconds": 49,
+            "initialReadySeconds": 6.978,
+            "subtitle": "pgs",
+            "videoFrames": 13,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay",
+            "independentlyRerun": true
+          },
+          {
+            "id": "fixture-pgs-client",
+            "passed": true,
+            "seconds": 11,
+            "initialReadySeconds": 7.57,
+            "subtitle": "pgs",
+            "videoFrames": 13,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "fixture-webvtt",
+            "passed": true,
+            "seconds": 12,
+            "initialReadySeconds": 8.458,
+            "subtitle": "vtt",
+            "videoFrames": 14,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          },
+          {
+            "id": "no-subtitle-direct",
+            "passed": true,
+            "seconds": 13,
+            "initialReadySeconds": 10.751,
+            "subtitle": "none",
+            "videoFrames": 14,
+            "initialWidth": 854,
+            "initialHeight": 480,
+            "playMethod": "DirectPlay"
+          }
+        ]
+      },
+      {
+        "engine": "webkit",
+        "group": "mobile",
+        "total": 3,
+        "passed": 3,
+        "cases": [
+          {
+            "id": "mobile-subrip-resume",
+            "passed": true,
+            "seconds": 31,
+            "initialReadySeconds": 14.778,
+            "subtitle": "vtt",
+            "videoFrames": 55,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          },
+          {
+            "id": "mobile-ass",
+            "passed": true,
+            "seconds": 13,
+            "initialReadySeconds": 7.305,
+            "subtitle": "ass",
+            "videoFrames": 54,
+            "initialWidth": 853,
+            "initialHeight": 480,
+            "initialVideoCodec": "hvc1.2.4.L120.B0",
+            "playMethod": "Transcode"
+          },
+          {
+            "id": "mobile-pgs",
+            "passed": true,
+            "seconds": 74,
+            "initialReadySeconds": 57.972,
+            "subtitle": "pgs",
+            "videoFrames": 54,
+            "initialWidth": 852,
+            "initialHeight": 480,
+            "initialVideoCodec": "avc1.640033",
+            "playMethod": "Transcode",
+            "independentlyRerun": true
+          }
+        ]
+      },
+      {
+        "engine": "webkit",
+        "group": "recovery",
+        "total": 13,
+        "passed": 13,
+        "cases": [
+          {
+            "id": "background-isolation",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "retry-after-error",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "switch-rollback",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "controls",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "ordinary-preview",
+            "passed": true
+          },
+          {
+            "id": "large-danmaku",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "asset-retry",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "subtitle-user-pause",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "playing-switch",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "subtitle-fallback",
+            "passed": true,
+            "afterExitStatus": 404,
+            "independentlyRerun": true
+          },
+          {
+            "id": "timeline",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "themes",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "gesture-start",
+            "passed": true,
+            "afterExitStatus": 404
+          }
+        ]
+      },
+      {
+        "engine": "webkit",
+        "group": "stream",
+        "total": 2,
+        "passed": 2,
+        "cases": [
+          {
+            "id": "stream-rollback",
+            "passed": true,
+            "afterExitStatus": 404
+          },
+          {
+            "id": "stream-retry",
+            "passed": true,
+            "afterExitStatus": 404
+          }
+        ]
+      }
+    ]
+  },
+  "extraChecks": {
+    "total": 17,
+    "passed": 17,
+    "cases": [
+      {
+        "engine": "chromium",
+        "id": "episode-navigation",
+        "passed": true
+      },
+      {
+        "engine": "chromium",
+        "id": "subtitle-resume",
+        "passed": true
+      },
+      {
+        "engine": "chromium",
+        "id": "mobile-panels",
+        "passed": true
+      },
+      {
+        "engine": "chromium",
+        "id": "real-caption-ass",
+        "passed": true,
+        "startedFromZero": true,
+        "manuallyReviewed": true
+      },
+      {
+        "engine": "chromium",
+        "id": "real-caption-pgs",
+        "passed": true,
+        "startedFromZero": true,
+        "manuallyReviewed": true
+      },
+      {
+        "engine": "firefox",
+        "id": "episode-navigation",
+        "passed": true
+      },
+      {
+        "engine": "firefox",
+        "id": "subtitle-resume",
+        "passed": true
+      },
+      {
+        "engine": "firefox",
+        "id": "mobile-panels",
+        "passed": true
+      },
+      {
+        "engine": "firefox",
+        "id": "real-caption-ass",
+        "passed": true,
+        "startedFromZero": true,
+        "manuallyReviewed": true
+      },
+      {
+        "engine": "firefox",
+        "id": "real-caption-pgs",
+        "passed": true,
+        "startedFromZero": true,
+        "manuallyReviewed": true
+      },
+      {
+        "engine": "webkit",
+        "id": "episode-navigation",
+        "passed": true
+      },
+      {
+        "engine": "webkit",
+        "id": "subtitle-resume",
+        "passed": true
+      },
+      {
+        "engine": "webkit",
+        "id": "mobile-panels",
+        "passed": true
+      },
+      {
+        "engine": "webkit",
+        "id": "real-caption-ass",
+        "passed": true,
+        "startedFromZero": true,
+        "manuallyReviewed": true
+      },
+      {
+        "engine": "webkit",
+        "id": "real-caption-pgs",
+        "passed": true,
+        "startedFromZero": true,
+        "manuallyReviewed": true
+      },
+      {
+        "engine": "chromium",
+        "id": "lan-https",
+        "passed": true
+      },
+      {
+        "engine": "chromium",
+        "id": "continuous-play-and-resume",
+        "passed": true,
+        "seconds": 300,
+        "samples": 30,
+        "resumeErrorSeconds": 0
+      }
+    ]
+  },
+  "limitations": [
+    "Linux WebKit and mobile viewports do not replace physical Safari/iPhone, hardware decoding or HDR display validation.",
+    "Other bitmap formats use Jellyfin burn-in and have policy tests; no DVD bitmap sample was available for actual playback.",
+    "Cold or concurrent 4K bitmap burn-in may exceed the bounded encoder deadline; the player provides an error and retry rather than switching to a generic preview."
+  ]
+}

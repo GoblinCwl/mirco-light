@@ -1,0 +1,753 @@
+@use "../../styles/variables.scss" as *;
+
+// Shared by note folders and the integration tree.
+@mixin directory-expansion {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition-property: grid-template-rows, visibility;
+  transition-duration: 0.3s;
+  transition-timing-function: ease-in-out;
+}
+
+@mixin directory-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--lightgray) transparent;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--lightgray);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--gray);
+  }
+
+}
+
+
+@media all and ($mobile) {
+  .page > #quartz-body {
+    // Shift page position when toggling Explorer on mobile.
+    & > :not(.sidebar.left:has(.explorer)) {
+      transition: transform 300ms ease-in-out;
+    }
+
+    &.lock-scroll > :not(.sidebar.left:has(.explorer)) {
+      transform: translateX(100dvw);
+      transition: transform 300ms ease-in-out;
+    }
+
+    // The toolbar and its fixed menu button share the same viewport anchor.
+    .sidebar.left:has(.explorer) {
+      box-sizing: border-box;
+      position: fixed;
+      top:0;left:calc(1rem + env(safe-area-inset-left));right:calc(1rem + env(safe-area-inset-right));
+      background-color: var(--light);
+      padding: calc(1rem + env(safe-area-inset-top)) 0 1rem 0;
+      margin: 0;
+    }
+
+    .hide-until-loaded ~ .explorer-content {
+      display: none;
+    }
+  }
+}
+
+.explorer {
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+  position: relative;
+
+  min-height: 1.2rem;
+  flex: 0 1 auto;
+
+  &.collapsed {
+    flex: 0 1 1.2rem;
+
+    & .fold {
+      transform: rotateZ(-90deg);
+    }
+  }
+
+  & .fold {
+    margin-left: 0.5rem;
+    transition: transform 0.3s ease;
+    opacity: 0.8;
+  }
+
+  @media all and ($mobile) {
+    order: -1;
+    height: initial;
+    overflow: hidden;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+
+  button.mobile-explorer {
+    display: none;
+  }
+
+  button.desktop-explorer {
+    display: flex;
+  }
+
+  @media all and ($mobile) {
+    button.mobile-explorer {
+      display: flex;
+    }
+
+    button.desktop-explorer {
+      display: none;
+    }
+
+    .explorer-actions {
+      z-index: 101;
+    }
+  }
+
+  &.desktop-only {
+    @media all and not ($mobile) {
+      display: flex;
+    }
+  }
+
+  svg {
+    pointer-events: all;
+    transition: transform 0.35s ease;
+
+    & > polyline {
+      pointer-events: none;
+    }
+  }
+
+  &:not(.is-loaded) .explorer-ul { display: none; }
+
+  &.is-loaded .explorer-loading {
+    display: none;
+  }
+}
+
+button.mobile-explorer,
+button.desktop-explorer {
+  background-color: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  color: var(--dark);
+  display: flex;
+  align-items: center;
+
+  & h2 {
+    font-size: 1rem;
+    display: inline-block;
+    margin: 0;
+  }
+}
+
+.explorer-content {
+  list-style: none;
+  overflow: hidden;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+  @include directory-scrollbar;
+
+  & ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    &.explorer-ul {
+      overscroll-behavior: contain;
+    }
+
+    & li > a {
+      position: relative;
+      color: var(--dark);
+      opacity: 0.75;
+      pointer-events: all;
+      transition: color 160ms ease, opacity 160ms ease;
+
+      &:hover, &:focus-visible {
+        color: var(--tertiary);
+        opacity: 1;
+      }
+
+      &.active {
+        opacity: 1;
+        color: var(--tertiary);
+        &::before {
+          content: "";
+          position: absolute;
+          left: -0.55rem;
+          top: 0.55em;
+          width: 5px;
+          height: 5px;
+          background: currentColor;
+          clip-path: polygon(50% 0, 65% 35%, 100% 50%, 65% 65%, 50% 100%, 35% 65%, 0 50%, 35% 35%);
+        }
+      }
+    }
+  }
+
+  .explorer-loading {
+    align-items: center;
+    color: var(--gray);
+    display: flex;
+    font-size: 0.85rem;
+    gap: 0.45rem;
+    padding: 0;
+  }
+  .explorer-loading { pointer-events: none; }
+  .explorer-loading .explorer-skeleton { width:min(100%,12rem); overflow:visible; }
+  .explorer-skeleton {
+    // Preserve each real row's font, button padding, line box and overflow tail.
+    .explorer-skeleton-folder > div { flex:1; min-width:0; }
+    .folder-button { width:100%; }
+    .drive-branch > summary { width:100%; }
+    .explorer-skeleton-label {
+      position:relative; color:transparent!important;
+      &::after { content:'';position:absolute;left:0;right:0;top:50%;height:.65rem;transform:translateY(-50%); }
+    }
+    .explorer-skeleton-arrow, .explorer-skeleton-label::after {
+      display:block; border-radius:3px; background:linear-gradient(100deg,var(--highlight) 25%,var(--lightgray) 50%,var(--highlight) 75%); background-size:200% 100%; animation:explorer-skeleton-shimmer 1.6s ease-in-out infinite;
+    }
+    .explorer-skeleton-arrow { width:12px; height:12px; flex:0 0 12px; }
+  }
+
+  .folder-outer {
+    visibility: collapse;
+    @include directory-expansion;
+  }
+
+  // Collapsed descendants must not widen the shared horizontal scroller.
+  .folder-outer:not(.open) { contain: inline-size; }
+
+  .folder-outer.open {
+    visibility: visible;
+    grid-template-rows: 1fr;
+  }
+
+  .folder-outer > ul {
+    overflow: hidden;
+    margin-left: 6px;
+    padding-left: calc(0.8rem + 1px);
+  }
+}
+
+@keyframes explorer-skeleton-shimmer { from { background-position:200% 0; } to { background-position:0 0; } }
+@media(prefers-reduced-motion:reduce) { .explorer .explorer-skeleton .explorer-skeleton-arrow, .explorer .explorer-skeleton .explorer-skeleton-label::after { animation:none; } }
+
+.folder-container,
+.explorer-skeleton-folder {
+  flex-direction: row;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  min-height: var(--directory-row-height, 1.6rem);
+  > div { display: flex; align-items: center; }
+
+  & div > a {
+    color: var(--secondary);
+    font-family: var(--headerFont);
+    font-size: 0.95rem;
+    font-weight: $semiBoldWeight;
+    line-height: 1.5rem;
+    display: inline-block;
+  }
+
+  & div > a:hover,
+  &.active div > a,
+  &.active div > button > span {
+    color: var(--tertiary);
+  }
+
+  & div > button {
+    color: var(--dark);
+    background-color: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    font-family: var(--headerFont);
+
+    & span {
+      font-size: 0.95rem;
+      display: inline-block;
+      color: var(--secondary);
+      font-weight: $semiBoldWeight;
+      margin: 0;
+      line-height: 1.5rem;
+      pointer-events: none;
+    }
+  }
+}
+
+.folder-icon {
+  margin-right: 5px;
+  color: var(--secondary);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  backface-visibility: visible;
+  flex-shrink: 0;
+}
+
+li:has(> .folder-outer:not(.open)) > .folder-container > svg {
+  transform: rotate(-90deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .folder-icon:hover { color: var(--tertiary); }
+}
+
+.explorer {
+  @media all and ($mobile) {
+    &.collapsed {
+      flex: 0 0 34px;
+
+      & > .explorer-content {
+        transform: translateX(-100vw);
+        visibility: hidden;
+        transition:
+          transform 160ms ease-out,
+          visibility 0s linear 160ms;
+      }
+    }
+
+    &:not(.collapsed) {
+      flex: 0 0 34px;
+      // Keep the viewport drawer visible even after the document has scrolled.
+      // Do not clip it once it has been opened.
+      overflow: visible;
+
+      & > .explorer-content {
+        transform: translateX(0);
+        visibility: visible;
+        transition:
+          transform 160ms ease-out,
+          visibility 0s;
+      }
+    }
+
+    .explorer-content {
+      box-sizing: border-box;
+      z-index: 100;
+      position: fixed;
+      top: 0;
+      left: 0;
+      margin-top: 0;
+      background-color: var(--light);
+      max-width: 100vw;
+      width: 100vw;
+      transform: translateX(-100vw);
+      transition:
+        transform 160ms ease-out,
+        visibility 0s linear 160ms;
+      overflow: hidden;
+      overscroll-behavior: contain;
+      padding: calc(4rem + env(safe-area-inset-top)) 0 calc(2rem + env(safe-area-inset-bottom)) 0;
+      height: 100dvh;
+      max-height: 100dvh;
+      visibility: hidden;
+    }
+
+    .mobile-explorer {
+      // Outside the drawer's scroll container; opening, closing or scrolling
+      // either the directory or document must not move the navigation button.
+      position:fixed;
+      top:calc(1rem + env(safe-area-inset-top));
+      left:calc(1rem + env(safe-area-inset-left));
+      margin: 0;
+      padding: 5px;
+      border-radius:4px;
+      background:var(--light);
+      z-index: 101;
+
+      .lucide-menu {
+        stroke: var(--darkgray);
+      }
+    }
+  }
+}
+
+.mobile-no-scroll {
+  @media all and ($mobile) {
+    overflow:hidden;
+    body {overflow:hidden;}
+    .explorer-content > .explorer-ul {
+      overscroll-behavior: contain;
+    }
+  }
+}
+
+// Two mobile sections reuse the desktop tree and recent-note component.
+.directory-tools {
+  position: relative;
+  flex-shrink: 0;
+  margin: 0;
+  > summary {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    width: fit-content;
+    padding: 0;
+    list-style: none;
+    color: var(--dark);
+    font-family: var(--headerFont);
+    font-size: 1rem;
+    background: transparent;
+    cursor: pointer;
+    &::-webkit-details-marker { display: none; }
+    > h2 { display: inline-block; font-size: 1rem; margin: 0; }
+    > .fold { margin-left: 0.5rem; opacity: 0.8; transition: transform 0.3s ease; transform: rotate(-90deg); }
+    &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; }
+  }
+  &[open] > summary > .fold { transform: rotate(0deg); }
+  > ul { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+  li > a {
+    display: inline; position: relative; font-size: 1rem; line-height: 1.6; background: transparent;
+    color: var(--dark); opacity: 0.75; font-weight: 600; transition: color 160ms ease, opacity 160ms ease;
+    &:hover, &:focus-visible, &.active { color: var(--tertiary); opacity: 1; }
+    &.active::before { content: ""; position: absolute; left: -0.55rem; top: 0.55em; width: 5px; height: 5px; background: currentColor; clip-path: polygon(50% 0, 65% 35%, 100% 50%, 65% 65%, 50% 100%, 35% 65%, 0 50%, 35% 35%); }
+  }
+  .directory-tools-loading { display: flex; align-items: center; padding: 0.3rem 0; margin-top: 0.5rem; }
+  &:not(.is-loaded) > ul { display: none; }
+  &.is-loaded > .directory-tools-loading { display: none; }
+}
+.directory-frame { --directory-row-height: 1.6rem; }
+.directory-frame, .directory-scroll { display: contents; }
+.directory-realm {
+  > ul { display: grid; gap: 0; }
+  // Keep the same natural line box as a folder title in the exploration tree.
+  > summary > h2 { line-height: 1.5rem; }
+  > ul > li { display: flex; align-items: center; min-height: var(--directory-row-height); margin: 0; padding: 0; }
+  > ul > li > a {
+    box-sizing: border-box; display: inline-block;
+    padding: 0 0 0 1.6rem;
+    font-family: var(--headerFont); font-size: .95rem; font-weight: 600;
+    line-height: 1.5rem; color: var(--secondary); opacity: 1;
+    &.active::before { top: calc(50% - 2.5px); }
+    &:hover { text-decoration: none; }
+  }
+  .realm-entry-icon {
+    position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 1.05rem; width: 1.05rem; height: 1.05rem; color: inherit;
+    > svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+  }
+}
+// Realm uses an explicit height animation so closing also works in browsers
+// without ::details-content/content-visibility transition support.
+.directory-tools.directory-realm[data-motion-ready]::details-content { display: block; transition: none; }
+.directory-tools.directory-realm[data-motion-ready] > ul { transition: none; }
+@media all and not ($mobile) {
+  .directory-frame {
+    display: block; position: relative; flex: 1 1 0; min-height: 3rem; min-width: 0;
+    &::before, &::after {
+      content: ""; position: absolute; top: 0; left: 0;
+      pointer-events: none; z-index: 3; opacity: 0; transition: opacity 120ms ease;
+    }
+    &::before { width: 100%; height: .65rem; background: linear-gradient(to bottom, var(--light), transparent); }
+    &::after { width: .65rem; height: 100%; background: linear-gradient(to right, var(--light), transparent); }
+    &[data-scrolled-y]::before, &[data-scrolled-x]::after { opacity: 1; }
+  }
+  .directory-scroll {
+    display: block;
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    overflow-anchor: none;
+    scrollbar-gutter: stable;
+    @include directory-scrollbar;
+    width: 100%;
+    box-sizing: border-box;
+    > .explorer {
+      flex: none;
+      overflow: visible;
+      width: 100%;
+      min-width: 0;
+      .explorer-content { flex: none; width: max-content; min-width: 100%; overflow: visible; }
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      // An auto title track stretches into the fractional row's free space
+      // during interpolation, moving the centered heading on every toggle.
+      grid-template-rows: max-content 1fr;
+      align-items: start;
+      > .desktop-explorer { align-self: start; min-height: 1.5rem; > h2 { line-height: 1.5rem; } }
+      > .explorer-content { overflow: hidden; visibility: visible; }
+      &.collapsed {
+        grid-template-rows: max-content 0fr;
+        > .explorer-content { margin-top: 0; visibility: hidden; }
+      }
+      &[data-motion-ready] {
+        transition: grid-template-rows .3s ease-in-out;
+        > .explorer-content { transition: margin-top .3s ease-in-out, visibility .3s; }
+      }
+      .explorer-ul, .folder-title, li > a { white-space: nowrap; }
+    }
+    > .directory-tools-desktop {
+      width: 100%;
+      min-width: 0;
+      margin-top: 1.2rem;
+      > ul { width: max-content; min-width: 100%; overflow: visible; }
+      .drive-nav, .drive-branch { > summary { max-width: none; } > ul > li > a { max-width: none; overflow: visible; text-overflow: clip; } }
+    }
+  }
+}
+.directory-tools-mobile { display: none; }
+.directory-tools .drive-nav, .directory-tools .drive-branch {
+  min-width: 0;
+  > summary {
+    display: flex; align-items: center; min-height: var(--directory-row-height, 1.6rem); width: fit-content; max-width: 100%; gap: 5px; list-style: none; cursor: pointer;
+    &::-webkit-details-marker { display: none; }
+    > .drive-folder-toggle .fold { width: 12px; height: 12px; margin: 0; color: var(--secondary); opacity: 1; transform: rotate(-90deg); transition: transform 0.3s ease; }
+    > a, > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--secondary); font-family: var(--headerFont); font-size: 0.95rem; font-weight: 600; line-height: 1.5rem; background: transparent; }
+    > a:hover, > a.active { color: var(--tertiary); }
+  }
+  &[open] > summary > .drive-folder-toggle .fold { transform: rotate(0deg); }
+  > ul { list-style: none; margin: 0 0 0 6px; padding-left: calc(0.8rem + 1px); min-width: 0; }
+  > ul > li { min-width: 0; }
+  > ul > li > a { display: block; width: fit-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .drive-nav-status { color: var(--gray); font-size: 0.8rem; padding-block: 0.2rem; button { color: var(--secondary); font: inherit; background: transparent; border: none; cursor: pointer; padding: 0; } }
+}
+@media all and ($mobile) {
+  .directory-tools-desktop { display: none; }
+  .explorer-content .directory-tools-mobile {
+    display: block; margin: 0 0 1rem;
+    > summary {
+      min-height: 44px; gap: 0.5rem; font-weight: 600; user-select: none; -webkit-tap-highlight-color: transparent;
+      > h2 { font: inherit; }
+      > .fold { order: -1; margin-left: 0; }
+    }
+    > ul { margin: 0 0 0 0.9rem; }
+  }
+}
+
+.explorer-content {
+  // One bounded scroll container; the mobile grouping must not create a
+  // second, unbounded overflow list that consumes wheel events.
+  min-height: 0;
+  flex: 1 1 auto;
+  .mobile-directory-explore { display: contents; > summary { display: none; } }
+  .mobile-directory-recent { display: none; }
+  .mobile-directory-links { display: none; }
+  .explorer-ul.overflow {
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+  }
+}
+@media all and ($mobile) {
+  .explorer .explorer-content {
+    overflow: auto;
+    padding-inline: 1rem;
+    .mobile-directory-explore > .explorer-ul, .directory-tools-mobile > ul { width: max-content; }
+    .folder-title, li > a { white-space: nowrap; }
+    .directory-tools-mobile .drive-branch, .directory-tools-mobile .drive-nav { > summary { max-width: none; } > ul > li > a { max-width: none; overflow: visible; text-overflow: clip; } }
+    .mobile-directory-explore, .mobile-directory-recent {
+      display: block;
+      margin: 0 0 1rem;
+      > summary {
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        background: transparent;
+        &:active, &:focus { background: transparent; outline: none; }
+        &:focus-visible { outline: 1px solid var(--secondary); outline-offset: 2px; }
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 44px;
+        color: var(--dark);
+        font-family: var(--headerFont);
+        font-weight: 600;
+        cursor: pointer;
+        list-style: none;
+        &::-webkit-details-marker { display: none; }
+        &::before { content: "›"; color: var(--secondary); font-size: 1.2rem; transition: transform 0.15s ease; }
+      }
+      &[open] > summary::before { transform: rotate(90deg); }
+      > .explorer-ul, > .recent-notes { margin-left: 0.9rem; }
+      > .explorer-ul.overflow { width: max-content; }
+    }
+    .mobile-directory-explore > summary {
+      &::before { display: none; }
+      > .fold { margin-left: 0; transform: rotate(-90deg); }
+    }
+    .mobile-directory-explore[open] > summary > .fold { transform: rotate(0deg); }
+    .mobile-directory-recent .recent-notes {
+      > h3 { display: none; }
+      .recent-ul { margin-top: 0; }
+      .recent-li { margin-block: 0.8rem !important; }
+    }
+  }
+}
+
+// Native details normally hides its contents immediately on close. Keep that
+// visibility change until the shared 0fr/1fr transition has finished.
+.directory-tools[data-motion-ready] {
+  &::details-content, :is(.drive-nav, .drive-branch)::details-content {
+    @include directory-expansion;
+    transition-property: grid-template-rows, visibility, content-visibility;
+    transition-behavior: normal, normal, allow-discrete;
+  }
+  &[open]::details-content, :is(.drive-nav, .drive-branch)[open]::details-content {
+    grid-template-rows: 1fr;
+  }
+  > ul, :is(.drive-nav, .drive-branch) > ul {
+    min-height: 0;
+    overflow: hidden;
+  }
+  > ul {
+    margin-top: 0;
+    transition: margin-top 0.3s ease-in-out;
+  }
+  &[open] > ul { margin-top: var(--directory-content-gap, 0.5rem); }
+}
+@media all and ($mobile) {
+  .directory-tools-mobile { --directory-content-gap: 0rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .explorer-content .folder-outer,
+  .directory-tools[data-motion-ready]::details-content,
+  .directory-tools[data-motion-ready] :is(.drive-nav, .drive-branch)::details-content,
+  .directory-tools[data-motion-ready] > ul { transition-duration: 0s; }
+}
+
+// Both directory groups use the same bulk controls and touch behavior.
+.directory-scroll .explorer-actions {
+  display: flex;
+  position: absolute;
+  left: -1.5rem;
+  top: 0;
+  z-index: 2;
+  button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.25rem; height: 1.5rem; padding: 0;
+    border: 0; border-radius: 4px; background: transparent;
+    color: var(--dark); cursor: pointer;
+    svg { transition: transform 0.2s ease; }
+    &:hover { background: var(--highlight); }
+    &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 1px; }
+    &.is-collapse-action svg { transform: rotate(180deg); }
+  }
+}
+.directory-tools :is(summary, .drive-folder-toggle) {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.directory-tools summary {
+  &:focus:not(:focus-visible) { outline: none; }
+}
+.directory-tools .drive-folder-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 12px; width: 12px; height: 1.5rem; padding: 0;
+  color: var(--secondary); background: transparent; border: 0; cursor: pointer;
+  &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; }
+  > svg { pointer-events: none; }
+}
+@media all and ($mobile) {
+  .directory-scroll .explorer-content :is(.mobile-directory-explore, .directory-tools-mobile) > summary {
+    width: 100%; min-width: 0;
+    > .explorer-actions {
+      position: static; margin-left: auto; flex-shrink: 0;
+      button { width: 36px; height: 36px; }
+    }
+  }
+}
+
+@media all and ($mobile) {
+  .explorer[data-motion-ready] .mobile-directory-explore {
+    &::details-content {
+      @include directory-expansion;
+      transition-property: grid-template-rows, visibility, content-visibility;
+      transition-behavior: normal, normal, allow-discrete;
+    }
+    &[open]::details-content { grid-template-rows: 1fr; }
+    > .directory-root-list { min-height: 0; overflow: hidden; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .directory-frame::before, .directory-frame::after { transition: none; }
+  .directory-scroll > .explorer[data-motion-ready],
+  .directory-scroll > .explorer[data-motion-ready] > .explorer-content,
+  .explorer[data-motion-ready] .mobile-directory-explore::details-content { transition-duration: 0s; }
+}
+
+// Match the integration tree: tapping an arrow must not highlight the row.
+.explorer :is(.folder-container, .folder-icon, .folder-button, .desktop-explorer, .mobile-directory-explore > summary) {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.explorer :is(.folder-icon, .folder-button, .desktop-explorer):focus:not(:focus-visible) {
+  outline: none;
+  background-color: transparent;
+}
+
+@media all and not ($mobile) {
+  .directory-scroll .explorer-actions {
+    // Fixed positioning escapes the scroll clip; coordinates follow each header.
+    position: fixed; top: auto; left: auto; visibility: hidden;
+  }
+}
+
+// Only explicit initial-state restores suppress disclosure transitions.
+.directory-scroll details[data-route-updating] {
+  &::details-content, > ul, > summary .fold { transition: none !important; }
+}
+
+// File leaves stay one step smaller than folder headings in both trees.
+.explorer-ul li > a,
+.directory-tools :is(.drive-nav, .drive-branch) > ul > li > a {
+  font-size: .9rem;
+  line-height: 1.5rem;
+}
+
+// Drive belongs to the same root list as the note folders.
+.explorer-content .directory-drive, .explorer-content .directory-repo, .explorer-content .directory-video {
+  display: block;
+  margin: 0;
+  padding: 0;
+  > ul { display: block; margin: 0; padding: 0; width: max-content; min-width: 100%; }
+  .drive-nav, .drive-branch {
+    > summary { max-width: none; }
+    > ul > li > a { max-width: none; overflow: visible; text-overflow: clip; }
+  }
+  &[data-motion-ready] > ul { margin-top: 0; }
+}
+.explorer:not(.is-loaded) :is(.directory-drive, .directory-repo, .directory-video) { display: none; }
+.directory-tools:is(.directory-repo, .directory-video)[data-motion-ready] :is(.repo-nav, .video-nav, .drive-branch)::details-content {
+  display: block;
+  transition: none;
+}
+:is(.directory-repo, .directory-video) details[data-directory-expanded="false"] > summary > .drive-folder-toggle .fold { transform: rotate(-90deg); }
+:is(.directory-repo, .directory-video) details[data-directory-expanded="true"] > summary > .drive-folder-toggle .fold { transform: rotate(0deg); }
+@media all and ($mobile) {
+  .explorer-content .mobile-directory-explore > .directory-root-list { margin-left: .9rem; }
+}
+
+// Automatic note-folder updates skip height and arrow transitions too.
+.folder-outer[data-route-updating],
+li:has(> .folder-outer[data-route-updating]) > .folder-container > svg { transition: none !important; }
+
+@media all and ($mobile){
+ .explorer .explorer-content:has(>.mobile-directory-heading){padding-top:calc(1rem + env(safe-area-inset-top));}
+ .explorer .mobile-directory-heading{display:flex;align-items:center;gap:.5rem;margin:0 0 1.25rem;min-height:2rem;
+  >.mobile-explorer{position:static;margin:0;flex:none;}
+  >.mobile-directory-brand{padding:0;background:transparent;color:var(--secondary);font:600 1.75rem/1.2 var(--titleFont);text-decoration:none;}
+ }
+}

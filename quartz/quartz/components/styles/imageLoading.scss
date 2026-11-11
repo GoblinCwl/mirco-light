@@ -1,0 +1,80 @@
+/* Image loading placeholder */
+.image-container {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  isolation: isolate;
+  vertical-align: top;
+}
+
+.image-container img {
+  opacity: 1;
+  position: relative;
+  z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-loading-spinner {
+    animation: none;
+  }
+}
+
+/* Subtle loading overlay */
+.image-loading-overlay {
+  display: grid;
+  place-items: center;
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--light) 88%, var(--lightgray));
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 0.3s ease-in-out;
+}
+
+:root:not([saved-theme="dark"]) .image-loading-overlay {
+  background: color-mix(in srgb, var(--light) 78%, var(--lightgray));
+}
+
+.image-loading-spinner {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  padding: 0.4rem;
+  border: 2px solid color-mix(in srgb, var(--gray) 65%, transparent);
+  border-top-color: var(--darkgray);
+  border-radius: 50%;
+  animation: image-loading-spin 0.75s linear infinite;
+}
+
+.image-container.loaded .image-loading-overlay {
+  opacity: 0;
+}
+
+@keyframes image-loading-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Embedded images */
+article .image-container {
+  display: inline-block;
+  margin: 1rem 0;
+  
+  &.wikilink-image {
+    margin: 0;
+  }
+}
+
+/* Images in tables */
+table .image-container {
+  display: inline-block;
+  line-height: 0;
+}
+
+/* Image layout */
+.image-container img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}

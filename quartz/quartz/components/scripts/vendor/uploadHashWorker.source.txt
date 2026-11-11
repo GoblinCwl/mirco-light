@@ -1,0 +1,9 @@
+import { createMD5, createSHA1, createSHA256 } from './hash-wasm.js'
+self.onmessage = async ({data:{file}}) => {
+ try {
+  const hashers = await Promise.all([createMD5(),createSHA1(),createSHA256()]);
+  const reader=file.stream().getReader();let loaded=0,last=0;
+  for(;;){const {done,value}=await reader.read();if(done)break;hashers.forEach(hash=>hash.update(value));loaded+=value.length;if(Date.now()-last>80){self.postMessage({type:'progress',progress:file.size?loaded/file.size*100:100});last=Date.now()}}
+  self.postMessage({type:'result',hash:{md5:hashers[0].digest('hex'),sha1:hashers[1].digest('hex'),sha256:hashers[2].digest('hex')}})
+ }catch(error){self.postMessage({type:'error',error:error instanceof Error?error.message:String(error)})}
+}

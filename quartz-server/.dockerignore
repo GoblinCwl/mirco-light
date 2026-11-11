@@ -1,0 +1,16 @@
+.git
+.env
+bin
+coverage.out
+*.log
+
+__pycache__/
+*.pyc
+
+deploy/
+
+docs/
+
+tools/
+
+README.md

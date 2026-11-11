@@ -1,0 +1,10 @@
+.env
+bin/
+coverage.out
+*.test
+*.log
+
+__pycache__/
+*.pyc
+
+/deploy/

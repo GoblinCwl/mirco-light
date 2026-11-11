@@ -1,0 +1,21 @@
+.observatory-tools .site-feedback {
+ width:100%; min-width:0;
+ form { display:grid; gap:.75rem; }
+ label { display:grid; gap:.35rem; min-width:0; color:var(--darkgray); font-size:.75rem;
+  >span { display:flex; align-items:center; justify-content:space-between; gap:.5rem; font-weight:500; }
+  small,output { color:var(--gray); font-size:.68rem; font-weight:400; }
+ }
+ input,textarea { box-sizing:border-box; width:100%; min-width:0; padding:.6rem .7rem; border:1px solid var(--lightgray); border-radius:5px; color:var(--dark); background:var(--moreLight); font-family:var(--bodyFont); font-size:.82rem; line-height:1.5; box-shadow:none;
+  &:focus { outline:2px solid var(--secondary); outline-offset:-2px; border-color:var(--secondary); }
+  &[aria-invalid=true] { border-color:#ca6868; outline-color:#ca6868; }
+  &::placeholder { color:color-mix(in srgb,var(--darkgray) 65%,var(--light)); opacity:1; }
+  &[readonly] { color:var(--darkgray); }
+ }
+ textarea { resize:none; height:5.2rem; min-height:5.2rem; max-height:5.2rem; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--lightgray) transparent; }
+ button { position:relative; display:flex; align-items:center; justify-content:center; box-sizing:border-box; width:100%; min-height:2.5rem; margin-top:.15rem; padding:.55rem 2.4rem; border:1px solid color-mix(in srgb,var(--secondary) 45%,var(--lightgray)); border-radius:5px; color:var(--secondary); background:color-mix(in srgb,var(--secondary) 9%,var(--moreLight)); font-family:var(--bodyFont); font-size:.85rem; font-weight:600; cursor:pointer;
+  svg { position:absolute; right:.8rem; width:17px; height:17px; opacity:.7; }
+  &:hover:not(:disabled) { border-color:var(--secondary); background:color-mix(in srgb,var(--secondary) 14%,var(--moreLight)); }
+  &:disabled { opacity:.45; cursor:not-allowed; }
+  &:focus-visible { outline:2px solid var(--secondary); outline-offset:3px; }
+ }
+}

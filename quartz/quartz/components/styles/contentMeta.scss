@@ -1,0 +1,27 @@
+.content-meta {
+  margin-top: 0;
+  color: var(--darkgray);
+
+  &[show-comma="true"] {
+    > *:not(:last-child) {
+      margin-right: 8px;
+
+      &::after {
+        content: ",";
+      }
+    }
+  }
+}
+
+// Keep the date prefix and bold placeholders in the same line box on articles and Drive.
+.content-meta:has(> span > time) {
+  display: flex;
+  align-items: center;
+  line-height: 1.6;
+  > span { display: inline-flex; align-items: center; white-space:nowrap; }
+  time {white-space:nowrap;}
+}
+
+.content-meta[hidden] { display: none !important; }
+
+@media(max-width:800px){.content-meta:has(> span > time){font-size:.8rem;gap:.35rem;flex-wrap:wrap;}}

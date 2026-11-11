@@ -1,0 +1,120 @@
+// Shared presentation for the archive and Artalk's comment DOM.
+@mixin row {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  column-gap: 13px;
+  align-items: start;
+  margin-bottom: 1.5rem;
+  font-family: var(--bodyFont);
+  color: var(--darkgray);
+}
+
+@mixin avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 7px;
+  background: var(--highlight);
+  color: var(--secondary);
+  > img {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border-radius: 7px;
+    object-fit: cover;
+    cursor: default;
+  }
+}
+
+@mixin header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+@mixin name {
+  color: var(--secondary);
+  font-family: var(--bodyFont);
+  font-size: 15px;
+  font-weight: 400;
+  background: transparent;
+}
+
+@mixin metadata {
+  color: var(--darkgray);
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+@mixin content {
+  margin-block: 5px;
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--darkgray);
+  p { margin-block: 0.4rem; }
+  > :first-child { margin-top: 0; }
+  > :last-child { margin-bottom: 0; }
+  img {
+    max-width: 100%;
+    max-height: 36rem;
+    margin-block: 0;
+    object-fit: contain;
+    border-radius: 4px;
+    vertical-align: text-bottom;
+  }
+  img.comment-large-image {
+    display: block;
+    max-width: min(100%, 32rem);
+    max-height: min(50vh, 24rem);
+    margin-block: 0.65rem;
+    border-radius: 7px;
+    cursor: zoom-in;
+  }
+  img.comments-emoticon, img[atk-emoticon] {
+    cursor: default;
+    display: inline-block;
+    max-width: 100%;
+    max-height: 60px;
+    margin: 0 0.12em;
+    vertical-align: text-bottom;
+  }
+  pre { max-width: 100%; overflow-x: auto; }
+}
+
+@mixin collapsed {
+  margin: 0.5rem 0;
+  padding: 0.1rem 0 0.1rem 0.7rem;
+  border: 0;
+  border-left: 2px solid var(--gray);
+  border-radius: 0;
+  background: transparent;
+  color: var(--darkgray);
+  font-family: var(--bodyFont);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+@mixin expand-action {
+  color: var(--secondary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover { color: var(--tertiary); }
+  &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; }
+}
+
+@mixin admin-name {
+  color: color-mix(in srgb, #e0525b 80%, var(--dark)) !important;
+  font-weight: 400;
+}

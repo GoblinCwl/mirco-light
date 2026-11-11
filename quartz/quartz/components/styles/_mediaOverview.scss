@@ -1,0 +1,13 @@
+@mixin panel {
+  --overview-lines: 5;
+  box-sizing:border-box; min-width:0; margin:1.1rem 0 1.5rem; padding:1rem 1.1rem;
+  border:1px solid var(--lightgray); border-radius:8px; background:color-mix(in srgb,var(--moreLight) 55%,var(--light));
+  > h2 { margin:0 0 .7rem; color:var(--secondary); font-family:var(--headerFont); font-size:.9rem; font-weight:600; line-height:1.5; }
+  .drive-media-overview { white-space:normal; overflow-wrap:anywhere; line-height:1.8; max-height:calc(var(--overview-lines) * 1.8em); overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:var(--overview-lines); }
+  &.has-overview-reserve .drive-media-overview { min-height:calc(var(--overview-lines) * 1.8em); }
+  &.is-overview-expanded .drive-media-overview { max-height:none; display:block; -webkit-line-clamp:unset; }
+  .drive-media-overview > p { margin:0; font-size:inherit; line-height:1.8; white-space:pre-line; text-wrap:wrap; + p { margin-top:.65rem; } }
+  > button.drive-media-overview-toggle { display:block; margin:.6rem 0 0 auto; padding:.15rem 0; border:0; border-radius:0; background:transparent; color:var(--secondary); font-size:.78rem; line-height:1.5; &:hover { border:0; background:transparent; text-decoration:underline; text-underline-offset:.2em; } }
+  @media(max-width:800px) { --overview-lines: 3; }
+  @media(max-width:600px) { padding:.85rem .9rem; }
+}
