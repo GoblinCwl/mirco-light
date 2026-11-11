@@ -101,7 +101,7 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 		value, _ := values["api.gitea.url"].(string)
 		return value, nil
 	}, GitHubToken: func(ctx context.Context) (string, error) { return app.Credentials.Read(ctx, "github") }}
-	runtime.repoSocial = &repo.Social{DB: app.DB, Adapter: app.Repo}
+	runtime.repoSocial = &repo.Social{DB: app.DB, Adapter: app.Repo, AfterCodeChange: runtime.syncRepoMirrors}
 	app.Repo.Social = runtime.repoSocial.Snapshot
 	store := video.Store{DB: app.DB, MID: options.VideoMID}
 	client := &video.Client{MID: options.VideoMID, Cookie: func(ctx context.Context) (string, error) { return app.Credentials.Read(ctx, "bilibili") }}
@@ -287,7 +287,7 @@ func (r *Runtime) start() {
 	r.periodic("build-journal", time.Second, 10*time.Second, func(ctx context.Context) error {
 		return (journal.Store{DB: r.app.DB}).BuildFile(ctx, filepath.Join(filepath.Dir(r.options.ArticleSnapshot), "build-state.json"))
 	})
-	r.periodic("github-social", 30*time.Minute, 10*time.Minute, r.repoSocial.Refresh)
+	r.periodic("github-social", 30*time.Minute, 40*time.Minute, r.repoSocial.Refresh)
 	r.periodic("bilibili-social", 30*time.Minute, 2*time.Minute, func(ctx context.Context) error { return r.videoSocial.Refresh(ctx, false) })
 	r.periodic("activitywatch-summary", 10*time.Minute, 90*time.Second, r.app.Adapters.RefreshSummary)
 	r.periodic("auth-cleanup", time.Hour, 10*time.Second, r.app.Auth.Cleanup)

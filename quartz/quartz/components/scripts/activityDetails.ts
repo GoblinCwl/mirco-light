@@ -33,11 +33,11 @@ export function activitySceneLabel(data: Pick<ActivityDetails, "state" | "scene"
   const state = data.state.toLowerCase()
   if (state === "active") {
     const scene = data.scene?.trim()
-    return scene && scene !== "未命名场景" ? `熱中 · ${scene}` : "🌠再臨"
+    return scene && scene !== "未命名场景" ? `熱中 · ${scene}` : "再臨🌠"
   }
-  if (state === "afk") return "🍃神隠し"
-  if (state === "offline") return "💤圏外"
-  return data.label || "🫧不可視"
+  if (state === "afk") return "微睡み🫧"
+  if (state === "offline") return "神隠し🍃"
+  return data.label || "不可視🌀"
 }
 
 export function createActivityDetails(button: HTMLElement) {

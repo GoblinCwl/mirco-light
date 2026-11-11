@@ -176,9 +176,9 @@ func (a *Adapter) Content(ctx context.Context) ([]content.Item, error) {
 	if snapshot["completedAt"] == nil || snapshot["completedAt"] == "" {
 		return nil, problem(503, "仓库目录同步尚未完整完成")
 	}
-	if n, ok := snapshot["errorCount"].(float64); ok && n != 0 {
-		return nil, problem(503, "仓库目录同步尚未完整完成")
-	}
+	// The producer atomically publishes a completed snapshot and retains each
+	// failed repository's last usable ready entry. A partial pull failure must
+	// not prevent successful repositories from updating their index.
 	catalog, err := a.Catalog(ctx)
 	if err != nil {
 		return nil, err

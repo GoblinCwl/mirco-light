@@ -18,9 +18,10 @@ import (
 )
 
 type Social struct {
-	DB      *sql.DB
-	Adapter *Adapter
-	mu      sync.Mutex
+	DB              *sql.DB
+	Adapter         *Adapter
+	AfterCodeChange func(context.Context) error
+	mu              sync.Mutex
 }
 
 func (s *Social) get(ctx context.Context, key string) (any, error) {
@@ -219,6 +220,9 @@ func (s *Social) Refresh(ctx context.Context) error {
 	statusErr := s.put(ctx, "status", map[string]any{"attemptedAt": time.Now().UTC().Format(time.RFC3339Nano)})
 	if first == nil {
 		first = statusErr
+	}
+	if mirrorErr := s.refreshMirrors(ctx); first == nil {
+		first = mirrorErr
 	}
 	return first
 }
