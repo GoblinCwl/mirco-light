@@ -43,14 +43,45 @@ document.addEventListener('nav',()=>{
  }
  const sidebar=document.querySelector<HTMLElement>('[data-tag-sidebar]')
  if(tag&&sidebar)setupTagOperations(sidebar,tag,lifecycle.signal)
+ let locateTimer:ReturnType<typeof setTimeout>|undefined
+ window.addCleanup(()=>clearTimeout(locateTimer))
  const filterTags=()=>{
   const query=root.querySelector<HTMLInputElement>('[data-tag-filter]')?.value.trim().normalize('NFKC').toLocaleLowerCase()||''
   let visible=0
-  for(const row of root.querySelectorAll<HTMLElement>('[data-tag-name]')){row.hidden=!row.dataset.tagName!.normalize('NFKC').toLocaleLowerCase().includes(query);if(!row.hidden)visible++}
-  const status=root.querySelector('[data-tag-visible-count]');if(status)status.textContent=query?`找到 ${visible} 个`:`${visible} 个`
+  for(const row of root.querySelectorAll<HTMLElement>('[data-tag-name]')){
+   const matches=!query||row.dataset.tagName!.normalize('NFKC').toLocaleLowerCase().includes(query)
+   row.dataset.tagMatch=String(matches)
+   row.classList.toggle('is-muted',!matches)
+   if(matches)visible++
+  }
+  const status=root.querySelector('[data-tag-visible-count]');if(status)status.textContent=query?`找到 ${visible} 个主题`:`${visible} 个主题`
   const empty=root.querySelector<HTMLElement>('[data-tag-empty-filter]');if(empty)empty.hidden=visible>0
  }
+ const locateTag=(entry:HTMLElement)=>{
+  for(const previous of root.querySelectorAll('.is-located'))previous.classList.remove('is-located')
+  clearTimeout(locateTimer)
+  entry.classList.add('is-located')
+  entry.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth',block:'center'})
+  entry.querySelector<HTMLAnchorElement>('a')?.focus({preventScroll:true})
+  locateTimer=setTimeout(()=>entry.classList.remove('is-located'),2000)
+ }
  root.querySelector('[data-tag-filter]')?.addEventListener('input',filterTags,{signal:lifecycle.signal})
+ root.querySelector('[data-tag-filter]')?.addEventListener('keydown',event=>{
+  if((event as KeyboardEvent).key!=='Enter'||(event as KeyboardEvent).isComposing)return
+  const first=root.querySelector<HTMLElement>('[data-tag-match="true"]')
+  if(first){event.preventDefault();locateTag(first)}
+ },{signal:lifecycle.signal})
+ if(!tag)document.addEventListener('click',event=>{
+  if(event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return
+  const link=(event.target as Element).closest<HTMLAnchorElement>('[data-tag-locate]')
+  if(!link||!root.contains(link)&&!sidebar?.contains(link))return
+  const entry=[...root.querySelectorAll<HTMLElement>('[data-tag-name]')].find(item=>item.dataset.tagName===link.dataset.tagLocate)
+  if(!entry)return
+  event.preventDefault()
+  event.stopPropagation()
+  const search=root.querySelector<HTMLInputElement>('[data-tag-filter]');if(search){search.value='';filterTags()}
+  locateTag(entry)
+ },{signal:lifecycle.signal})
  const template=fallback?root.dataset.tagItemsTemplate!:root.dataset.tagCountTemplate!
  const count=root.querySelector<HTMLElement>('[data-tag-count]')!
  const index=root.querySelector<HTMLElement>('[data-tag-index]')
@@ -73,7 +104,7 @@ document.addEventListener('nav',()=>{
    const sourceCounts=['article','share','repo','video'].map(type=>indexed.filter(page=>page.type===type&&page.tags.length).length)
    sidebar?.querySelectorAll<HTMLElement>('[data-tag-source-count]').forEach(element=>{element.textContent=String(sourceCounts[Number(element.dataset.tagSourceCount)])})
    sidebar?.setAttribute('aria-busy','false')
-   count.textContent=`${template.replace('123456789',String(stats.counts.length)).replace(/[。.!！]$/,'')} · ${stats.pageCount} 篇内容`
+   count.textContent=`${stats.pageCount} 项内容`
    renderedRevision=catalog.revision
    return
   }

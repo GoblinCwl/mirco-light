@@ -26,7 +26,7 @@ document.addEventListener('nav',()=>{
     const icon=document.createElement('span');icon.className='recent-content-icon';icon.innerHTML=page.encrypted?encryptedIcon:contentTypeIcons[page.type];link.append(icon,document.createTextNode(page.title))
     const meta=document.createElement('p');meta.className='meta';const time=document.createElement('time');const updated=page.updatedAt||page.createdAt||'';const stamp=Date.parse(updated);if(Number.isFinite(stamp)){time.dateTime=updated;time.textContent=formatDate(new Date(stamp),(root.dataset.recentLocale||'zh-CN') as ValidLocale)}else time.textContent='—';meta.append(time)
     title.append(link);desc.append(title);section.append(desc,meta)
-    if(root.dataset.recentTags==='true'&&page.tags.length){const tags=document.createElement('ul');tags.className='tags';for(const tag of page.tags){const item=document.createElement('li'),anchor=document.createElement('a');anchor.className='internal tag-link';anchor.href=tagHref(tag);anchor.textContent=tag;item.append(anchor);tags.append(item)}section.append(tags)}
+    if(root.dataset.recentTags==='true'&&page.tags.length){const tags=document.createElement('ul');tags.className='tags';for(const tag of page.tags){const item=document.createElement('li'),anchor=document.createElement('a');anchor.className='internal tag-link';anchor.dataset.noPopover='true';anchor.href=tagHref(tag);anchor.textContent=tag;item.append(anchor);tags.append(item)}section.append(tags)}
     row.append(section);fragment.append(row)
    }
    if(!fragment.childNodes.length){const empty=document.createElement('li');empty.textContent='暂无内容';fragment.append(empty)}

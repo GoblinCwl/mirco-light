@@ -11,7 +11,7 @@ const TagList: QuartzComponent = ({ fileData, displayClass, cfg }: QuartzCompone
           const linkDest = resolveRelative(fileData.slug!, `tags/${tag}` as FullSlug)
           return (
             <li>
-              <a href={linkDest} class="internal tag-link">
+              <a href={linkDest} class="internal tag-link" data-no-popover="true">
                 {tag}
               </a>
             </li>

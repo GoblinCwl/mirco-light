@@ -30,7 +30,7 @@ export default ((opts?: Partial<TagContentOptions>) => {
       <article class={(fileData.frontmatter?.cssclasses ?? []).join(" ")}>{content}</article>
       {index ? <>
         <span class="tag-index-loading" role="status"><span class="drive-loading" aria-hidden="true"><i /></span><span>正在读取标签</span></span>
-        <header class="tag-index-toolbar"><p class="tag-index-summary" data-tag-count></p><label class="tag-index-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input type="search" data-tag-filter placeholder="查找标签" aria-label="查找标签"/></label></header>
+        <header class="tag-index-toolbar"><p class="tag-index-summary" data-tag-count></p><label class="tag-index-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input type="search" data-tag-filter placeholder="查找主题" aria-label="查找主题"/></label></header>
         <div data-tag-index />
         <template data-tag-directory-template><PageList {...props} directoryLayout showTags allFiles={[]} /></template>
       </> : <>

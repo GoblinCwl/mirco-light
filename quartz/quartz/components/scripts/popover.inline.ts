@@ -52,6 +52,10 @@ async function mouseEnterHandler(
   { clientX, clientY }: { clientX: number; clientY: number },
 ) {
   const link = this
+  // Tags are navigation/filter links, never content preview targets. Check the
+  // destination too, covering Markdown links and dynamically rendered tags.
+  if (link.classList.contains("tag-link") || link.closest(".tags") ||
+    new URL(link.href).origin === location.origin && /^\/tags(?:\/|$)/.test(link.pathname)) return
   // Native title tooltips should never sit on top of a content preview.
   if(link.dataset.noPopover!=="true"||link.dataset.repoHover==='true'||link.dataset.driveHover==='true'){
     for(const element of [link,...link.querySelectorAll<HTMLElement>('[title]')]){

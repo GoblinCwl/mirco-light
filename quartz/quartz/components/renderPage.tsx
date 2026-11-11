@@ -217,6 +217,9 @@ export async function renderPage(
     components: RenderComponents,
     pageResources: StaticResources,
 ): Promise<string> {
+    // Emission reads artifacts from the caller's props, even when rendering
+    // below uses a filtered copy for public navigation.
+    const renderOutput = componentData
     // make a deep copy of the tree so we don't remove the transclusion references
     // for the file cached in contentMap in build.ts
     const root = clone(componentData.tree) as Root
@@ -303,6 +306,10 @@ export async function renderPage(
         const revision = createHash("sha256").update(payload).digest("hex").slice(0, 16)
         componentData.encryptedPayload = payload
         componentData.encryptedPayloadSlug = `${slug}.${revision}.encrypted` as FullSlug
+        Object.assign(renderOutput, {
+            encryptedPayload: componentData.encryptedPayload,
+            encryptedPayloadSlug: componentData.encryptedPayloadSlug,
+        })
         componentData.encryptedPayloadUrl = joinSegments(pathToRoot(slug), `${componentData.encryptedPayloadSlug}.json`)
         componentData.encryptedCacheId = `${slug}:v2:${Buffer.from(componentData.encryptedContent, "base64").subarray(0, 16).toString("hex")}:${Buffer.from(componentData.encryptedToc, "base64").subarray(0, 16).toString("hex")}`
         // 填充

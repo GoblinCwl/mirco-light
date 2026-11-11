@@ -185,6 +185,11 @@ a {
 
 .flex-component {
   display: flex;
+  // Conditional components (e.g. ReaderMode on the homepage) return null.
+  // Their empty wrapper must not consume a flex gap.
+  > div:empty {
+    display: none;
+  }
 }
 
 .desktop-only {
