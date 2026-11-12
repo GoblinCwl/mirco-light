@@ -1016,6 +1016,17 @@ body[data-slug="index"] {
     .home-explore-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    // Keep the arrow out of the text track, so mobile descriptions use the
+    // available width instead of being squeezed into a few characters.
+    a.home-explore-item.internal {
+      grid-template-columns: 2.25rem minmax(0, 1fr);
+      column-gap: .4rem;
+      padding: .55rem .9rem .55rem .15rem;
+      > strong, > span { width:100%; min-width:0; justify-self:stretch; }
+      > span { text-wrap:wrap; }
+      > .home-directory-stars { width:2.25rem; height:2.25rem; }
+      &::after { position:absolute; grid-area:auto; right:.15rem; top:50%; transform:translateY(-50%); }
+    }
     .home-explore-item:not(:nth-child(3n + 1)) {
       border-left: 0;
     }

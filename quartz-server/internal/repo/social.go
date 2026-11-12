@@ -22,6 +22,7 @@ type Social struct {
 	Adapter         *Adapter
 	AfterCodeChange func(context.Context) error
 	mu              sync.Mutex
+	mirrorMu        sync.Mutex
 }
 
 func (s *Social) get(ctx context.Context, key string) (any, error) {
@@ -56,6 +57,11 @@ func (s *Social) Snapshot(ctx context.Context) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
+	commits, err := s.get(ctx, "mirror-commits:v1")
+	if err != nil {
+		return nil, err
+	}
+	activities = mergeMirrorActivities(activities, commits)
 	if source, ok := profile.(map[string]any); ok {
 		copy := map[string]any{}
 		for key, value := range source {
@@ -223,6 +229,9 @@ func (s *Social) Refresh(ctx context.Context) error {
 	}
 	if mirrorErr := s.refreshMirrors(ctx); first == nil {
 		first = mirrorErr
+	}
+	if err := s.RefreshMirroredActivities(ctx); first == nil {
+		first = err
 	}
 	return first
 }

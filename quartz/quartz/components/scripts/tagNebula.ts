@@ -1,3 +1,4 @@
+import {bindTagOrbitDrag} from './tagOrbitDrag'
 import type {TagStats} from '../../util/tagIndex'
 import {layoutTagRiver,tagRandom,tagStarPositions,tagRiverPosition,tagClusterColors,tagStarMotion,tagFocusAngle,type ClusterBounds,type GalaxyWindow} from '../../util/tagClusters'
 
@@ -267,36 +268,31 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
   wheelAngle+=Math.max(-height,Math.min(height,pixels))/galaxy.outerRadius
   requestPaint()
  },{signal,passive:false})
- stage.addEventListener('pointerdown',event=>{
-  if(event.button!==0||event.pointerType==='touch'&&!event.isPrimary)return
-  drag={id:event.pointerId,x:event.clientX,y:event.clientY,lastX:event.clientX,lastY:event.clientY,lastTime:performance.now(),velocity:0,active:false}
+ bindTagOrbitDrag(stage,signal,{
+ start(id,x,y){
+  drag={id,x,y,lastX:x,lastY:y,lastTime:performance.now(),velocity:0,active:false}
   focusMotion=undefined;inertiaVelocity=0;wheelAngle=0;suppressClick=false
- },{signal})
- stage.addEventListener('pointermove',event=>{
-  if(!drag||event.pointerId!==drag.id)return
-  if(!drag.active&&Math.hypot(event.clientX-drag.x,event.clientY-drag.y)<(event.pointerType==='touch'?8:5))return
-  if(!drag.active){drag.active=true;wheelAngle=0;stage.setPointerCapture(event.pointerId);stage.classList.add('is-dragging')}
-  event.preventDefault()
+ },
+ move(id,x,y,threshold){
+  if(!drag||id!==drag.id)return false
+  if(!drag.active&&Math.hypot(x-drag.x,y-drag.y)<threshold)return false
+  if(!drag.active){drag.active=true;wheelAngle=0;stage.classList.add('is-dragging')}
   const box=stage.getBoundingClientRect(),centerX=box.left+galaxy.centerX,centerY=box.top+galaxy.centerY
   const previous=Math.atan2(drag.lastY-centerY,drag.lastX-centerX)
-  const current=Math.atan2(event.clientY-centerY,event.clientX-centerX)
+  const current=Math.atan2(y-centerY,x-centerX)
   const movement=Math.atan2(Math.sin(current-previous),Math.cos(current-previous)),now=performance.now()
   const seconds=Math.max(.008,(now-drag.lastTime)/1000)
   const velocity=Math.max(-1.8,Math.min(1.8,movement/seconds))
   drag.velocity=seconds>.12?velocity:drag.velocity*.45+velocity*.55
   drag.lastTime=now;rotationOffset+=movement
-  drag.lastX=event.clientX;drag.lastY=event.clientY;requestPaint()
- },{signal})
- const endDrag=(event:PointerEvent)=>{
-  if(!drag||drag.id!==event.pointerId)return
-  inertiaVelocity=drag.active&&event.type==='pointerup'&&!reduced.matches&&performance.now()-drag.lastTime<100?drag.velocity:0
-  suppressClick=drag.active;drag=undefined;stage.classList.remove('is-dragging')
-  requestPaint()
-  if(stage.hasPointerCapture(event.pointerId))stage.releasePointerCapture(event.pointerId)
+  drag.lastX=x;drag.lastY=y;requestPaint();return true
+ },
+ end(id,inertia){
+  if(!drag||drag.id!==id)return
+  inertiaVelocity=drag.active&&inertia&&!reduced.matches&&performance.now()-drag.lastTime<100?drag.velocity:0
+  suppressClick=drag.active;drag=undefined;stage.classList.remove('is-dragging');requestPaint()
  }
- stage.addEventListener('pointerup',endDrag,{signal})
- stage.addEventListener('pointercancel',endDrag,{signal})
- stage.addEventListener('lostpointercapture',endDrag,{signal})
+ })
  stage.addEventListener('dragstart',event=>event.preventDefault(),{signal})
  stage.addEventListener('click',event=>{
   if(!suppressClick)return

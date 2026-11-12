@@ -31,7 +31,7 @@ export function setupMobileDirectorySwipe(explorer:HTMLElement,signal:AbortSigna
   const observer=new MutationObserver(syncLock);observer.observe(explorer,{attributes:true,attributeFilter:['class','aria-expanded']})
   mobile.addEventListener('change',syncLock,{signal});document.addEventListener('prenav',leave,{signal})
   signal.addEventListener('abort',()=>{observer.disconnect();releaseLock()},{once:true});syncLock()
-  const blocked='a,button,input,textarea,select,label,summary,[role="button"],[contenteditable="true"],pre,code,video,audio,iframe,canvas,svg,img,dialog,[role="dialog"],[popover],.global-graph-outer,.search-container,.friend-letter,.friend-bubble,.friend-rope,.video-player-stage,.drive-preview,.folder-container,.repo-files-wrap,.repo-code,.repo-diff,[data-directory-list]'
+  const blocked='a,button,input,textarea,select,label,summary,[role="button"],[contenteditable="true"],pre,code,video,audio,iframe,canvas,svg,img,dialog,[role="dialog"],[popover],.global-graph-outer,[data-tag-nebula],.search-container,.friend-letter,.friend-bubble,.friend-rope,.video-player-stage,.drive-preview,.folder-container,.repo-files-wrap,.repo-code,.repo-diff,[data-directory-list]'
   let gesture:{id:number;x:number;y:number;open:boolean;intent:'horizontal'|null}|undefined
   const button=()=>explorer.querySelector<HTMLButtonElement>('.mobile-explorer')
   document.addEventListener('touchstart',event=>{

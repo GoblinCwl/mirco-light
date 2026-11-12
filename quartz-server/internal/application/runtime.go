@@ -279,7 +279,15 @@ func (r *Runtime) start() {
 		kind     string
 		interval time.Duration
 	}{{"share", time.Minute}, {"repo", 5 * time.Minute}} {
-		r.periodic("index-"+source.kind, source.interval, 60*time.Second, func(ctx context.Context) error { return r.syncSource(ctx, source.kind) })
+		r.periodic("index-"+source.kind, source.interval, 60*time.Second, func(ctx context.Context) error {
+			if err := r.syncSource(ctx, source.kind); err != nil {
+				return err
+			}
+			if source.kind == "repo" {
+				return r.repoSocial.RefreshMirroredActivities(ctx)
+			}
+			return nil
+		})
 	}
 	r.periodic("service-journal", time.Second, 10*time.Second, func(ctx context.Context) error {
 		return (journal.Store{DB: r.app.DB}).ServiceFile(ctx, filepath.Join(filepath.Dir(r.options.ArticleSnapshot), "observer-state.json"))

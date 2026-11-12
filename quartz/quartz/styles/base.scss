@@ -59,7 +59,8 @@ html {
   // Keep the layout width unchanged when page content starts/stops scrolling.
   // Systems with overlay scrollbars do not reserve any space here.
   scrollbar-gutter: stable;
-  text-size-adjust: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   overflow-x: hidden;
   width: 100%;
 
@@ -75,6 +76,11 @@ body {
   background-color: var(--light);
   font-family: var(--bodyFont);
   color: var(--darkgray);
+  // Use the same width-driven wrapping in UI copy and prose. Safari's pretty
+  // algorithm deliberately shortens lines across the entire paragraph.
+  text-wrap: wrap;
+  word-break: normal;
+  line-break: auto;
 }
 
 .text-highlight {
@@ -103,7 +109,6 @@ g[class~="typst-text"] {
   color: var(--darkgray);
   fill: var(--darkgray);
   overflow-wrap: break-word;
-  text-wrap: pretty;
 }
 
 path[class~="typst-shape"] {

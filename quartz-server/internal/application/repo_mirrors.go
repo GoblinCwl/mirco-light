@@ -33,6 +33,9 @@ func (r *Runtime) syncRepoMirrors(ctx context.Context) error {
 	if err = r.syncSource(ctx, "repo"); err != nil {
 		return err
 	}
+	if err = r.repoSocial.RefreshMirroredActivities(ctx); err != nil {
+		return err
+	}
 	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf("mirror synchronization incomplete (%d)", response.StatusCode)
 	}

@@ -52,7 +52,7 @@ body:has(.tag-index-page) .page > #quartz-body {
 }
 .tag-panel-launch,.tag-panel-close {display:none;}
 .tag-navigation-panel {position:static;box-sizing:border-box;width:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:transparent;color:inherit;overflow:visible;}
-.tag-panel-heading {display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.65rem;flex:none;}
+.tag-panel-heading {display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:0 0 .65rem;padding:0;flex:none;}
 .tag-index-aside .tag-panel-heading h3 {margin:0;}
 .tag-index-aside {--tag-muted:color-mix(in srgb,var(--darkgray) 78%,var(--light));@include sidebarPanel.viewport;
   h3{@include sidebarPanel.heading;margin-bottom:.65rem;}
