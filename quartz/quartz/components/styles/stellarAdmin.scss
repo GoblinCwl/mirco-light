@@ -344,9 +344,10 @@
 
 // Alert records use the same management controls and theme as the other modules.
 .stellar-admin {
-  .alert-toolbar { display: grid; grid-template-columns: 8.5rem minmax(0,1fr) 2.3rem 2.3rem; align-items: center; gap: .5rem; margin: 0 0 .75rem;
+  .alert-toolbar { display: grid; grid-template-columns: 8.5rem minmax(0,1fr) 2.3rem 2.3rem auto; align-items: center; gap: .5rem; margin: 0 0 .75rem;
     > button { display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border: 1px solid var(--lightgray); border-radius: 7px; &:hover { background: var(--highlight); } }
   }
+  .alert-toolbar > button.alert-clear { @include adminButton; color:var(--stellar-danger); width:auto; &:hover:not(:disabled) {border-color:var(--stellar-danger);} }
   .alert-list { min-height: 190px; &[aria-busy=true] { opacity: .65; } }
   .alert-record { display: grid; grid-template-columns: 24px minmax(0,1fr) auto; gap: .7rem; padding: .9rem 0; border-bottom: 1px solid var(--lightgray); &:last-child { border: 0; } }
   .alert-record-icon { color: var(--stellar-danger); padding-top: .15rem; > svg { width: 21px; height: 21px; } }
@@ -357,7 +358,7 @@
   .alert-record-meta { display: flex; flex-wrap: wrap; gap: .15rem .9rem; color: var(--stellar-muted); font-size: .72rem; line-height: 1.8; overflow-wrap: anywhere; }
   .alert-record-count { color: var(--darkgray); font-size: .76rem; font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: .15rem; }
   @media (max-width: 600px) {
-    .alert-toolbar { grid-template-columns: minmax(0,1fr) 2.3rem 2.3rem; > select { grid-column: 1 / -1; } }
+    .alert-toolbar { grid-template-columns: minmax(0,1fr) 2.3rem 2.3rem auto; > select { grid-column: 1 / -1; } }
     .alert-record { grid-template-columns: 21px minmax(0,1fr) auto; gap: .5rem; }
     .alert-record-meta { flex-direction: column; }
   }

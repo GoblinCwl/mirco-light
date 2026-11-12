@@ -168,3 +168,25 @@ func TaskName(name string) string {
 	}
 	return name
 }
+
+// Clear removes existing records; future failures continue to produce alerts.
+func (s Store) Clear(ctx context.Context) (int64, error) {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	var lock string
+	if err = tx.QueryRowContext(ctx, "SELECT name FROM resource_locks WHERE name='alerts' FOR UPDATE").Scan(&lock); err != nil {
+		return 0, err
+	}
+	result, err := tx.ExecContext(ctx, "DELETE FROM alerts")
+	if err != nil {
+		return 0, err
+	}
+	deleted, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return deleted, tx.Commit()
+}

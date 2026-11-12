@@ -142,7 +142,7 @@ func TestAlertRecorderFlushesAndAPIRequiresAdministrator(t *testing.T) {
 	}
 }
 
-func TestAuthenticatedAlertListAndReadOnlyMethods(t *testing.T) {
+func TestAuthenticatedAlertListAndClear(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -195,4 +195,43 @@ func TestAuthenticatedAlertListAndReadOnlyMethods(t *testing.T) {
 			}
 		}
 	}
+	for _, fixture := range []struct {
+		authenticated bool
+		origin        string
+		status        int
+	}{
+		{false, "https://site.test", 401},
+		{true, "https://evil.test", 403},
+		{true, "https://site.test", 200},
+	} {
+		req := httptest.NewRequest(http.MethodDelete, "/api/site/admin/alerts", nil)
+		req.Header.Set("Origin", fixture.origin)
+		if fixture.authenticated {
+			req.AddCookie(&http.Cookie{Name: "quartz_stellar_session", Value: logged["token"].(string)})
+		}
+		res := httptest.NewRecorder()
+		api.ServeHTTP(res, req)
+		if res.Code != fixture.status {
+			t.Fatal("clear status", fixture, res.Code, res.Body.String())
+		}
+		result, err := (alerts.Store{DB: db}).List(ctx, 1, "", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := 1
+		if fixture.status == 200 {
+			want = 0
+		}
+		if result["total"] != want {
+			t.Fatal("clear changed unexpected records", result)
+		}
+	}
+	if err := (alerts.Store{DB: db}).Record(ctx, alerts.Event{Kind: "task", Source: "fixture", Title: "New failure"}); err != nil {
+		t.Fatal(err)
+	}
+	result, err := (alerts.Store{DB: db}).List(ctx, 1, "", "")
+	if err != nil || result["total"] != 1 {
+		t.Fatal("new alerts stopped after clearing", result, err)
+	}
+
 }

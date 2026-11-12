@@ -7,6 +7,15 @@ import (
 )
 
 func (s *Server) siteAlerts(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodDelete {
+		deleted, err := (alerts.Store{DB: s.DB}).Clear(r.Context())
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		JSON(w, 200, map[string]int64{"deleted": deleted})
+		return
+	}
 	if r.Method != http.MethodGet {
 		JSON(w, 405, map[string]string{"error": "请求方式不支持"})
 		return

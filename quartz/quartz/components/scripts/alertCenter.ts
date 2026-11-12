@@ -36,13 +36,16 @@ const svg = (path: string) =>
 export function setupAlertCenter(
   root: HTMLElement,
   signal: AbortSignal,
-  request: (path: string) => Promise<any>,
+  request: (path: string, init?: RequestInit) => Promise<any>,
 ) {
   root.classList.add("alert-center")
   let page = 1,
     query = "",
     revision = 0,
-    loaded = false
+    loaded = false,
+    clearing = false,
+    confirming = false,
+    canClear = false
   const toolbar = node("form", "", "alert-toolbar"),
     type = node("select"),
     search = node("input")
@@ -68,7 +71,11 @@ export function setupAlertCenter(
     "刷新告警记录",
     '<path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"/>',
   )
-  toolbar.append(type, search, submit, refresh)
+  const clear = node("button", "清空", "alert-clear is-danger")
+  clear.type = "button"
+  clear.title = "清空全部告警记录"
+  clear.disabled = true
+  toolbar.append(type, search, submit, refresh, clear)
   const summary = node("p", "连续同类异常合并计数。", "data-admin-note")
   const list = node("div", "", "alert-list"),
     footer = node("div", "", "stellar-admin-pagination")
@@ -76,6 +83,10 @@ export function setupAlertCenter(
   root.append(toolbar, summary, list, footer)
   const stamp = (value: string) => new Date(value).toLocaleString("zh-CN", { hour12: false })
   const load = async () => {
+    if (clearing || signal.aborted) return
+    confirming = false
+    clear.textContent = "清空"
+    clear.disabled = true
     const ticket = ++revision
     refresh.disabled = true
     list.setAttribute("aria-busy", "true")
@@ -94,6 +105,7 @@ export function setupAlertCenter(
       )
       if (signal.aborted || ticket !== revision) return
       loaded = true
+      canClear = result.total > 0 || Boolean(query || type.value)
       page = result.page
       list.replaceChildren()
       footer.replaceChildren()
@@ -149,6 +161,7 @@ export function setupAlertCenter(
       if (ticket === revision) {
         list.removeAttribute("aria-busy")
         refresh.disabled = false
+        clear.disabled = !loaded || !canClear
       }
     }
   }
@@ -161,6 +174,32 @@ export function setupAlertCenter(
   type.onchange = () => {
     page = 1
     void load()
+  }
+  clear.onclick = async () => {
+    if (clearing || clear.disabled) return
+    if (!confirming) { confirming = true; clear.textContent = "确认清空"; return }
+    clearing = true
+    ++revision
+    const controls = [type, search, submit, refresh, clear], disabled = controls.map(control => control.disabled)
+    controls.forEach(control => control.disabled = true)
+    clear.textContent = "清空中"
+    try {
+      await request("/admin/alerts", { method: "DELETE" })
+      if (signal.aborted) return
+      page = 1; query = ""; search.value = ""; type.value = ""
+      showPasswordToast("告警记录已清空")
+      clearing = false
+      await load()
+    } catch (error) {
+      if (!signal.aborted) showPasswordToast(error instanceof Error ? error.message : "清空失败", true)
+    } finally {
+      clearing = false; confirming = false
+      if (!signal.aborted) {
+        controls.forEach((control, index) => control.disabled = disabled[index])
+        clear.textContent = "清空"; clear.disabled = !loaded || !canClear
+        refresh.disabled = false
+      }
+    }
   }
   refresh.onclick = () => void load()
   void load()
