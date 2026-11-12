@@ -2,7 +2,7 @@ import {requireDriveUser as readAuthorizedDriveUser} from './driveClient'
 import {showPasswordToast} from './passwordFeedback'
 import type { ActionContext, ActionEntry } from "./driveActions"
 import { drivePassword, driveRequest, driveRoute, driveToken, type DriveView } from "./driveClient"
-import { DRIVE_ORIGIN, driveDownloadUrl, driveSize, joinDrivePath, type DriveFile } from "./openlistShared"
+import { DRIVE_ORIGIN, driveGuestFileUrl, driveDownloadUrl, driveSize, joinDrivePath, type DriveFile } from "./openlistShared"
 import { driveActionDialog } from "./driveActionDialog"
 import { node } from "./driveUi"
 import createZip from "./vendor/openlistZip"
@@ -56,6 +56,7 @@ export async function setupDriveDownload(ui: ReturnType<typeof driveActionDialog
       link.searchParams.set("download", "true"); return link.href
     }
     const meta = await driveRequest<DriveFile>("fs/get", { path: file.path, password: drivePassword(fileView, fileShare, file.path) }, options)
+    if (fileView === "guest") return driveGuestFileUrl(meta)
     account ??= await readAuthorizedDriveUser()
     const link = new URL(driveDownloadUrl(joinDrivePath(account.base_path || "/", file.path), meta.sign))
     link.searchParams.set("download", "true"); return link.href

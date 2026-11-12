@@ -272,6 +272,7 @@ async function loadEncryptedPayload(version: number) {
 async function decrypt() {
   if (decrypting) return
   const version = pageVersion
+  const typedPassword = pwd.value.length > 0
   const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement
   const visibilityBtn = form.querySelector<HTMLButtonElement>("#toggle-password-visibility")
   const submitLabel = submitBtn.getAttribute("aria-label")
@@ -336,7 +337,7 @@ async function decrypt() {
     const hadCache =
       hasCachedKey(currentCacheId, "content") || hasCachedKey(currentCacheId, "toc")
     clearCache(currentCacheId)
-    if (!hadCache) error("wrong")
+    if (typedPassword || !hadCache) error("wrong")
     show(lock)
     pwd.value = ""
   } finally {
@@ -373,8 +374,8 @@ async function decryptFile({ salt, iv, ciphertext, iterations }: {
 }, password: string) {
   const cacheId = currentCacheId
   const decoder = new TextDecoder()
-  const memory = getMemoryKey(cacheId, "content")
-  const stored = memory ? undefined : readStoredEntry(cacheId, "content")
+  const memory = password ? undefined : getMemoryKey(cacheId, "content")
+  const stored = password || memory ? undefined : readStoredEntry(cacheId, "content")
   const key = memory ?? (stored?.key
     ? await importKey(stored.key)
     : await deriveKey(salt, password, iterations))
@@ -392,8 +393,8 @@ async function decryptFile_toc({ salt_toc, iv_toc, ciphertext_toc, iterations_to
 }, password: string) {
   const cacheId = currentCacheId
   const decoder = new TextDecoder()
-  const memory = getMemoryKey(cacheId, "toc")
-  const stored = memory ? undefined : readStoredEntry(cacheId, "toc")
+  const memory = password ? undefined : getMemoryKey(cacheId, "toc")
+  const stored = password || memory ? undefined : readStoredEntry(cacheId, "toc")
   const key = memory ?? (stored?.key
     ? await importKey(stored.key)
     : await deriveKey(salt_toc, password, iterations_toc))

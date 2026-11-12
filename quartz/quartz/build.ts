@@ -15,7 +15,8 @@ import { notifyBuildPublished } from "./cli/buildPublished.mjs"
 import { beginPublication, type Publication } from "./cli/publishOutput.mjs"
 import cfg from "../quartz.config"
 import { FilePath, joinSegments, slugifyFilePath } from "./util/path"
-import chokidar from "chokidar"
+// @ts-ignore JavaScript watcher shared with startup regression tests
+import { watchContent } from "./cli/watchContent.mjs"
 import { ProcessedContent } from "./plugins/vfile"
 import { Argv, BuildCtx } from "./util/ctx"
 import { glob, toPosixPath } from "./util/glob"
@@ -74,10 +75,13 @@ async function buildQuartz(argv: Argv, mut: Mutex, clientRefresh: () => void) {
 
   const release = await mut.acquire()
   let publication: Publication | undefined
+  let contentWatcher: Awaited<ReturnType<typeof startWatching>> | undefined
   try {
     perf.addEvent("clean")
     publication = await beginPublication(output)
     ctx.argv.output = publication.directory
+
+    if (argv.watch) contentWatcher = await startWatching(ctx, mut, clientRefresh, output)
 
     perf.addEvent("glob")
     const allFiles = await glob("**/*.*", argv.directory, cfg.configuration.ignorePatterns)
@@ -105,11 +109,15 @@ async function buildQuartz(argv: Argv, mut: Mutex, clientRefresh: () => void) {
 
     if (argv.watch) {
       ctx.incremental = true
-      return await startWatching(ctx, mut, parsedFiles, clientRefresh)
+      contentWatcher!.activate(parsedFiles)
+      const close = contentWatcher!.close
+      contentWatcher = undefined
+      return close
     }
   } finally {
     ctx.argv.output = output
     try {
+      await contentWatcher?.close()
       await publication?.discard()
     } finally {
       release()
@@ -121,30 +129,16 @@ async function buildQuartz(argv: Argv, mut: Mutex, clientRefresh: () => void) {
 async function startWatching(
   ctx: BuildCtx,
   mut: Mutex,
-  initialContent: ProcessedContent[],
   clientRefresh: () => void,
+  outputRoot: string,
 ) {
-  const { argv, allFiles } = ctx
+  const { argv } = ctx
 
   const contentMap: ContentMap = new Map()
-  for (const filePath of allFiles) {
-    contentMap.set(filePath, {
-      type: "other",
-    })
-  }
-
-  for (const content of initialContent) {
-    const [_tree, vfile] = content
-    contentMap.set(vfile.data.relativePath!, {
-      type: "markdown",
-      content,
-    })
-  }
-
   const gitIgnoredMatcher = await isGitIgnored()
   const buildData: BuildData = {
     ctx,
-    outputRoot: argv.output,
+    outputRoot,
     mut,
     contentMap,
     ignored: (fp) => {
@@ -165,43 +159,26 @@ async function startWatching(
     lastBuildMs: 0,
   }
 
-  const watcher = chokidar.watch(".", {
-    awaitWriteFinish: { stabilityThreshold: 250 },
-    persistent: true,
-    cwd: argv.directory,
-    ignoreInitial: true,
-    ignored: contentWatchIgnored(argv.directory, cfg.configuration.ignorePatterns, buildData.ignored),
-  })
-
-  const changes: ChangeEvent[] = []
-  watcher
-    .on("add", (fp) => {
-      fp = toPosixPath(fp)
-      if (buildData.ignored(fp)) return
-      changes.push({ path: fp as FilePath, type: "add" })
+  const watcher = await watchContent(
+    argv.directory,
+    contentWatchIgnored(argv.directory, cfg.configuration.ignorePatterns, buildData.ignored),
+    (changes: ChangeEvent[]) => {
       void rebuild(changes, clientRefresh, buildData).catch((error) => {
         console.error("Rebuild failed; pending changes will be retried on the next change.", error)
       })
-    })
-    .on("change", (fp) => {
-      fp = toPosixPath(fp)
-      if (buildData.ignored(fp)) return
-      changes.push({ path: fp as FilePath, type: "change" })
-      void rebuild(changes, clientRefresh, buildData).catch((error) => {
-        console.error("Rebuild failed; pending changes will be retried on the next change.", error)
-      })
-    })
-    .on("unlink", (fp) => {
-      fp = toPosixPath(fp)
-      if (buildData.ignored(fp)) return
-      changes.push({ path: fp as FilePath, type: "delete" })
-      void rebuild(changes, clientRefresh, buildData).catch((error) => {
-        console.error("Rebuild failed; pending changes will be retried on the next change.", error)
-      })
-    })
-
-  return async () => {
-    await watcher.close()
+    },
+  )
+  return {
+    activate(initialContent: ProcessedContent[]) {
+      for (const filePath of ctx.allFiles) {
+        contentMap.set(filePath, { type: "other" })
+      }
+      for (const content of initialContent) {
+        contentMap.set(content[1].data.relativePath!, { type: "markdown", content })
+      }
+      watcher.activate()
+    },
+    close: watcher.close,
   }
 }
 

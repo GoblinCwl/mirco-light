@@ -1,3 +1,4 @@
+import {graphFilterColorStyle} from '../util/graphPalette'
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 // @ts-ignore
 import script from "./scripts/graph.inline"
@@ -105,10 +106,7 @@ export default ((opts?: Partial<GraphOptions>) => {
 
           <div class="global-graph-container" data-cfg={JSON.stringify(globalGraph)}>
           <ul class="graph-type-filters" aria-label="星轨内容筛选">
-            <li><button type="button" data-graph-kind="article" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="currentColor"/></svg><span>文章</span></button></li>
-            <li><button type="button" data-graph-kind="share" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M20 11 11 20C8 23 3 21 3 17C3 15 4 14 5 13L14 4C16 2 19 3 19 6C19 7 18 8 18 8L10 16C8 18 6 16 8 14L15 7" transform="translate(4.2 4.2) scale(.65)" fill="none" stroke="var(--graph-node-contrast)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>分享</span></button></li>
-            <li><button type="button" data-graph-kind="repo" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="m9.75 8.4-3.6 3.6 3.6 3.6m4.5-7.2 3.6 3.6-3.6 3.6" fill="none" stroke="var(--graph-node-contrast)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>仓库</span></button></li>
-            <li><button type="button" data-graph-kind="video" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M9.75 7.95 16.5 12l-6.75 4.05Z" fill="var(--graph-node-contrast)"/></svg><span>视频</span></button></li>
+            {([['article','文章'],['share','分享'],['repo','仓库'],['video','视频']] as const).map(([kind,label])=><li><button type="button" data-graph-kind={kind} style={graphFilterColorStyle(kind)} aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="currentColor"/></svg><span>{label}</span></button></li>)}
           </ul>
           </div>
         </div>

@@ -23,6 +23,14 @@ export function driveDownloadUrl(path: string, sign?: string): string {
   const url = `${DRIVE_ORIGIN}/d${normalizeDrivePath(path).split("/").map(encodeURIComponent).join("/")}`
   return sign ? `${url}?${new URLSearchParams({ sign })}` : url
 }
+// Public fs/get already authorizes the guest path and returns its file URL.
+// Guest downloads do not need the private administrator's storage base path.
+export function driveGuestFileUrl(file: Pick<DriveFile,"raw_url">): string {
+  if (!file.raw_url) throw new Error("文件服务未返回下载地址")
+  const url = new URL(file.raw_url, DRIVE_ORIGIN)
+  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("文件下载地址无效")
+  return url.href
+}
 export function drivePreviewKind(name: string): "image" | "video" | "audio" | "pdf" | "text" | "other" {
   const extension = name.split(".").pop()?.toLowerCase() || ""
   if (["png", "jpg", "jpeg", "gif", "webp", "avif", "bmp", "ico"].includes(extension)) return "image"

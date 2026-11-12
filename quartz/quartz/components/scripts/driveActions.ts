@@ -1,3 +1,4 @@
+import {driveGuestFileUrl} from './openlistShared'
 import {requireDriveUser as readAuthorizedDriveUser} from './driveClient'
 import {managedShareTarget} from './driveShareManagement'
 import {canDownloadDriveEntry} from './driveDownloadPolicy'
@@ -114,6 +115,7 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
           } else {
             const options = { signal, token, anonymous: view === "guest" }
             const meta = await driveRequest<DriveFile>("fs/get", { path: filePath, password: drivePassword(view, share, filePath) }, options)
+            if (view === "guest") { links.push(driveGuestFileUrl(meta)); continue }
             account ??= await readAuthorizedDriveUser()
             links.push(driveDownloadUrl(joinDrivePath(account.base_path || "/", filePath), meta.sign))
           }

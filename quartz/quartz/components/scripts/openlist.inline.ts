@@ -1,3 +1,4 @@
+import {renderShareHome} from './driveShareHome'
 import {syncShareAdminSession} from './shareAdminSession'
 import {requireDriveUser as readAuthorizedDriveUser} from './driveClient'
 import {showShareGraph} from './shareGraphVisibility'
@@ -19,7 +20,7 @@ import { setupDriveOperations } from "./driveOperations"
 import { showPasswordToast } from "./passwordFeedback"
 import { encryptedIcon, updateTitleLock } from "../../util/encryptedIcon"
 import { formatDateWithSeconds, formatDirectoryDate, SITE_DATE_TIME_ZONE } from "../../util/formatDate"
-import { DRIVE_ORIGIN, DriveFile, driveDownloadUrl, driveSize, joinDrivePath } from "./openlistShared"
+import { DRIVE_ORIGIN, DriveFile, driveGuestFileUrl, driveDownloadUrl, driveSize, joinDrivePath } from "./openlistShared"
 import { DriveError, DriveUser, driveDirectoryTitle, drivePathKey, drivePathKinds, driveHref, drivePassword, drivePasswordKey, drivePasswords, rememberDriveShareCode, forgetDriveShareCode, driveRequest, driveRoute, driveToken, cachedDriveUser, requireDriveUser, setDriveToken } from "./driveClient"
 import { renderDriveMetadata } from "./driveMetadata"
 import { DriveEntry, driveEntryHref, driveShareName, driveShareProtected, driveShareMedia, fetchDriveEntries } from "./driveEntries"
@@ -204,7 +205,9 @@ document.addEventListener("nav", () => {
     }).catch(() => { /* Until ownership is verified, no edit action is offered. */ })
   }
   const pathLinks = () => {
-    if (!mediaNamesReady) return
+    // Share entry names are already in the route. Only deeper media paths
+    // need resolved metadata/aliases before their trail can be displayed.
+    if (!mediaNamesReady && !(view === "share" && path === "/")) return
     const trail = document.createDocumentFragment()
     const add = (label: string, target: string, active = false) => {
       const crumb = crumbTemplate.cloneNode(true) as HTMLElement
@@ -240,11 +243,16 @@ document.addEventListener("nav", () => {
       if (password(target)) link.searchParams.set("pwd", password(target))
       return link.href
     }
+    if (view === "guest") {
+      const file = meta.raw_url ? meta : await driveRequest<DriveFile>("fs/get", {path:target,password:password(target)}, {anonymous:true,signal})
+      signal.throwIfAborted()
+      return driveGuestFileUrl(file)
+    }
     user ??= await readAuthorizedDriveUser()
     return driveDownloadUrl(joinDrivePath(user.base_path || "/", target), meta.sign)
   }
   type SortKey = "name" | "size" | "modified"
-  type ListEntry = { tags?: string[]; order?: number; alias?: string; displayName?: string; name: string; target: string; modified: string; created?: string; size?: number; directory: boolean; sign?: string; thumb?: string; shared?: boolean; protectedShare?: boolean; portal?: boolean; media?: MediaInfo; jellyfin?: boolean }
+  type ListEntry = { tags?: string[]; order?: number; alias?: string; displayName?: string; name: string; target: string; modified: string; created?: string; size?: number; directory: boolean; sign?: string; thumb?: string; shared?: boolean; protectedShare?: boolean; portal?: boolean; media?: MediaInfo; jellyfin?: boolean; sharedAt?: string }
   let sortColumns: { key: SortKey; direction: number }[] = [{ key: "name", direction: 1 }]
   const selected = new Set<string>(), selectAll = get<HTMLInputElement>("select-all"), imageSelectAll = get<HTMLInputElement>("image-select-all")
   let visibleEntries: ListEntry[] = [], tableEntries: ListEntry[] = []
@@ -285,6 +293,7 @@ document.addEventListener("nav", () => {
     if ((event as CustomEvent).detail?.external) {
       const token = driveToken()
       accountUser = user = undefined; selected.clear(); updateSelection()
+      if(view==='guest'&&path==='/'&&!get('content').hidden)renderFiles()
       if (view === "storage") {
         if (!token && path !== "/") void window.spaNavigate(new URL(driveHref("storage"), location.origin))
         else void load()
@@ -300,13 +309,12 @@ document.addEventListener("nav", () => {
     else account()
   })
   const updateSelection = () => {
-    let checked = 0
     for (const checkbox of get("listing").querySelectorAll<HTMLInputElement>("input[data-entry]")) {
       checkbox.checked = selected.has(checkbox.dataset.entry!)
-      checkbox.closest("[data-drive-entry]")!.classList.toggle("is-selected", checkbox.checked)
-      if (checkbox.checked) checked++
     }
+    for(const entry of get("listing").querySelectorAll<HTMLElement>("[data-drive-entry]"))entry.classList.toggle("is-selected",selected.has(entry.dataset.driveEntry!))
     const selectable = visibleEntries.filter(entry=>!entry.portal)
+    const checked = selectable.filter(entry=>selected.has(entry.target)).length
     for (const checkbox of [selectAll, imageSelectAll]) {
       checkbox.checked = selectable.length > 0 && checked === selectable.length
       checkbox.indeterminate = checked > 0 && checked < selectable.length
@@ -432,13 +440,14 @@ document.addEventListener("nav", () => {
       }
       return a.name.localeCompare(b.name, "zh-CN", { numeric: true })
     })
-    if (view === "guest" && path === "/") {
-      entries.unshift(...sharedEntries.filter((entry):entry is Extract<DriveEntry,{kind:"share"}>=>entry.kind==='share').map(entry=>({name:entry.id,target:driveEntryHref(entry),modified:"",directory:false,shared:true,tags:entry.tags,protectedShare:entry.protected,jellyfin:entry.jellyfin===true,order:entry.order??100})))
-      if(driveToken())entries.unshift({name:"空间",target:driveHref("storage"),modified:"",directory:true,portal:true})
-    }
+    const home = view === "guest" && path === "/"
+    const projects: ListEntry[] = home ? sharedEntries.filter((entry):entry is Extract<DriveEntry,{kind:"share"}>=>entry.kind==='share').map(entry=>({name:entry.title||entry.id,target:driveEntryHref(entry),modified:"",sharedAt:entry.sharedAt,directory:false,shared:true,tags:entry.tags,protectedShare:entry.protected,jellyfin:entry.jellyfin===true,order:entry.order??100})) : []
+    get("home").hidden = !home
+    get("home-files-title").hidden = !home
+    if(home && !append)renderShareHome(get("home"),projects.map(entry=>({...entry,unlocked:Boolean(drivePassword("share",driveRoute(new URL(entry.target,location.origin)).share,"/"))})),driveToken()?driveHref("storage"):undefined)
     root.querySelector(".drive-file-table")!.classList.toggle("has-directory-tags", entries.some(entry => entry.tags?.length))
-    tableEntries = entries
-    const known = new Set(entries.filter(entry=>!entry.portal).map(entry => entry.target))
+    tableEntries = [...projects,...entries]
+    const known = new Set(tableEntries.filter(entry=>!entry.portal).map(entry => entry.target))
     for (const key of selected) if (!known.has(key)) selected.delete(key)
     const displayed = imageView && !mediaEnabled ? entries.filter(entry => entry.directory || entry.shared || isDriveImageEntry(entry)) : entries
     total = displayed.length; page = Math.min(page, Math.max(1, Math.ceil(total / 50)))
@@ -452,6 +461,9 @@ document.addEventListener("nav", () => {
     imageSelectAll.closest("label")!.hidden = mediaEnabled
     if (append) { if (!gallery) list.append(...addedEntries.map(listRow)) }
     else list.replaceChildren(...(gallery ? [] : addedEntries.map(listRow)))
+    if(home && !gallery && !displayed.length){
+      const row=node("tr"),cell=node("td","访客目录暂无文件","share-home-files-empty");cell.colSpan=6;row.append(cell);list.replaceChildren(row)
+    }
     if (mediaGallery) renderDriveMedia(get("image-items"), addedEntries, imageSignal, append)
     else if (imageView && !mediaEnabled) {
       let imageAccount: Promise<DriveUser> | undefined
@@ -459,7 +471,7 @@ document.addEventListener("nav", () => {
         append, signal: imageSignal, hasImages: entries.some(isDriveImageEntry),
         directUrl: async item => {
           const entry = item as ListEntry
-          if (view !== "share" && !user) {
+          if (view === "storage" && !user) {
             imageAccount ??= readAuthorizedDriveUser(imageSignal)
             const value = await imageAccount; imageSignal.throwIfAborted(); user = value
           }
@@ -491,6 +503,7 @@ document.addEventListener("nav", () => {
     if (input.checked) selected.add(input.dataset.entry); else selected.delete(input.dataset.entry)
     updateSelection()
   }
+  listen(get("home"), "change", changeSelection)
   listen(list, "change", changeSelection)
   listen(get("images"), "change", changeSelection)
   listen(document,"drive-directory-unlocked",()=>{if(view==="guest"&&path==="/")renderFiles()})
@@ -742,7 +755,7 @@ document.addEventListener("nav", () => {
   window.addCleanup(() => { lifecycle.abort(); controller.abort(); thumbnailController.abort(); stopMedia(); previewBody.replaceChildren() })
   setProtected(view === "share" && driveShareProtected(share))
   setModified("", reserveModified)
-  if (view === "share" && !breadcrumbs.hasAttribute("data-drive-breadcrumb-retained")) breadcrumbs.removeAttribute("data-drive-breadcrumb-ready")
+  if (view === "share" && path !== "/" && !breadcrumbs.hasAttribute("data-drive-breadcrumb-retained")) breadcrumbs.removeAttribute("data-drive-breadcrumb-ready")
   title(view === "share" ? "" : path.split("/").filter(Boolean).at(-1) || caption); pathLinks(); account()
   // load() remembers a share code once fs/get has actually validated it.
   void load()

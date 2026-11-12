@@ -44,7 +44,11 @@ export function renderDriveImages(root: HTMLElement, entries: DriveImageEntry[],
         link.classList.remove("is-loading"); link.setAttribute("aria-busy", "false"); loading.remove()
         image.hidden = failed; fallback.hidden = !failed
       }
-      image.addEventListener("load", () => finish(), { signal: options.signal })
+      image.addEventListener("load", async () => {
+        // Decode before switching visibility; the loading frame keeps its size.
+        try { await image.decode() } catch { /* Native load already succeeded. */ }
+        if (!options.signal.aborted && image.isConnected) finish()
+      }, { signal: options.signal })
       let direct = false
       const loadDirect = async () => {
         if (options.signal.aborted || !image.isConnected) return

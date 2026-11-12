@@ -30,7 +30,8 @@ export default (() => {
         <section class="drive-metadata" data-drive-header hidden />
         <p class="drive-message" data-drive-message aria-live="polite" />
         <div class="drive-listing" data-drive-listing hidden>
-          <div class="drive-list-caption"><p data-drive-count /><span data-drive-selection aria-live="polite" /></div>
+          <div class="share-home" data-drive-home hidden />
+          <div class="drive-list-caption"><h2 class="share-home-files-title" data-drive-home-files-title hidden>访客文件</h2><p data-drive-count /><span data-drive-selection aria-live="polite" /></div>
           <table class="drive-file-table" aria-label="文件列表">
             <thead><tr>
               <th class="drive-select-cell"><input type="checkbox" data-drive-select-all aria-label="全选已加载" /></th>

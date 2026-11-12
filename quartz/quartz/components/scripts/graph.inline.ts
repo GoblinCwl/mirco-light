@@ -1,3 +1,4 @@
+import {graphPalette} from '../../util/graphPalette'
 import {readContentCatalog} from './contentCatalog'
 import { videoRoute } from "./videoLibrary"
 import { repoRoute } from "./repoShared"
@@ -8,7 +9,6 @@ import { videoGraphSlug } from "./videoGraph"
 import { readSiteSettings } from "./siteSettings"
 import { tagHref } from "./shareContent"
 import { driveRoute } from "./driveClient"
-import { drawDriveShareNode, drawVideoNode, drawRepoNode } from "./driveShareNode"
 import { isDriveShareGraphNode, driveShareGraphSlug } from "./driveShareGraph"
 import type { ContentDetails } from "../../util/contentTypes"
 import {
@@ -66,17 +66,6 @@ type NodeRenderData = GraphicsInfo & {
   label: Text
 }
 
-const localStorageKey = "graph-visited"
-function getVisited(): Set<SimpleSlug> {
-  return new Set(JSON.parse(localStorage.getItem(localStorageKey) ?? "[]"))
-}
-
-function addToVisited(slug: SimpleSlug) {
-  const visited = getVisited()
-  visited.add(slug)
-  localStorage.setItem(localStorageKey, JSON.stringify([...visited]))
-}
-
 type TweenNode = {
   update: (time: number) => void
   stop: () => void
@@ -106,7 +95,6 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
   const current = () => graph.isConnected && graphRequests.get(graph) === request
   const slug = isDriveShareGraphNode(fullSlug) ? String(fullSlug) as SimpleSlug : simplifySlug(fullSlug)
   const settings = await readSiteSettings()
-  const visited = getVisited()
   if (!current()) return
   // Keep the persistent filter controls while replacing only the rendered graph.
   for(const child of [...graph.children])if(!child.classList.contains("graph-type-filters"))child.remove()
@@ -297,16 +285,11 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
   const graphLinkColor = lightSky ? "#c4cfd5" : computedStyleMap["--lightgray"]
   const diskAccent = lightSky ? "#bb9a60" : computedStyleMap["--tertiary"]
 
-  // calculate color
+  // Node identity determines color; browsing history has no visual side effects.
   const color = (d: NodeData) => {
-    const isCurrent = d.id === slug
-    if (isCurrent || d.id === "/") {
-      return computedStyleMap["--secondary"]
-    } else if (visited.has(d.id) || d.id.startsWith("tags/")) {
-      return computedStyleMap["--tertiary"]
-    } else {
-      return computedStyleMap["--gray"]
-    }
+    if (d.id === "/") return computedStyleMap["--secondary"]
+    const kind = d.id.startsWith("tags/") ? "tag" : graphNodeKind(d.id) || "article"
+    return graphPalette[kind][lightSky ? "light" : "dark"]
   }
 
   function nodeRadius(d: NodeData) {
@@ -314,7 +297,7 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
       (l) => l.source.id === d.id || l.target.id === d.id,
     ).length
     const radius = 2 + Math.sqrt(numLinks)
-    return isDriveShareGraphNode(d.id) || ["video", "repo"].includes(graphNodeKind(d.id) || "") ? Math.max(5, radius * 1.25) : d.id === "/" ? Math.max(5, radius * 1.6) : stellarTags.has(d.id) ? radius * 1.3 : isolatedArticles.has(d.id) ? 4 : radius
+    return d.id === "/" ? Math.max(5, radius * 1.6) : stellarTags.has(d.id) ? radius * 1.3 : isolatedArticles.has(d.id) ? 4 : radius
   }
 
   let hoveredNodeId: string | null = null
@@ -519,9 +502,6 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
 
   for (const n of graphData.nodes) {
     const nodeId = n.id
-    const isShareNode = isDriveShareGraphNode(nodeId)
-    const isVideoNode = graphNodeKind(nodeId) === "video"
-    const isRepoNode = graphNodeKind(nodeId) === "repo"
 
     const label = new Text({
       interactive: false,
@@ -568,17 +548,6 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
         }
       })
 
-    if (isShareNode) {
-      drawDriveShareNode(gfx, nodeRadius(n), color(n), computedStyleMap["--light"])
-      gfx.hitArea = new Circle(0, 0, nodeRadius(n) * 2.05)
-    } else if (isVideoNode) {
-      drawVideoNode(gfx, nodeRadius(n), color(n), computedStyleMap["--light"])
-      gfx.hitArea = new Circle(0, 0, nodeRadius(n) * 2.05)
-    } else if (isRepoNode) {
-      drawRepoNode(gfx, nodeRadius(n), color(n), computedStyleMap["--light"])
-      gfx.hitArea = new Circle(0, 0, nodeRadius(n) * 2.05)
-    }
-
     if (settings["graph.loneStars"] !== false && isolatedArticles.has(nodeId)) {
       const halo = new Graphics({ eventMode: "none" })
       for (let i = 4; i > 0; i--) {
@@ -601,7 +570,7 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
         .circle(0, 0, r * 0.48).fill({ color: lightSky ? "#fff3d5" : "#fff8e9" })
       stellarHalos.push({ halo, phase: stellarHalos.length * 1.7 })
     } else if (isTagNode) {
-      gfx.stroke({ width: 2, color: computedStyleMap["--tertiary"] })
+      gfx.stroke({ width: 2, color: color(n) })
     }
 
     if (nodeId === "/") {
@@ -643,11 +612,11 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
     }
 
     const createdAt = Date.parse(data.get(nodeId)?.createdAt ?? "")
-    if (nodeId !== "/" && !isTagNode && Number.isFinite(createdAt) &&
+    if (nodeId !== "/" && !nodeId.startsWith("tags/") && Number.isFinite(createdAt) &&
       createdAt <= newStarNow && newStarNow - createdAt < newStarWindow) {
       const r = nodeRadius(n)
       const marker = new Graphics({ eventMode: "none" })
-      const accent = lightSky ? "#287fc2" : "#8bdcff"
+      const accent = lightSky ? "#2da544" : "#7bed83"
       let seed = 2166136261
       for (const char of nodeId) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619) >>> 0
       const angle = (seed / 4294967296) * Math.PI * 2
@@ -1050,8 +1019,6 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
       // Compensate for overview zoom so the central effect stays readable.
       if (n.simulationData.id === "/") {
         n.gfx.scale.set(Math.max(1, Math.min(2.5, 0.75 / currentTransform.k)))
-      } else if (isDriveShareGraphNode(n.simulationData.id) || ["video", "repo"].includes(graphNodeKind(n.simulationData.id) || "")) {
-        n.gfx.scale.set(Math.max(1, Math.min(4, 0.75 / currentTransform.k)))
       }
       if (n.label) {
         n.label.position.set(point.x, point.y)
@@ -1116,8 +1083,6 @@ function cleanupGlobalGraphs() {
 document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
   let disposed = false
   window.addCleanup(() => { disposed = true })
-  const slug = currentGraphSlug(e.detail.url)
-  addToVisited(isDriveShareGraphNode(slug) ? String(slug) as SimpleSlug : simplifySlug(slug))
 
   async function renderLocalGraph(force=false) {
     const slug = currentGraphSlug(getFullSlug(window))
@@ -1138,9 +1103,9 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
   const shareGraphReady = () => { void renderLocalGraph() }
   document.addEventListener("drive-share-graph-ready", shareGraphReady)
   document.addEventListener("decryptComplete", shareGraphReady)
-  const videoGraphReady = () => { if (videoRoute(new URL(location.href)).bvid) addToVisited(simplifySlug(currentGraphSlug(getFullSlug(window)))); hideGlobalGraph(); void renderLocalGraph() }
+  const videoGraphReady = () => { hideGlobalGraph(); void renderLocalGraph() }
   document.addEventListener("video-graph-ready", videoGraphReady)
-  const repoGraphReady = () => { addToVisited(simplifySlug(currentGraphSlug(getFullSlug(window)))); hideGlobalGraph(); void renderLocalGraph() }
+  const repoGraphReady = () => { hideGlobalGraph(); void renderLocalGraph() }
   document.addEventListener("repo-graph-ready", repoGraphReady)
   window.addCleanup(() => {
     document.removeEventListener("drive-share-graph-ready", shareGraphReady)
