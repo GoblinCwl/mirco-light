@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {collectTagStats,renderTagIndex} from './tagIndex'
+import {collectTagStats,renderTagIndex,renderTagNavigation} from './tagIndex'
 test('counts each page once per tag and parent, including merged Drive shares',()=>{
  const notes=collectTagStats([{tags:['技术/部署','技术/脚本','技术/部署']},{tags:['技术']},{tags:[]}])
  assert.equal(notes.pageCount,2)
@@ -12,16 +12,18 @@ test('counts each page once per tag and parent, including merged Drive shares',(
  assert.equal(notes.counts.find(item=>item.tag==='技术')?.count,2)
  assert.deepEqual(collectTagStats([{tags:['技术/部署','影视']}],notes),merged)
 })
-test('distribution is sorted, capped at ten, links and labels are escaped',()=>{
+test('navigation includes all tags sorted by count, with escaped links and labels',()=>{
  const stats=collectTagStats(Array.from({length:12},(_,i)=>({tags:[`标签${i}`]})).concat([{tags:['标签11','<script>"&']}]))
  const html=renderTagIndex(stats)
- assert.equal((html.match(/class="internal tag-ranking-link"/g)||[]).length,10)
- assert.ok(html.indexOf('标签11</span>')<html.indexOf('标签0</span>'))
+ assert.equal((renderTagNavigation(stats).match(/class="internal tag-navigation-link"/g)||[]).length,stats.counts.length)
+ const ranking=renderTagNavigation(stats)
+ assert.ok(ranking.indexOf('标签11</span>')<ranking.indexOf('标签0</span>'))
  assert.ok(html.includes('&lt;script&gt;&quot;&amp;'))
  assert.ok(!html.includes('<script>'))
  assert.ok(html.includes('/tags/%3Cscript%3E%22%26/'))
- assert.ok(html.includes('width:100%'))
- assert.ok(html.includes('<h2>回声分布</h2>'))
+ assert.ok(!renderTagNavigation(stats).includes('<svg'))
+ assert.ok(!html.includes('tag-index-heading'))
+ assert.ok(!html.includes('data-tag-visible-count'))
  assert.ok(!html.includes('<details'))
 })
 test('empty index has no meaningless ranking',()=>{
@@ -29,17 +31,19 @@ test('empty index has no meaningless ranking',()=>{
  assert.ok(html.includes('暂无标签'))
  assert.ok(!html.includes('TOP'))
 })
-test('echo layout keeps all tags visible and preserves complete destinations',()=>{
+test('nebula layout keeps every tag destination visible without pagination',()=>{
  const stats=collectTagStats([{tags:['开发/Go/并发','随想']},...Array.from({length:12},(_,i)=>({tags:[`主题${i}`]}))])
  const html=renderTagIndex(stats)
- assert.equal((html.match(/class="tag-echo-entry"/g)||[]).length,stats.counts.length)
- assert.equal((html.match(/class="tag-echo-entry" data-tag-name="[^"]+" hidden/g)||[]).length,0)
+ assert.equal((html.match(/class="tag-nebula-entry"/g)||[]).length,stats.counts.length)
+ assert.equal((html.match(/class="tag-nebula-entry" data-tag-name="[^"]+" hidden/g)||[]).length,0)
  assert.ok(html.includes('data-tag-name="开发/Go/并发"'))
  assert.ok(html.includes('href="/tags/%E5%BC%80%E5%8F%91/Go/%E5%B9%B6%E5%8F%91/"'))
- assert.ok(html.includes('class="tag-index-name">并发</span>'))
- assert.ok(html.includes('class="tag-echo-parent">开发/Go</span>'))
- assert.ok(html.includes('aria-label="开发/Go/并发，1 篇内容"'))
- assert.ok(html.includes('data-tag-locate="开发/Go/并发"'))
+ assert.ok(html.includes('class="tag-index-name">开发/Go/并发</span>'))
+
+ assert.ok(html.includes('aria-label="开发/Go/并发，1 项内容"'))
+ assert.ok(renderTagNavigation(stats).includes('data-tag-locate="开发/Go/并发"'))
  assert.ok(!html.includes('data-tag-dial-step'))
+ assert.ok(!html.includes('data-tag-projects'))
+ assert.ok(!html.includes('<button'))
  assert.equal(renderTagIndex(stats),html)
 })

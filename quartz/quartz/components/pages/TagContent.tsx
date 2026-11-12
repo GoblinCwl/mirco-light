@@ -29,8 +29,7 @@ export default ((opts?: Partial<TagContentOptions>) => {
     return <div class={index ? "popover-hint tag-index-page" : "popover-hint directory-page"} data-tag-loading="" aria-busy="true" data-tag-page={index ? "" : tag} data-tag-label={labels.tag} data-tag-count-template={template} data-tag-items-template={labels.itemsUnderTag({ count: 123456789 })}>
       <article class={(fileData.frontmatter?.cssclasses ?? []).join(" ")}>{content}</article>
       {index ? <>
-        <span class="tag-index-loading" role="status"><span class="drive-loading" aria-hidden="true"><i /></span><span>正在读取标签</span></span>
-        <header class="tag-index-toolbar"><p class="tag-index-summary" data-tag-count></p><label class="tag-index-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input type="search" data-tag-filter placeholder="查找主题" aria-label="查找主题"/></label></header>
+        <span class="tag-index-loading" role="status" aria-label="正在汇聚星团"><svg class="tag-gather-loading" viewBox="0 0 144 80" fill="none" aria-hidden="true"><path class="tag-loader-flow" d="M13 58C35 31 91 17 132 26M21 65C50 43 100 36 125 15"/><g class="tag-loader-point"><path d="m35 43 1.5 5.5L42 50l-5.5 1.5L35 57l-1.5-5.5L28 50l5.5-1.5Z"/></g><g class="tag-loader-point"><path d="m109 19 1.5 5.5L116 26l-5.5 1.5L109 33l-1.5-5.5L102 26l5.5-1.5Z"/></g><g class="tag-loader-point"><circle cx="52" cy="25" r="1.8"/><circle cx="98" cy="55" r="1.4"/></g><path class="tag-loader-core" d="m72 25 3 11 11 3-11 3-3 11-3-11-11-3 11-3Z"/></svg></span>
         <div data-tag-index />
         <template data-tag-directory-template><PageList {...props} directoryLayout showTags allFiles={[]} /></template>
       </> : <>
