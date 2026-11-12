@@ -29,7 +29,7 @@ export default function ReadingBlackHole(){
   </svg>
   <div class="reading-horizon-beacons" aria-label="四类内容总量">
    {([{type:'article',label:'文章'},{type:'repo',label:'仓库'},{type:'share',label:'分享'},{type:'video',label:'视频'}] as const).map(item=><div class="reading-horizon-beacon" data-type={item.type}>
-    <span class="reading-beacon-pin" aria-hidden="true"/>
+    <span class="reading-beacon-pin" aria-hidden="true"><svg class="reading-beacon-tether" viewBox="0 -12 44 24" fill="none"><path d="M0 0Q16-4 32 0" stroke="currentColor" stroke-width=".8" stroke-linecap="round"/></svg></span>
     <div class="reading-beacon-data"><strong data-reading-count={item.type} aria-label={`${item.label}总量正在读取`}>—</strong><span class="reading-beacon-label">{item.label}</span></div>
    </div>)}
   </div>

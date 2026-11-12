@@ -1,5 +1,6 @@
+import {deepSpaceTexture} from './deepSpaceTexture'
 import {readingTimelineTarget,readingTimelineStep} from './readingTimelinePan'
-import {readingOrbit} from './readingOrbit'
+import {readingOrbit,readingTether} from './readingOrbit'
 import {createReadingPrefetch} from './readingPrefetch'
 import {readingMonth,readingYears} from './readingTimeline'
 import {readContentCatalog} from './contentCatalog'
@@ -16,8 +17,28 @@ import {createInfiniteScroll} from './infiniteScroll'
 document.addEventListener('nav',()=>{
  const root=document.querySelector<HTMLElement>('[data-reading-page]');if(!root)return
  const lifecycle=new AbortController(),signal=lifecycle.signal;window.addCleanup(()=>lifecycle.abort())
+ const space=root.querySelector<HTMLElement>('.reading-space')!
+ let spaceVersion=''
+ const paintSpace=()=>{
+  const box=root.getBoundingClientRect(),width=Math.ceil(box.width+32),height=Math.max(1,innerHeight),light=document.documentElement.getAttribute('saved-theme')!=='dark'
+  if(width<33)return
+  const version=`${width}:${height}:${light}`
+  if(version!==spaceVersion){
+   spaceVersion=version
+   const texture=deepSpaceTexture(width,height,light)
+   space.style.backgroundImage=`url("${texture.toDataURL()}")`;space.style.backgroundSize=`${width}px ${height}px`
+   texture.width=texture.height=0
+  }
+  space.style.backgroundPosition=`${box.left-16}px 0px`
+ }
+ const spaceSize=new ResizeObserver(paintSpace);spaceSize.observe(root)
+ const spaceTheme=new MutationObserver(paintSpace);spaceTheme.observe(document.documentElement,{attributes:true,attributeFilter:['saved-theme']})
+ window.addEventListener('resize',paintSpace,{signal})
+ signal.addEventListener('abort',()=>{spaceSize.disconnect();spaceTheme.disconnect()},{once:true})
+ paintSpace()
  const horizon=root.querySelector<HTMLElement>('.reading-horizon')!
  const beacons=Array.from(horizon.querySelectorAll<HTMLElement>('.reading-horizon-beacon'))
+ const tetherPaths=beacons.map(beacon=>beacon.querySelector<SVGPathElement>('.reading-beacon-tether path'))
  const reducedOrbit=matchMedia('(prefers-reduced-motion:reduce)')
  let orbitFrame=0,orbitVisible=false,orbitWidth=horizon.clientWidth,orbitHeight=horizon.clientHeight
  const orbitStarted=performance.now()
@@ -26,6 +47,9 @@ document.addEventListener('nav',()=>{
    const position=readingOrbit(index,seconds)
    beacon.style.transform=`translate3d(${position.x*orbitWidth}px,${position.y*orbitHeight}px,0) translate(-50%,-50%) scale(${position.scale})`
    beacon.style.zIndex=position.front?'2':'0'
+   const pull=readingTether(index,seconds,orbitWidth,orbitHeight)
+   beacon.style.setProperty('--reading-tether-angle',`${pull.angle}rad`);beacon.style.setProperty('--reading-tether-stretch',String(pull.stretch));beacon.style.setProperty('--reading-tether-pull',`${pull.strength*2}px`);beacon.style.setProperty('--reading-tether-opacity',String(.15+pull.strength*.18))
+   tetherPaths[index]?.setAttribute('d',`M0 0Q${(pull.length/2).toFixed(1)} ${(-pull.bend).toFixed(1)} ${pull.length.toFixed(1)} 0`)
   }
  }
  const tickOrbit=(now:number)=>{paintOrbit((now-orbitStarted)/1000);orbitFrame=requestAnimationFrame(tickOrbit)}
