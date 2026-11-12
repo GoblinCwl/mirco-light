@@ -61,3 +61,19 @@ func TestEmbeddedBrowsers(t *testing.T) {
 		t.Fatal("unidentified browser should remain unknown")
 	}
 }
+
+func TestRecordWindowUsesSevenShanghaiDays(t *testing.T) {
+	for _, value := range []string{"2026-11-12T00:01:00+08:00", "2026-11-12T23:59:59+08:00", "2026-11-11T16:00:00Z"} {
+		now, err := time.Parse(time.RFC3339, value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		from, until := recordWindow(now)
+		if from.Format(time.RFC3339) != "2026-11-06T00:00:00+08:00" || until.Format(time.RFC3339) != "2026-11-13T00:00:00+08:00" {
+			t.Fatalf("unexpected record window: %v - %v", from, until)
+		}
+		if until.Sub(from) != 7*24*time.Hour {
+			t.Fatal("record window is not seven days")
+		}
+	}
+}

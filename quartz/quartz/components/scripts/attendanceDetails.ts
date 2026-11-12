@@ -1,5 +1,5 @@
 import {readAttendanceMonth,peekAttendanceMonth,type AttendanceMonth} from './attendanceClient'
-import { showSiteDialog } from "./siteDialog"
+import { showSiteDialog, closeSiteDialog } from "./siteDialog"
 import { createDatePicker } from "./datePicker"
 
 export type AttendanceDetail = { date: string; status?: string; holidayName?: string; specialName?: string; location?: string; weather?: string; bannerIcon?: string; preview?: boolean }
@@ -165,12 +165,12 @@ export function createAttendanceDetails(button: HTMLButtonElement | null, getSta
     selected = target; render()
   }
   prev.addEventListener("click", () => shift(-1)); next.addEventListener("click", () => shift(1))
-  close.addEventListener("click", () => dialog.close())
-  dialog.addEventListener("close", () => { datePicker.close(); button?.setAttribute("aria-expanded", "false") })
+  close.addEventListener("click", () => void closeSiteDialog(dialog))
+  dialog.addEventListener("close", () => {if(dialog.open)return; datePicker.close(); button?.setAttribute("aria-expanded", "false") })
   dialog.addEventListener("click", event => {
     if (event.target !== dialog) return
     const box = dialog.getBoundingClientRect()
-    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close()
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) void closeSiteDialog(dialog)
   })
   const click = () => open()
   button?.addEventListener("click", click)

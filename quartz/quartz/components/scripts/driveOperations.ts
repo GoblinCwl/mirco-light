@@ -6,7 +6,7 @@ import { driveRoute, type DriveUser, type DriveView } from "./driveClient"
 import { isDriveImageViewDisabled, isSpaceRootOperationDisabled } from "./driveOperationRules"
 import { fileIcon, fileIconForName, node } from "./driveUi"
 import { DRIVE_ORIGIN, driveSize } from "./openlistShared"
-import { showSiteDialog } from "./siteDialog"
+import { showSiteDialog, closeSiteDialog } from "./siteDialog"
 import { readDriveShareCode } from "./driveCredentials"
 import { setupDriveCollections } from './driveCollections'
 import type { MediaCollection } from './driveMediaView'
@@ -59,10 +59,10 @@ export function setupDriveOperations(signal: AbortSignal, callbacks: { clearSele
   const updateCollections = setupDriveCollections(root,signal)
   const compact = window.matchMedia("(max-width: 1199px)")
   const adapt = () => { if (dialog.open) dialog.close(); if (!compact.matches) dialog.setAttribute("open", "") }
-  const close = () => { if (compact.matches && dialog.open) dialog.close() }
+  const close = () => { if (compact.matches && dialog.open) void closeSiteDialog(dialog) }
   launch.addEventListener("click", () => { if (!dialog.open) showSiteDialog(dialog); launch.setAttribute("aria-expanded", "true") }, { signal })
   get("operations-close").addEventListener("click", close, { signal })
-  dialog.addEventListener("close", () => launch.setAttribute("aria-expanded", "false"), { signal })
+  dialog.addEventListener("close", () => {if(!dialog.open)launch.setAttribute("aria-expanded", "false")}, { signal })
   dialog.addEventListener("click", event => {
     if (!compact.matches || event.target !== dialog) return
     const box = dialog.getBoundingClientRect()

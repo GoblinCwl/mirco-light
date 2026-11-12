@@ -3,7 +3,7 @@ import {navigationIcon} from './navigationIcon'
 import {readSiteSession} from './siteSession'
 import {readArticleIndex} from './contentCatalog'
 import {setupStellarLogin} from './stellarLogin'
-import { showSiteDialog } from './siteDialog'
+import { showSiteDialog, closeSiteDialog } from './siteDialog'
 import { showPasswordToast } from './passwordFeedback'
 import { setupDockedButton } from './dockedButton'
 import { setupObservatoryLayout } from './observatoryLayout'
@@ -422,9 +422,9 @@ document.addEventListener('nav',()=>{
  if(launch&&toolsPanel){
   setupDockedButton(launch,compact,signal,()=>"quartz-operation-launch-position:v1")
   launch.onclick=()=>{if(!toolsPanel.open){showSiteDialog(toolsPanel);launch.setAttribute('aria-expanded','true')}}
-  get('tools-close').onclick=()=>toolsPanel.close()
-  toolsPanel.addEventListener('close',()=>launch.setAttribute('aria-expanded','false'),{signal})
-  toolsPanel.addEventListener('click',event=>{if(event.target!==toolsPanel||!compact.matches)return;const box=toolsPanel.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)toolsPanel.close()},{signal})
+  get('tools-close').onclick=()=>void closeSiteDialog(toolsPanel)
+  toolsPanel.addEventListener('close',()=>{if(!toolsPanel.open)launch.setAttribute('aria-expanded','false')},{signal})
+  toolsPanel.addEventListener('click',event=>{if(event.target!==toolsPanel||!compact.matches)return;const box=toolsPanel.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)void closeSiteDialog(toolsPanel)},{signal})
   compact.addEventListener('change',adaptTools,{signal});adaptTools()
  }
  const openManage=()=>{
@@ -432,9 +432,10 @@ document.addEventListener('nav',()=>{
   if(manage.open)return
   showSiteDialog(manage);identity()
  }
- get('manage-close').onclick=()=>manage.close()
- manage.addEventListener('click',event=>{if(event.target!==manage)return;const box=manage.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)manage.close()},{signal})
+ get('manage-close').onclick=()=>void closeSiteDialog(manage)
+ manage.addEventListener('click',event=>{if(event.target!==manage)return;const box=manage.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)void closeSiteDialog(manage)},{signal})
  manage.addEventListener('close',()=>{
+  if(manage.open)return
   releaseToast();identity()
   const trigger=get<HTMLButtonElement>('auth-open');if(document.activeElement===trigger)trigger?.blur()
  },{signal})
@@ -451,7 +452,7 @@ document.addEventListener('nav',()=>{
  document.addEventListener('stellar-auth-changed',event=>{
   identityRevision++
   resolveIdentity(!!(event as CustomEvent).detail.authenticated)
-  if(!authenticated&&manage.open)manage.close()
+  if(!authenticated&&manage.open)void closeSiteDialog(manage)
  },{signal})
  document.addEventListener('visibilitychange',()=>{
   clearTimeout(poll);clearTimeout(servicesTimer);clearTimeout(journalTimer);clearTimeout(visitorTimer)

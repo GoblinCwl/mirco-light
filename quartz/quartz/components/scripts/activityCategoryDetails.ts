@@ -1,4 +1,4 @@
-import { showSiteDialog } from "./siteDialog"
+import { showSiteDialog, closeSiteDialog } from "./siteDialog"
 export type ActivityCategory = {
   name: string; seconds: number; percent: number; color: string
   apps?: { name: string; seconds: number }[]
@@ -30,12 +30,12 @@ export function createActivityCategoryDetails() {
   dialog.append(header, body)
   document.body.append(dialog)
   let trigger: HTMLElement | undefined
-  close.addEventListener("click", () => dialog.close())
-  dialog.addEventListener("close", () => trigger?.setAttribute("aria-expanded", "false"))
+  close.addEventListener("click", () => void closeSiteDialog(dialog))
+  dialog.addEventListener("close", () => {if(!dialog.open)trigger?.setAttribute("aria-expanded", "false")})
   dialog.addEventListener("click", event => {
     if (event.target !== dialog) return
     const rect = dialog.getBoundingClientRect()
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close()
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) void closeSiteDialog(dialog)
   })
   window.addCleanup(() => { dialog.close(); dialog.remove() })
   return {

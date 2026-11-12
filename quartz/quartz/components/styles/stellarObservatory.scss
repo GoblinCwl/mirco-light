@@ -193,7 +193,7 @@
 @media(max-width:1199px) {
  .observatory-tools {
   .observatory-tools-panel:not(:modal) { display:none; }
-  .observatory-tools-panel:modal { position:fixed; inset:auto env(safe-area-inset-right) 0 env(safe-area-inset-left); width:min(100dvw,34rem); max-width:calc(100dvw - env(safe-area-inset-left) - env(safe-area-inset-right)); max-height:85svh; margin:0 auto; padding:1.1rem clamp(.9rem,4vw,1.4rem) calc(1.1rem + env(safe-area-inset-bottom)); border:1px solid var(--lightgray); border-bottom:0; border-radius:16px 16px 0 0; background:var(--light); color:var(--darkgray); overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:var(--lightgray) transparent; outline:none; animation:observatory-operation-sheet 160ms ease-out; &::backdrop { background:rgb(0 0 0 / 28%); } }
+  .observatory-tools-panel:modal { position:fixed; inset:auto env(safe-area-inset-right) 0 env(safe-area-inset-left); width:min(100dvw,34rem); max-width:calc(100dvw - env(safe-area-inset-left) - env(safe-area-inset-right)); max-height:85svh; margin:0 auto; padding:1.1rem clamp(.9rem,4vw,1.4rem) calc(1.1rem + env(safe-area-inset-bottom)); border:1px solid var(--lightgray); border-bottom:0; border-radius:16px 16px 0 0; background:var(--light); color:var(--darkgray); overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:var(--lightgray) transparent; outline:none; &::backdrop { background:rgb(0 0 0 / 28%); } }
   .observatory-tools-mobile-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:0 0 .65rem; padding:0; >h2 { margin:0; padding:0; font-family:var(--headerFont); font-size:1rem; font-weight:600; line-height:1.5; color:var(--dark); } >button { display:grid; place-items:center; flex:0 0 32px; width:32px; height:32px; padding:0; color:var(--gray); svg { width:19px; height:19px; } } }
   .observatory-tools-panel:modal .observatory-navigation {
    > :not(.observatory-feedback) { display:none; }
@@ -260,11 +260,9 @@
 .stellar-observatory button.observatory-emblem { padding:0; border-radius:50%; }
 @media(prefers-reduced-motion:reduce) { .observatory-public-services dd[data-state=checking] >i { animation:none; } }
 
-@keyframes observatory-operation-sheet { from { transform:translateY(1rem); opacity:.5; } to { transform:translateY(0); opacity:1; } }
 @media(max-width:1199px) {
  body[data-slug^="observatory/"] #quartz-body > .sidebar.right:has(.observatory-tools),.observatory-tools { display:contents; }
 }
-@media(prefers-reduced-motion:reduce) { .observatory-tools .observatory-tools-panel:modal { animation:none; } }
 @media(prefers-reduced-motion:reduce) { .observatory-journal .observatory-journal-skeleton-bar::after { animation:none; } }
 
 body[data-slug="observatory/index"] .stellar-observatory {

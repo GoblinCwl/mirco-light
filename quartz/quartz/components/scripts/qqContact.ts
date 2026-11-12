@@ -1,4 +1,5 @@
-import { showSiteDialog } from "./siteDialog"
+import {lockPageScroll} from "./pageScrollLock"
+import { showSiteDialog, closeSiteDialog } from "./siteDialog"
 export function setupQQContact() {
   const link = document.querySelector<HTMLAnchorElement>("[data-home-qq-contact]")
   if (!link) return
@@ -34,25 +35,27 @@ export function setupQQContact() {
   content.append(image, number, add)
   dialog.append(header, content)
   document.body.append(dialog)
+  let unlock:(()=>void)|undefined
   const open = (event: MouseEvent) => {
     event.preventDefault()
     event.stopPropagation()
     number.textContent = `QQ ${link.dataset.qq ?? ""}`
     add.href = link.href
-    if (!dialog.open) showSiteDialog(dialog)
+    if (!dialog.open) {showSiteDialog(dialog);unlock=lockPageScroll()}
     link.setAttribute("aria-expanded", "true")
   }
   link.addEventListener("click", open)
-  close.addEventListener("click", () => dialog.close())
-  dialog.addEventListener("close", () => link.setAttribute("aria-expanded", "false"))
+  close.addEventListener("click", () => void closeSiteDialog(dialog))
+  dialog.addEventListener("close", () => {if(dialog.open)return;unlock?.();unlock=undefined;link.setAttribute("aria-expanded", "false")})
   dialog.addEventListener("click", (event) => {
     if (event.target !== dialog) return
     const rect = dialog.getBoundingClientRect()
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close()
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) void closeSiteDialog(dialog)
   })
   window.addCleanup(() => {
     link.removeEventListener("click", open)
     dialog.close()
+    unlock?.();unlock=undefined
     dialog.remove()
   })
 }

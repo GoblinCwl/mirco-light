@@ -39,8 +39,9 @@ class DialogNode extends EventTarget {
 
 test("appearance form previews, applies, resets, deduplicates and closes on navigation", (t) => {
   const previous = new Map(
-    ["document", "window"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]),
+    ["document", "window", "getComputedStyle"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]),
   )
+  Object.defineProperty(globalThis,"getComputedStyle",{configurable:true,value:()=>({getPropertyValue:()=>"",transform:"none",opacity:"1"})})
   const body = new DialogNode()
   Object.defineProperty(globalThis, "document", {
     configurable: true,

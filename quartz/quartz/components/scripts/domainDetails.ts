@@ -1,6 +1,6 @@
 import {readContentCatalog} from './contentCatalog'
 import {domainDistribution} from './domainDistribution'
-import { showSiteDialog } from "./siteDialog"
+import { showSiteDialog, closeSiteDialog } from "./siteDialog"
 export function setupDomainDetails() {
   const button = document.querySelector<HTMLButtonElement>("[data-domain-details]")
   const links = [...document.querySelectorAll<HTMLAnchorElement>(".home-star-domains .home-explore-item")]
@@ -76,12 +76,12 @@ export function setupDomainDetails() {
   }
   const click = () => { void open() }
   button.addEventListener("click", click)
-  close.addEventListener("click", () => dialog.close())
-  dialog.addEventListener("close", () => button.setAttribute("aria-expanded", "false"))
+  close.addEventListener("click", () => void closeSiteDialog(dialog))
+  dialog.addEventListener("close", () => {if(!dialog.open)button.setAttribute("aria-expanded", "false")})
   dialog.addEventListener("click", event => {
     if (event.target !== dialog) return
     const rect = dialog.getBoundingClientRect()
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close()
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) void closeSiteDialog(dialog)
   })
   window.addCleanup(() => { disposed = true; button.removeEventListener("click", click); dialog.close(); dialog.remove() })
 }

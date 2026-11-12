@@ -6,7 +6,7 @@ import {node} from './driveUi'
 import {collectTagStats,renderTagIndex,renderTagNavigation} from '../../util/tagIndex'
 import {setupTagNebula} from './tagNebula'
 import {setupDockedButton} from './dockedButton'
-import {showSiteDialog} from './siteDialog'
+import {showSiteDialog,closeSiteDialog} from './siteDialog'
 import {lockPageScroll} from './pageScrollLock'
 
 // All tag links share the galaxy; the query selects a cluster after its index is ready.
@@ -26,10 +26,11 @@ document.addEventListener('nav',()=>{
   closeTagPanel=()=>{
    if(!panel.matches(':modal'))return
    const focused=document.activeElement;if(focused instanceof HTMLElement&&panel.contains(focused))focused.blur()
-   panel.close();release()
+   void closeSiteDialog(panel)
   }
   const sync=()=>{
-   closeTagPanel()
+   if(panel.matches(':modal'))panel.close()
+   release()
    if(compact.matches){if(panel.open)panel.close()}
    else panel.open=true
    dock.place()
@@ -40,13 +41,13 @@ document.addEventListener('nav',()=>{
    showSiteDialog(panel);unlock=lockPageScroll({signal});launch.setAttribute('aria-expanded','true')
   },{signal})
   panel.querySelector('[data-tag-panel-close]')?.addEventListener('click',closeTagPanel,{signal})
-  panel.addEventListener('close',release,{signal})
+  panel.addEventListener('close',()=>{if(!panel.open)release()},{signal})
   panel.addEventListener('click',event=>{
    if(!panel.matches(':modal')||event.target!==panel)return
    const box=panel.getBoundingClientRect()
    if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)closeTagPanel()
   },{signal})
-  window.addCleanup(()=>{closeTagPanel();release()})
+  window.addCleanup(()=>{if(panel.matches(':modal'))panel.close();release()})
  }
  let nebula:ReturnType<typeof setupTagNebula>|undefined
  let indexedProjects:IndexedContent[]=[]

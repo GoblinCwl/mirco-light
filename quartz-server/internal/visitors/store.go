@@ -225,6 +225,14 @@ func (s Store) Summary(ctx context.Context, days int, identity string) (map[stri
 	}
 	return result, nil
 }
+
+// The current Shanghai calendar day plus the previous six days.
+func recordWindow(now time.Time) (time.Time, time.Time) {
+	local := now.In(shanghai)
+	today := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, shanghai)
+	return today.AddDate(0, 0, -6), today.AddDate(0, 0, 1)
+}
+
 func (s Store) Records(ctx context.Context, page int, region, selectedDay, identity string) (map[string]any, error) {
 	if page < 1 {
 		page = 1
@@ -239,6 +247,13 @@ func (s Store) Records(ctx context.Context, page int, region, selectedDay, ident
 		where += " AND first_seen>=? AND first_seen<?"
 		args = append(args, stamp(parsed), stamp(parsed.AddDate(0, 0, 1)))
 	}
+	// Record browsing is limited to seven Shanghai calendar days. Keep chart
+	// aggregation independent so historical statistics remain available.
+	distributionWhere := where
+	distributionArgs := append([]any{}, args...)
+	from, until := recordWindow(s.now())
+	where += " AND last_seen>=? AND last_seen<?"
+	args = append(args, stamp(from), stamp(until))
 	var total int
 	if err := s.DB.QueryRowContext(ctx, "SELECT count(*) FROM visitors"+where, args...).Scan(&total); err != nil {
 		return nil, err
@@ -283,12 +298,13 @@ func (s Store) Records(ctx context.Context, page int, region, selectedDay, ident
 	if err != nil {
 		return nil, err
 	}
-	rows, err = s.DB.QueryContext(ctx, "SELECT COALESCE(region,'未知区域') AS region,count(*) AS count FROM visitors"+where+" GROUP BY COALESCE(region,'未知区域') ORDER BY count DESC,region", args...)
+	rows, err = s.DB.QueryContext(ctx, "SELECT COALESCE(region,'未知区域') AS region,count(*) AS count FROM visitors"+distributionWhere+" GROUP BY COALESCE(region,'未知区域') ORDER BY count DESC,region", distributionArgs...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	distribution := []map[string]any{}
+	distributionTotal := 0
 	for rows.Next() {
 		var region string
 		var count int
@@ -296,11 +312,12 @@ func (s Store) Records(ctx context.Context, page int, region, selectedDay, ident
 			return nil, err
 		}
 		distribution = append(distribution, map[string]any{"region": region, "count": count})
+		distributionTotal += count
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	result := map[string]any{"total": total, "page": page, "pages": pages, "distribution": distribution, "records": records}
+	result := map[string]any{"total": total, "page": page, "pages": pages, "distribution": distribution, "distributionTotal": distributionTotal, "records": records}
 	if identity != "" {
 		var id string
 		err = s.DB.QueryRowContext(ctx, "SELECT meteor_id FROM visitors WHERE identity=?", identity).Scan(&id)

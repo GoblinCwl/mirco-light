@@ -1,7 +1,7 @@
 import { parseFriends, type FriendLink } from '../../util/friends.mjs'
 import { node } from './driveUi'
 import { setupDockedButton } from './dockedButton'
-import { showSiteDialog } from './siteDialog'
+import { showSiteDialog, closeSiteDialog } from './siteDialog'
 import { showPasswordToast } from './passwordFeedback'
 import { RequestCache } from './sharedRequest'
 
@@ -54,9 +54,9 @@ document.addEventListener('nav', () => {
   }
   syncPanel();compact.addEventListener('change',syncPanel,{signal})
   launch.addEventListener('click',()=>{if(!compact.matches)return;showSiteDialog(sidebar);launch.setAttribute('aria-expanded','true')},{signal})
-  sidebar.querySelector('[data-friends-panel-close]')?.addEventListener('click',()=>sidebar.close(),{signal})
-  sidebar.addEventListener('close',()=>launch.setAttribute('aria-expanded','false'),{signal})
-  sidebar.addEventListener('click',event=>{if(!compact.matches||event.target!==sidebar)return;const box=sidebar.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)sidebar.close()},{signal})
+  sidebar.querySelector('[data-friends-panel-close]')?.addEventListener('click',()=>void closeSiteDialog(sidebar),{signal})
+  sidebar.addEventListener('close',()=>{if(!sidebar.open)launch.setAttribute('aria-expanded','false')},{signal})
+  sidebar.addEventListener('click',event=>{if(!compact.matches||event.target!==sidebar)return;const box=sidebar.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)void closeSiteDialog(sidebar)},{signal})
  }
  const confirmation=document.querySelector<HTMLDialogElement>('[data-friends-application-preview]')
  const infoDialog=document.querySelector<HTMLDialogElement>('[data-friends-info-dialog]')
@@ -110,7 +110,7 @@ document.addEventListener('nav', () => {
  confirmation?.addEventListener('click',event=>{if(event.target!==confirmation)return;const box=confirmation.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)confirmation.close()},{signal})
  let submittingApplication=false
  confirmation?.querySelector<HTMLButtonElement>('[data-friends-confirm-submit]')?.addEventListener('click',async()=>{
-  if(confirmation.classList.contains('is-complete')){confirmation.close();if(compact.matches)sidebar?.close();return}
+  if(confirmation.classList.contains('is-complete')){confirmation.close();if(compact.matches&&sidebar)void closeSiteDialog(sidebar);return}
   if(!pendingApplication||submittingApplication)return
   const submit=confirmation.querySelector<HTMLButtonElement>('[data-friends-confirm-submit]')!
   submittingApplication=true;submit.disabled=true;submit.textContent='正在提交…'

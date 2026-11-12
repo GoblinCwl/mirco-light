@@ -1,10 +1,10 @@
 import { visitorHeaders, ownMeteorId } from "./visitorIdentity"
 import { createInfiniteScroll } from "./infiniteScroll"
-import { showSiteDialog } from "./siteDialog"
+import { showSiteDialog, closeSiteDialog } from "./siteDialog"
 import { createDatePicker } from "./datePicker"
 
 type Visit = { id: string; region: string | null; city?: string | null; browser?: string | null; arrivedOn: string; lastSeenOn: string; firstSeenAt?: string; lastSeenAt?: string }
-type Records = { total: number; page: number; pages: number; meteorId?: string; records: Visit[]; distribution: { region: string; count: number }[] }
+type Records = { total: number; page: number; pages: number; meteorId?: string; records: Visit[]; distributionTotal?: number; distribution: { region: string; count: number }[] }
 
 const visitTime = (value: string | undefined, fallback: string) => value && Number.isFinite(Date.parse(value))
   ? new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(value)) : fallback
@@ -37,11 +37,15 @@ export function setupVisitorDetails() {
   region.type = "search"; region.placeholder = "省份或国家"; region.maxLength = 60
   region.setAttribute("aria-label", "按省份或国家查询")
   const datePicker = createDatePicker({ label: "首次来访日期", placeholder: "选择来访日期", clearable: true, onChange: () => {} })
+  const rangeDate = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Shanghai", year:"numeric", month:"2-digit", day:"2-digit" })
+  const limitDates=()=>{const today=rangeDate.format(new Date()),start=new Date(`${today}T00:00:00+08:00`);start.setUTCDate(start.getUTCDate()-6);datePicker.set(datePicker.input.value,rangeDate.format(start),today)}
+  limitDates()
   const date = datePicker.input
   const dateField = datePicker.element
   const search = document.createElement("button")
   search.type = "submit"; search.textContent = "查询"
   form.append(region, dateField, search)
+  const rangeNote=node("p","来访记录仅显示最近 7 天，地区统计保留历史数据。","visitor-details-caption")
   const results = node("div", "", "visitor-details-results")
   results.setAttribute("aria-live", "polite")
   const pagination = node("div", "", "infinite-scroll-trigger")
@@ -49,7 +53,7 @@ export function setupVisitorDetails() {
   const retry = document.createElement("button")
   retry.type = "button"; retry.textContent = "重试"; retry.hidden = true
   pagination.append(pageInfo, retry)
-  body.append(chart, form, results, pagination)
+  body.append(chart, rangeNote, form, results, pagination)
   dialog.append(header, body)
   document.body.append(dialog)
   const lifecycle = new AbortController()
@@ -94,7 +98,8 @@ export function setupVisitorDetails() {
           bar.style.width = `${item.count / maximum * 100}%`
           track.append(bar)
           row.style.setProperty("--distribution-color", ["#75aabd", "#a58abc", "#80ad9c", "#bea06b", "#839fbe", "#b18fa1", "#88939d"][index])
-          const share = data.total ? Math.round(item.count / data.total * 100) : 0
+          const distributionTotal=data.distributionTotal??data.total
+          const share = distributionTotal ? Math.round(item.count / distributionTotal * 100) : 0
           row.title = `${item.region} · ${item.count} 位 · ${share}%`
           row.append(node("span", item.region, "visitor-distribution-label"), track, node("span", `${item.count} · ${share}%`, "visitor-distribution-value"))
           chart.append(row)
@@ -138,17 +143,18 @@ export function setupVisitorDetails() {
   }
   const open = () => {
     if (dialog.open) return
+    limitDates()
     showSiteDialog(dialog)
     trigger.setAttribute("aria-expanded", "true")
     void load()
   }
   trigger.addEventListener("click", open)
-  close.addEventListener("click", () => dialog.close())
-  dialog.addEventListener("close", () => { datePicker.close(); paging.setEnabled(false); request?.abort(); trigger.setAttribute("aria-expanded", "false") })
+  close.addEventListener("click", () => void closeSiteDialog(dialog))
+  dialog.addEventListener("close", () => { if(dialog.open)return;datePicker.close(); paging.setEnabled(false); request?.abort(); trigger.setAttribute("aria-expanded", "false") })
   dialog.addEventListener("click", event => {
     if (event.target !== dialog) return
     const rect = dialog.getBoundingClientRect()
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close()
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) void closeSiteDialog(dialog)
   })
   form.addEventListener("submit", event => { event.preventDefault(); queryRegion = region.value.trim(); queryDay = date.value; void load() })
   retry.addEventListener("click", () => void load(page > 0))

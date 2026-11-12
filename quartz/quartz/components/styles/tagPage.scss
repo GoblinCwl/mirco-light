@@ -84,7 +84,6 @@ body:has(.tag-index-page) .page > #quartz-body {
     max-height:min(80dvh,42rem);margin:0 auto;padding:.9rem 1rem calc(1rem + env(safe-area-inset-bottom));
     border:1px solid var(--lightgray);border-bottom:0;border-radius:16px 16px 0 0;background:var(--light);overflow:hidden;overscroll-behavior:contain;
     &:not(:modal){display:none;}
-    &:modal{animation:tag-panel-enter .18s ease-out;}
     &::backdrop{background:rgb(0 0 0 / 28%);}
     &:focus{outline:none;}
     [data-tag-navigation]{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--lightgray) transparent;padding-right:.25rem;}
@@ -92,8 +91,6 @@ body:has(.tag-index-page) .page > #quartz-body {
   }
   .tag-panel-close{display:flex;align-items:center;justify-content:center;flex:none;width:28px;height:28px;padding:3px;border:0;background:transparent;color:var(--secondary);cursor:pointer;svg{width:20px;height:20px;}}
 }
-@keyframes tag-panel-enter{from{transform:translateY(1rem);opacity:.5;}to{transform:translateY(0);opacity:1;}}
-@media(prefers-reduced-motion:reduce){.tag-navigation-panel:modal{animation:none;}}
 .sidebar.right:has(.tag-index-aside[hidden]) {display:none!important;}
 .directory-source-label {flex-shrink:0;color:var(--gray);font-size:.7rem;font-weight:400;}
 @keyframes tag-index-spin {to{transform:rotate(360deg);}}

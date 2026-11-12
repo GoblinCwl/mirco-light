@@ -32,15 +32,14 @@
   .drive-operations {
     display: contents;
     .drive-operations-launch { @include dockedButton.launcher; z-index:30; }
-    .drive-operations-dialog { position: fixed; inset: auto env(safe-area-inset-right) 0 env(safe-area-inset-left); box-sizing: border-box; width: min(100dvw, 34rem); max-width: calc(100dvw - env(safe-area-inset-left) - env(safe-area-inset-right)); max-height: 85svh; margin: 0 auto; padding: 1.1rem clamp(.9rem, 4vw, 1.4rem) calc(1.1rem + env(safe-area-inset-bottom)); border: 1px solid var(--lightgray); border-bottom: 0; border-radius: 16px 16px 0 0; background: var(--light); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; &::backdrop { background: rgb(0 0 0 / 28%); } &:modal { animation: drive-operation-sheet 160ms ease-out; } }
+    .drive-operations-dialog { position: fixed; inset: auto env(safe-area-inset-right) 0 env(safe-area-inset-left); box-sizing: border-box; width: min(100dvw, 34rem); max-width: calc(100dvw - env(safe-area-inset-left) - env(safe-area-inset-right)); max-height: 85svh; margin: 0 auto; padding: 1.1rem clamp(.9rem, 4vw, 1.4rem) calc(1.1rem + env(safe-area-inset-bottom)); border: 1px solid var(--lightgray); border-bottom: 0; border-radius: 16px 16px 0 0; background: var(--light); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; &::backdrop { background: rgb(0 0 0 / 28%); } }
     .drive-operations-dialog[open]:not(:modal) { display: none; }
     .drive-operations-inner { max-height: none; overflow-y: visible; overflow-x: clip; scrollbar-gutter: auto; padding: 0; }
     .drive-operations-mobile-heading { display: flex; align-items: center; justify-content: flex-end; margin-bottom: .5rem; color: var(--dark); font-family: var(--headerFont); > button { display: flex; padding: .25rem; border: 0; background: transparent; color: var(--gray); > svg { width: 20px; height: 20px; } } }
     .drive-operation-action { min-height: 2.7rem; font-size: .95rem; }
   }
 }
-@keyframes drive-operation-sheet { from { transform: translateY(1rem); opacity: .5; } to { transform: translateY(0); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .drive-operations .is-checking, .drive-operations .drive-operations-dialog:modal { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .drive-operations .is-checking { animation: none; } }
 
 .drive-operations .drive-operation-action:not(:disabled) { cursor: pointer; &:hover > span:last-child { text-decoration: underline; text-underline-offset: .2em; } }
 .drive-operations .drive-operation-action:disabled { opacity: .5; cursor: not-allowed; }

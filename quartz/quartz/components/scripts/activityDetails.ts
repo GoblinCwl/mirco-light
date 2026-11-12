@@ -1,4 +1,4 @@
-import { showSiteDialog } from "./siteDialog"
+import { showSiteDialog, closeSiteDialog } from "./siteDialog"
 import { activityCategoryColor } from "./activityColors"
 
 export type ActivityDetails = {
@@ -57,15 +57,15 @@ export function createActivityDetails(button: HTMLElement) {
   body.setAttribute("aria-busy", "true")
   dialog.append(header, body)
   document.body.append(dialog)
-  close.addEventListener("click", () => dialog.close())
-  dialog.addEventListener("close", () => {
+  close.addEventListener("click", () => void closeSiteDialog(dialog))
+  dialog.addEventListener("close", () => {if(dialog.open)return;
     clearTimeout(renderTimer)
     button.setAttribute("aria-expanded", "false")
   })
   dialog.addEventListener("click", (event) => {
     if (event.target !== dialog) return
     const rect = dialog.getBoundingClientRect()
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close()
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) void closeSiteDialog(dialog)
   })
   const section = (name: string) => {
     const node = element("section", undefined, "activity-details-section")

@@ -150,7 +150,6 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
   .friends-form-fields { gap:.6rem; }
   .friends-sidebar-group:last-child { padding-bottom:0; }
   &::backdrop { background:rgb(0 0 0 / 28%); }
-  &:modal { animation:friends-operation-sheet 160ms ease-out; }
   &[open]:not(:modal) { display:none; }
   [aria-invalid="true"] { border-color:#bf6060; outline:2px solid #bf6060; outline-offset:-2px; }
   > .decrypt-toast {
@@ -162,8 +161,6 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
  .friends-panel-close { display:flex; align-items:center; justify-content:center; margin:0 0 .35rem auto; padding:.25rem; border:0; background:transparent; color:var(--gray); svg { width:20px; height:20px; } }
 }
 
-@keyframes friends-operation-sheet { from { transform:translateY(1rem); opacity:.5; } to { transform:translateY(0); opacity:1; } }
-@media(prefers-reduced-motion:reduce) { .friends-sidebar:modal { animation:none; } }
 
 .friends-thread-loading {
  width:112px; color:var(--secondary);

@@ -775,3 +775,11 @@ body:not([data-slug="index"]) .center {
   display: flex;
   flex-direction: column;
 }
+
+// Bottom sheets share one entrance/dismissal implementation, including Escape.
+@media(max-width:1199px) {
+  :is(.mobile-article-toc-dialog,.drive-operations-dialog,.friends-sidebar,.tag-navigation-panel,.observatory-settings-dialog,.observatory-tools-panel) { --site-drawer:1; }
+}
+@media(max-width:767px) {
+  dialog.activity-details:is(.activity-voyage,.activity-category-details,.domain-details,.visitor-details,.attendance-details,.qq-contact-dialog) { --site-drawer:1; }
+}

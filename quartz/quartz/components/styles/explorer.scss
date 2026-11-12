@@ -447,7 +447,8 @@ li:has(> .folder-outer:not(.open)) > .folder-container > svg {
     position: absolute; left: 0; top: 50%; transform: translateY(-50%);
     display: inline-flex; align-items: center; justify-content: center;
     flex: 0 0 1.05rem; width: 1.05rem; height: 1.05rem; color: inherit;
-    > svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+    > svg { display: block; width: 100%; height: 100%; }
+    > svg:not([fill]) { fill: currentColor; }
   }
 }
 // Realm uses an explicit height animation so closing also works in browsers

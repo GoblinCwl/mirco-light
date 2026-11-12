@@ -1,5 +1,5 @@
 import { setupDockedButton } from './dockedButton'
-import { showSiteDialog } from './siteDialog'
+import { showSiteDialog, closeSiteDialog } from './siteDialog'
 
 document.addEventListener('nav', () => {
   const root = document.querySelector<HTMLElement>('[data-mobile-article-toc]')
@@ -41,9 +41,12 @@ document.addEventListener('nav', () => {
       link.href = '#' + encodeURIComponent(heading.id); link.dataset.for = heading.id; link.dataset.noPopover = 'true'
       link.textContent = source.get(heading.id) || heading.textContent?.trim() || '未命名章节'
       link.addEventListener('click', event => {
-        event.preventDefault(); event.stopPropagation(); dialog.close()
-        history.pushState({}, '', link.href)
-        heading.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' })
+        event.preventDefault(); event.stopPropagation()
+        void closeSiteDialog(dialog).then(()=>{
+          if(signal.aborted)return
+          history.pushState({}, '', link.href)
+          heading.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' })
+        })
       }, { signal })
       row.append(link); list.append(row)
     }
@@ -56,12 +59,12 @@ document.addEventListener('nav', () => {
     const selected = list.querySelector<HTMLElement>('[aria-current]')
     if (selected) viewport.scrollTop += selected.getBoundingClientRect().top - viewport.getBoundingClientRect().top - (viewport.clientHeight - selected.offsetHeight) / 2
   }, { signal })
-  root.querySelector<HTMLButtonElement>('[data-article-toc-close]')!.addEventListener('click', () => dialog.close(), { signal })
+  root.querySelector<HTMLButtonElement>('[data-article-toc-close]')!.addEventListener('click', () => void closeSiteDialog(dialog), { signal })
   dialog.addEventListener('close', () => { launch.setAttribute('aria-expanded', 'false'); if (document.activeElement === launch) launch.blur() }, { signal })
   dialog.addEventListener('click', event => {
     if (event.target !== dialog) return
     const box = dialog.getBoundingClientRect()
-    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close()
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) void closeSiteDialog(dialog)
   }, { signal })
   compact.addEventListener('change', () => { if (!compact.matches && dialog.open) dialog.close(); launch.hidden = !compact.matches || !headings.length; dock.place() }, { signal })
   document.addEventListener('decryptComplete', event => { if ((event as CustomEvent).detail?.success) { locked = false; build() } }, { signal })
