@@ -1,4 +1,4 @@
-import {showAdminListMessage} from './adminListState'
+import {showAdminListLoading,showAdminListMessage} from './adminListState'
 import { node } from "./driveUi"
 import { driveActionDialog } from "./driveActionDialog"
 import { adminPassword } from "./driveAdminFields"
@@ -40,6 +40,7 @@ export function setupServiceManager(
     refresh = node("button", "刷新"),
     list = node("div", "", "service-manager-list")
   add.type = refresh.type = "button"
+  add.className = "stellar-admin-add"
   heading.append(node("h3", "服务列表"), add, refresh)
   root.append(
     heading,
@@ -53,10 +54,13 @@ export function setupServiceManager(
       const value: Data = await request("/admin/services")
       if (signal.aborted || current !== revision) return
       data = value
+      list.removeAttribute("aria-busy")
       render()
     } catch (error) {
-      if (!signal.aborted)
+      if (!signal.aborted) {
         showPasswordToast(error instanceof Error ? error.message : "读取服务失败", true)
+        if (!list.querySelector(".service-manager-row")) showAdminListMessage(list, "服务加载失败", "请稍后重试。", () => void load())
+      }
     }
   }
   async function save(path: string, value?: unknown, method = "PUT") {
@@ -299,6 +303,7 @@ export function setupServiceManager(
         ),
       )
       editButton.type = removeButton.type = "button"
+      removeButton.className = "is-danger"
       editButton.onclick = () => edit(service)
       removeButton.onclick = () => remove(service)
       actions.append(enabled, editButton, removeButton)
@@ -310,6 +315,6 @@ export function setupServiceManager(
   }
   add.onclick = () => edit()
   refresh.onclick = () => void load()
-  list.append(node("p", "正在读取服务列表…", "service-manager-note"))
+  showAdminListLoading(list)
   void load()
 }

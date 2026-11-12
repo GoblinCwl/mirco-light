@@ -37,6 +37,8 @@ document.addEventListener('nav', () => {
     result.schema.push({key:'security.totp',group:'账户安全',label:'验证器',type:'security'})
     result.schema.push({key:'alerts.records',group:'告警中心',label:'告警记录',type:'alerts'})
     result.schema.push({key:'data.maintenance',group:'数据管理',label:'数据维护',type:'data'})
+    result.schema.push({key:'friends.manage',group:'友链管理',label:'友链',type:'friends'})
+    result.schema.push({key:'feedback.manage',group:'反馈管理',label:'反馈',type:'feedback'})
     result.schema.push({key:'upstreams.credentials',group:'服务接入',label:'平台凭据',type:'credentials'})
     fields.replaceChildren()
     const navigation = root.querySelector<HTMLElement>('[data-stellar-modules]')!; navigation.replaceChildren()
@@ -45,7 +47,9 @@ document.addEventListener('nav', () => {
       '视频': {id:'video',title:'视频',description:'播放默认值、字幕与弹幕显示设置，个人播放记忆优先。',icon:'<rect x="3" y="4" width="18" height="14" rx="2"/><path d="m10 8 5 3-5 3V8Zm-3 13h10"/>'},
       '星轨': {id:'graph',title:'星轨',description:'文章的新星标记与孤星特效。',icon:'<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="5" transform="rotate(-30 12 12)"/><path d="m18 3 .6 1.4L20 5l-1.4.6L18 7l-.6-1.4L16 5l1.4-.6Z"/>'},
       '服务接入': {id:'integrations',title:'服务',description:'统一管理 OpenList、媒体、仓库、评论、监控与首页数据源及平台凭据。保存后由对应服务读取。',icon:'<path d="M14 5a5 5 0 1 1-4 8l-6 6H2v-3l6-6a5 5 0 0 1 6-5Z"/><circle cx="16" cy="8" r="1"/>'},
-      '数据管理': {id:'data',title:'数据',description:'维护本站数据记录，支持查询、新增、编辑、删除，以及审核、同步等专用操作。',icon:'<circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="m8 8 8 8M15 5h5v5M9 19H4v-5"/>'},
+      '数据管理': {id:'data',title:'数据',description:'维护本站数据记录，支持查询、新增、编辑与删除。',icon:'<circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="m8 8 8 8M15 5h5v5M9 19H4v-5"/>'},
+      '友链管理': {id:'friends',title:'友链',description:'管理友链资料、展示顺序与申请审核。',icon:'<path d="m9 15 6-6m-5-3 2-2a5 5 0 0 1 7 7l-2 2M7 11l-2 2a5 5 0 0 0 7 7l2-2"/>'},
+      '反馈管理': {id:'feedback',title:'反馈',description:'查看访客反馈并管理处理状态。',icon:'<path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 9h10M7 13h6"/>'},
       '告警中心': {id:'alerts',title:'告警',description:'查看服务异常、外部接口失败及后台任务错误。',icon:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/><path d="M12 6v4m0 3h.01"/>'},
       '内容发布': {id:'publishing',title:'内容',description:'控制构建排除与隐藏展示，保存后手动重载生效。',icon:'<path d="M4 4h16v16H4zM8 9h8M8 13h5"/><path d="m16 16 2 2 3-3"/>'},
       '账户安全':{id:'security',title:'账户',description:'管理管理员验证器与恢复码。',icon:'<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/>'},
@@ -82,7 +86,7 @@ document.addEventListener('nav', () => {
       const tab=document.createElement('button'),panel=document.createElement('section'),intro=document.createElement('header'),title=document.createElement('h2'),description=document.createElement('p')
       tab.type='button';tab.className='stellar-admin-tab';tab.dataset.moduleId=design.id;tab.id=`stellar-tab-${design.id}`;tab.setAttribute('role','tab');tab.setAttribute('aria-controls',`stellar-panel-${design.id}`)
       tab.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${design.icon}</svg>`
-      const nameNode=document.createElement('span'),count=document.createElement('span'),indicator=document.createElement('i');nameNode.textContent=design.title;count.textContent=String(name==='数据管理'?4:entries.length);count.className='stellar-admin-tab-count';if(name==='告警中心')count.hidden=true;indicator.className='stellar-admin-unsaved';indicator.hidden=true;indicator.setAttribute('aria-label','有未保存修改');tab.append(nameNode,count,indicator)
+      const nameNode=document.createElement('span'),count=document.createElement('span'),indicator=document.createElement('i');nameNode.textContent=design.title;count.textContent=String(entries.length);count.className='stellar-admin-tab-count';if(name==='告警中心')count.hidden=true;indicator.className='stellar-admin-unsaved';indicator.hidden=true;indicator.setAttribute('aria-label','有未保存修改');tab.append(nameNode,count,indicator)
       panel.id=`stellar-panel-${design.id}`;panel.className='stellar-admin-module';panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);panel.tabIndex=0
       intro.className='stellar-admin-module-intro';title.textContent=design.title;description.textContent=design.description
       const moduleIcon=document.createElement('span'),introCopy=document.createElement('div');moduleIcon.className='stellar-admin-module-icon';moduleIcon.innerHTML=tab.querySelector('svg')!.outerHTML;moduleIcon.setAttribute('aria-hidden','true');introCopy.append(title,description);intro.append(moduleIcon,introCopy);panel.append(intro)
@@ -93,32 +97,43 @@ document.addEventListener('nav', () => {
         activators[index]=()=>{if(!refresh)refresh=setupAlertCenter(panel,signal,request);else refresh()}
         continue
       }
-      if(name==='数据管理'){
-        const tabs=document.createElement('div');tabs.className='data-admin-tabs';panel.append(tabs)
-        const managers = [
-          { title:'数据维护', setup:(content:HTMLElement,own:AbortSignal)=>setupDataManager(content,own,request) },
-          { title:'友链', setup:(content:HTMLElement,own:AbortSignal)=>{void request('/admin/data/friends').then(data=>{if(!own.aborted)setupFriendManager(content,data.friends,own,request)}).catch(error=>{if(!own.aborted)showPasswordToast(error.message,true)})} },
-          { title:'反馈', setup:(content:HTMLElement,own:AbortSignal)=>setupFeedbackManager(content,own,request) },
-          { title:'服务列表', setup:(content:HTMLElement,own:AbortSignal)=>{content.classList.add('service-manager');setupServiceManager(content,own,request)} },
-        ]
-        const items=managers.map(manager=>{
-          const button=document.createElement('button'),content=document.createElement('div')
-          button.type='button';button.textContent=manager.title;button.setAttribute('aria-pressed','false')
-          content.className='friend-admin';content.hidden=true;tabs.append(button);panel.append(content)
-          return {button,content,started:false,manager,controller:new AbortController()}
-        })
-        for(const item of items)item.button.onclick=()=>{
-          for(const other of items){other.content.hidden=other!==item;other.button.setAttribute('aria-pressed',String(other===item))}
-          if(!item.started){item.started=true;item.manager.setup(item.content,AbortSignal.any([signal,item.controller.signal]))}else if(item.manager.title==='数据维护')item.content.dispatchEvent(new Event('data-refresh'))
-        }
-        document.addEventListener('stellar-data-changed',()=>{for(const item of items.slice(1)){item.controller.abort();item.controller=new AbortController();item.started=false;item.content.replaceChildren()}},{signal})
-        items[0].button.click()
+      const managedContent=(content:HTMLElement,setup:(content:HTMLElement,own:AbortSignal)=>void)=>{
+        let started=false,controller=new AbortController()
+        const activate=()=>{if(!started){started=true;setup(content,AbortSignal.any([signal,controller.signal]))}}
+        document.addEventListener('stellar-data-changed',()=>{
+          controller.abort();controller=new AbortController();started=false;content.replaceChildren()
+          if(!panel.hidden&&!content.hidden)activate()
+        },{signal})
+        return activate
+      }
+      if(['数据管理','友链管理','反馈管理'].includes(name)){
+        const content=document.createElement('div');content.className='friend-admin';panel.append(content)
+        if(name==='数据管理'){
+          let started=false
+          activators[index]=()=>{if(!started){started=true;setupDataManager(content,signal,request)}else content.dispatchEvent(new Event('data-refresh'))}
+        }else activators[index]=managedContent(content,name==='友链管理'?(content,own)=>{
+          void request('/admin/data/friends').then(data=>{if(!own.aborted)setupFriendManager(content,data.friends,own,request)}).catch(error=>{if(!own.aborted)showPasswordToast(error.message,true)})
+        }:(content,own)=>setupFeedbackManager(content,own,request))
         continue
+      }
+      let settingsContent:HTMLElement=panel
+      if(name==='服务接入'){
+        const serviceTabs=document.createElement('div'),configuration=document.createElement('div'),services=document.createElement('div')
+        serviceTabs.className='data-admin-tabs';services.className='friend-admin service-manager';services.hidden=true
+        panel.append(serviceTabs,configuration,services);settingsContent=configuration
+        const activateServices=managedContent(services,(content,own)=>setupServiceManager(content,own,request))
+        const choices=[{title:'服务接入',content:configuration},{title:'服务列表',content:services}]
+        const buttons=choices.map(choice=>{
+          const button=document.createElement('button');button.type='button';button.textContent=choice.title;button.setAttribute('aria-pressed',String(choice.content===configuration));serviceTabs.append(button)
+          button.onclick=()=>{choices.forEach((other,i)=>{other.content.hidden=other!==choice;buttons[i].setAttribute('aria-pressed',String(other===choice))});if(choice.content===services)activateServices()}
+          return button
+        })
+        activators[index]=()=>{if(!services.hidden)activateServices()}
       }
       const cards=new Map<string,HTMLElement>()
       for(const field of entries.filter(field=>field.type!=='credentials').sort((a,b)=>name==='寻径'?Number(a.key!=='icp.items')-Number(b.key!=='icp.items'):0)){
         const groupName=category(field);let card=cards.get(groupName)
-        if(!card){card=document.createElement('section');card.className='stellar-setting-card';const heading=document.createElement('h3');heading.textContent=groupName;card.append(heading);panel.append(card);cards.set(groupName,card)}
+        if(!card){card=document.createElement('section');card.className='stellar-setting-card';const heading=document.createElement('h3');heading.textContent=groupName;card.append(heading);settingsContent.append(card);cards.set(groupName,card)}
         if(field.type==='navigation'){setupNavigationManager(card,result.values[field.key],async value=>{await request(`/admin/settings/${encodeURIComponent(field.key)}`,{method:'PUT',body:JSON.stringify({value})});await refreshSiteSettings()},field.key==='icp.items'?'备案信息':'寻径链接');continue}
         const row=document.createElement('form'),copy=document.createElement('div'),label=document.createElement('label'),controls=document.createElement('div'),save=document.createElement('button'),status=document.createElement('span')
         row.className='stellar-setting-row';row.dataset.fieldType=field.type;copy.className='stellar-setting-copy';label.textContent=field.label;controls.className='stellar-setting-control';status.className='stellar-setting-status';status.id=`stellar-status-${field.key.replaceAll('.','-')}`;status.setAttribute('role','status')
@@ -157,7 +172,7 @@ document.addEventListener('nav', () => {
         }
         update()
       }
-      if(name==='服务接入')setupUpstreamManager(panel,signal,request)
+      if(name==='服务接入')setupUpstreamManager(settingsContent,signal,request)
       if(name==='内容发布')setupContentPublishing(panel,signal,request)
     }
     navigation.addEventListener('keydown',event=>{
