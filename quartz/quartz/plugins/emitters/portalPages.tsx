@@ -3,6 +3,7 @@ import { ProcessedContent, defaultProcessedContent } from '../vfile'
 import { FullPageLayout } from '../../cfg'
 import { QuartzComponentProps } from '../../components/types'
 import StellarAdmin from '../../components/pages/StellarAdmin'
+import Reading from '../../components/pages/Reading'
 import Friends, { FriendsApply } from '../../components/pages/Friends'
 import StellarObservatory, { ObservatoryTools } from '../../components/pages/StellarObservatory'
 import Header from '../../components/Header'
@@ -16,6 +17,7 @@ import { write } from './helpers'
 import { escapeHTML, unescapeHTML } from '../../util/escape'
 export const PortalPages: QuartzEmitterPlugin = () => {
   const pages = [
+    {slug:'reading/index',title:'视界',body:Reading(),right:[]},
     {slug:'observatory/index',title:'星枢',body:StellarObservatory(),right:[ObservatoryTools]},
     {slug:'friends/index',title:'友链',body:Friends(),right:[FriendsApply]},
   ]

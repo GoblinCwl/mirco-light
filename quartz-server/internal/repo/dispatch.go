@@ -48,6 +48,8 @@ func (a *Adapter) Dispatch(ctx context.Context, name, action string, query url.V
 		page = 1000
 	}
 	switch action {
+	case "languages":
+		return a.Languages(ctx, stringValue(item["name"]))
 	case "info":
 		raw, _, err := Git(ctx, directory, MaxText, nil, "for-each-ref", "--format=%(refname)", "refs/heads", "refs/tags")
 		if err != nil {

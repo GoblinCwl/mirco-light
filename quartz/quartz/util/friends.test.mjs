@@ -64,3 +64,9 @@ test('homepage retry metadata is preserved for greyed-out cards', () => {
  assert.equal(parseFriends([friend])[0].healthError,'HTTP 503')
  assert.equal(parseFriends([{...friend,healthFailures:undefined}])[0].healthFailures,0)
 })
+
+test('persisted card numbers remain stable when RSS reorders friends',()=>{
+ const a={id:'fixed-a',number:12,name:'A',url:'https://a.example'},b={id:'fixed-b',number:3,name:'B',url:'https://b.example'}
+ assert.deepEqual(parseFriends([b,a]).map(friend=>friend.number),[3,12])
+ for(const number of [0,-1,1.5,4294967296,'12'])assert.throws(()=>parseFriends([{...a,number}]))
+})

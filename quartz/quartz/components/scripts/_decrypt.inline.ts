@@ -1,3 +1,4 @@
+import {rememberReadingUnlock} from './readingUnlock'
 import { unlockedIcon } from "../../util/encryptedIcon"
 import { showPasswordToast } from "./passwordFeedback"
 import {base64} from "rfc4648"
@@ -306,6 +307,7 @@ async function decrypt() {
     }
 
     article.innerHTML = contentHtml
+    rememberReadingUnlock(location.pathname,article.textContent||"")
     // Decryption can be retried or completed by more than one pending callback.
     // Content is replaced above, so give the separately inserted TOC the same
     // idempotent behaviour instead of appending duplicate navigation blocks.

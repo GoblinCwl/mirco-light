@@ -91,17 +91,24 @@ document.addEventListener('nav', () => {
  },{signal})
  sidebar?.querySelector('[data-friends-info-open]')?.addEventListener('click',()=>{
   if(!infoDialog)return
-  const values:Record<string,string>={name:sidebar.querySelector('.friends-site-identity strong')?.textContent||'',url:sidebar.querySelector<HTMLAnchorElement>('.friends-site-identity a')?.href||'',avatar:sidebar.querySelector<HTMLElement>('[data-copy-label="头像地址"]')?.dataset.friendsCopy||'',description:sidebar.querySelector('.friends-site-description')?.textContent||''}
+  const values:Record<string,string>={name:sidebar.querySelector('.friends-site-identity strong')?.textContent||'',url:sidebar.querySelector<HTMLAnchorElement>('.friends-site-identity a')?.href||'',avatar:sidebar.querySelector<HTMLElement>('[data-copy-label="头像地址"]')?.dataset.friendsCopy||'',description:sidebar.querySelector('.friends-site-description')?.textContent||'',rss:sidebar.dataset.friendsRss||new URL('/index.xml',location.origin).href}
   for(const field of infoDialog.querySelectorAll<HTMLInputElement|HTMLTextAreaElement>('[data-friends-info-field]'))field.value=values[field.dataset.friendsInfoField!]||''
   showSiteDialog(infoDialog)
  },{signal})
  infoDialog?.querySelector('[data-friends-info-close]')?.addEventListener('click',()=>infoDialog.close(),{signal})
  infoDialog?.addEventListener('submit',event=>event.preventDefault(),{signal})
  infoDialog?.querySelector('[data-friends-info-copy]')?.addEventListener('click',async()=>{
-  const labels:Record<string,string>={name:'名称',url:'地址',avatar:'头像',description:'简介'}
+  const labels:Record<string,string>={name:'名称',url:'地址',avatar:'头像',rss:'RSS',description:'简介'}
   const information=[...infoDialog.querySelectorAll<HTMLInputElement|HTMLTextAreaElement>('[data-friends-info-field]')].map(field=>`${labels[field.dataset.friendsInfoField!]}：${field.value}`).join('\n')
   try{await navigator.clipboard.writeText(information);if(!signal.aborted)applicationError('本站信息已复制',false)}
   catch{if(!signal.aborted)applicationError('复制失败，请重试')}
+ },{signal})
+ infoDialog?.addEventListener('click',async event=>{
+  const button=(event.target as Element).closest<HTMLButtonElement>('[data-friends-info-copy-field]');if(!button)return
+  const field=[...infoDialog.querySelectorAll<HTMLInputElement|HTMLTextAreaElement>('[data-friends-info-field]')].find(field=>field.dataset.friendsInfoField===button.dataset.friendsInfoCopyField)
+  if(!field)return
+  try{await navigator.clipboard.writeText(field.value);if(!signal.aborted)showPasswordToast('已复制')}
+  catch{if(!signal.aborted)showPasswordToast('复制失败，请重试',true)}
  },{signal})
  infoDialog?.addEventListener('click',event=>{if(event.target!==infoDialog)return;const box=infoDialog.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)infoDialog.close()},{signal})
  window.addCleanup(()=>{if(infoDialog?.open)infoDialog.close()})
@@ -164,7 +171,7 @@ document.addEventListener('nav', () => {
   if(!stage||!confirmation)return
   const card=node('div','','friend-letter');card.setAttribute('role','img');card.setAttribute('aria-label',`${friend.name}的友链卡片预览`);card.style.setProperty('--letter-angle','-2deg')
   const paper=node('div','','friend-letter-paper'),edge=node('div','','friend-letter-edge'),stamp=node('div','','friend-stamp'),top=node('div','','friend-stamp-top')
-  top.append(node('h3',friend.name),node('span','#'+String(friends.length+1).padStart(3,'0'),'friend-letter-number'))
+  top.append(node('h3',friend.name),node('span','待分配','friend-letter-number'))
   const art=node('div','','friend-stamp-art'),avatar=node('span','','friend-letter-avatar')
   avatar.append(node('span',Array.from(friend.name)[0]))
   if(friend.avatar){
@@ -493,7 +500,7 @@ document.addEventListener('nav', () => {
   fragment.append(dust)
   const rope=document.createElementNS('http://www.w3.org/2000/svg','svg');rope.classList.add('friends-letter-rope');rope.setAttribute('aria-hidden','true');fragment.append(rope)
   friends.forEach((friend,i)=>{
-   const letter=node('a','','friend-letter');letter.classList.toggle('is-unavailable',(friend.healthFailures||0)>0);if((friend.healthFailures||0)>0)letter.setAttribute('aria-label',`${friend.name}，暂时无法访问`);letter.href=friend.url;letter.target='_blank';letter.rel='noopener noreferrer';letter.dataset.noPopover='true';letter.draggable=false;letter.dataset.tone=String(i%5);letter.dataset.cardNumber=String(i+1).padStart(3,'0');letter.id=`friend-card-${letter.dataset.cardNumber}`
+   const letter=node('a','','friend-letter');letter.classList.toggle('is-unavailable',(friend.healthFailures||0)>0);if((friend.healthFailures||0)>0)letter.setAttribute('aria-label',`${friend.name}，暂时无法访问`);letter.href=friend.url;letter.target='_blank';letter.rel='noopener noreferrer';letter.dataset.noPopover='true';letter.draggable=false;letter.dataset.tone=String(i%5);letter.dataset.cardNumber=String(friend.number??i+1).padStart(3,'0');letter.id=`friend-card-${letter.dataset.cardNumber}`
    let mobileSeed=2166136261
    for(const character of friend.id)mobileSeed=Math.imul(mobileSeed^character.charCodeAt(0),16777619)
    const mobileRandom=()=>{mobileSeed|=0;mobileSeed=mobileSeed+0x6D2B79F5|0;let n=Math.imul(mobileSeed^mobileSeed>>>15,1|mobileSeed);n^=n+Math.imul(n^n>>>7,61|n);return ((n^n>>>14)>>>0)/4294967296}
@@ -505,7 +512,7 @@ document.addEventListener('nav', () => {
    hanging.push({element:letter,angle:0,velocity:0})
    const paper=node('div','','friend-letter-paper'),edge=node('div','','friend-letter-edge'),stamp=node('div','','friend-stamp'),stampTop=node('div','','friend-stamp-top')
    if(entrancePending){paper.style.opacity='0';letter.classList.add('is-entering')}
-   stampTop.append(node('h3',friend.name),node('span',`#${String(i+1).padStart(3,'0')}`,'friend-letter-number'))
+   stampTop.append(node('h3',friend.name),node('span',`#${String(friend.number??i+1).padStart(3,'0')}`,'friend-letter-number'))
    const artwork=node('div','','friend-stamp-art')
    const avatar=node('span','','friend-letter-avatar');avatar.setAttribute('aria-hidden','true');avatar.append(node('span',Array.from(friend.name)[0]))
    if(friend.avatar){

@@ -450,3 +450,10 @@
 
 .stellar-admin .friend-admin-avatar.is-unavailable {filter:grayscale(1);opacity:.55;}
 .stellar-admin .stellar-admin-badge[data-state="重试中"] {color:var(--stellar-waiting);background:color-mix(in srgb,var(--stellar-waiting) 9%,var(--light));}
+
+.stellar-admin .data-admin-module-tabs,
+.stellar-admin .data-admin-table-tabs {
+  display:flex; flex-wrap:wrap; width:100%; max-width:100%;
+  >button {flex:0 0 auto;}
+}
+.stellar-admin .data-admin-table-tabs {margin-top:-.35rem; >button {font-size:.75rem;}}

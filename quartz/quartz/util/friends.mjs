@@ -8,8 +8,9 @@ export function parseFriends(raw) {
   const ids = new Set(), urls = new Set()
   return items.map(item => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('友链信息无效')
-    const { id, name, url, backlinkUrl = '', rssUrl = '', avatarSource = '', latestUpdate = '', reviewResult = '', reviewCheckedAt = '', healthFailures = 0, healthCheckedOn = '', healthError = '', avatar = '', description = '', example = false, status = '展示中' } = item
+    const { id, number, name, url, backlinkUrl = '', rssUrl = '', avatarSource = '', latestUpdate = '', reviewResult = '', reviewCheckedAt = '', healthFailures = 0, healthCheckedOn = '', healthError = '', avatar = '', description = '', example = false, status = '展示中' } = item
     if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(id) || ids.has(id)) throw new Error('友链标识无效或重复')
+    if (number !== undefined && (!Number.isInteger(number) || number < 1 || number > 4294967295)) throw new Error('友链编号无效')
     if (typeof name !== 'string' || !name.trim() || name.trim().length > 80 || /[\u0000-\u001f]/.test(name)) throw new Error('请填写站点名称，最多 80 字')
     if (typeof latestUpdate !== 'string' || latestUpdate && Number.isNaN(Date.parse(latestUpdate))) throw new Error('最近更新时间无效')
     if (typeof avatarSource !== 'string') throw new Error('原始头像地址无效')
@@ -22,7 +23,7 @@ export function parseFriends(raw) {
     if (typeof example !== 'boolean') throw new Error('示例标识无效')
     if (!['展示中', '待审核', '已失效'].includes(status)) throw new Error('友链状态无效')
     ids.add(id); urls.add(website)
-    return { id, name: name.trim(), url: website, rssUrl: rssUrl.trim() ? safeWebsite(rssUrl.trim()) : '', backlinkUrl: backlinkUrl ? safeWebsite(backlinkUrl) : '', avatar: avatar.trim(), latestUpdate, reviewResult, reviewCheckedAt, healthFailures, healthCheckedOn, healthError, avatarSource: avatarSource.trim() ? safeWebsite(avatarSource.trim()) : '', description: description.trim(), status, ...(example ? { example: true } : {}) }
+    return { id, ...(number !== undefined ? {number} : {}), name: name.trim(), url: website, rssUrl: rssUrl.trim() ? safeWebsite(rssUrl.trim()) : '', backlinkUrl: backlinkUrl ? safeWebsite(backlinkUrl) : '', avatar: avatar.trim(), latestUpdate, reviewResult, reviewCheckedAt, healthFailures, healthCheckedOn, healthError, avatarSource: avatarSource.trim() ? safeWebsite(avatarSource.trim()) : '', description: description.trim(), status, ...(example ? { example: true } : {}) }
   })
 }
 function safeWebsite(value) {

@@ -8,6 +8,7 @@ import (
 	"goblincwl/quartz-server/internal/content"
 	"net/mail"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -16,6 +17,12 @@ import (
 func validate(id string, row map[string]any) error {
 	text := func(key string) string { v, _ := row[key].(string); return v }
 	if id == "friends" {
+		if value := row["number"]; value != nil {
+			n, err := strconv.ParseUint(fmt.Sprint(value), 10, 32)
+			if err != nil || n == 0 {
+				return errors.New("友链编号须为大于零的整数")
+			}
+		}
 		example := fmt.Sprint(row["example"]) != "0" && row["example"] != nil
 		f, err := community.ValidateFriend(community.Friend{ID: text("id"), Name: text("name"), URL: text("url"), BacklinkURL: text("backlink_url"), RSSURL: text("rss_url"), Avatar: text("avatar"), AvatarSource: text("avatar_source"), Description: text("description"), Status: text("status"), Example: example})
 		if err != nil {

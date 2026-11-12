@@ -40,7 +40,7 @@ flowchart LR
 | 内容发现 | [`content_meta`](#content_meta) | 统一内容索引与RSS订阅的版本及更新时间元数据 |
 | 内容发现 | [`content_sources`](#content_sources) | 各类内容来源最近一次成功索引检查时间 |
 | 内容发现 | [`share_identities`](#share_identities) | OpenList分享来源与本站稳定内容标识的映射 |
-| 友链与反馈 | [`friends`](#friends) | 友链资料、展示顺序及审核状态 |
+| 友链与反馈 | [`friends`](#friends) | 友链资料、固定编号及审核状态 |
 | 友链与反馈 | [`friend_jobs`](#friend_jobs) | 友链头像、RSS 和自动审核持久化队列 |
 | 友链与反馈 | [`feedback`](#feedback) | 访客问题反馈、联系邮箱、浏览器信息及处理状态 |
 | 访客统计 | [`visitors`](#visitors) | 彗星来访者身份、首次及最近访问、地区与浏览器信息 |
@@ -162,13 +162,14 @@ OpenList分享来源与本站稳定内容标识的映射。
 
 ### friends
 
-友链资料、展示顺序及审核状态。
+友链资料、固定编号及审核状态。
 
 引擎：`InnoDB`；排序规则：`utf8mb4_bin`。
 
 | 字段 | 类型 | 可空 | 默认值 / 自动值 | 含义 |
 | --- | --- | --- | --- | --- |
 | `id` | `varchar(80)` | 否 | — | 友链唯一标识 |
+| `number` | `int unsigned` | 否 | auto_increment | 友链固定编号，用于卡片编号，不随 RSS 排序变化 |
 | `name` | `text` | 否 | — | 网站名称 |
 | `url` | `varchar(1500)` | 否 | — | 网站 HTTPS 地址 |
 | `backlink_url` | `varchar(1500)` | 否 | `` | 包含本站友链的页面 HTTPS 地址 |
@@ -178,7 +179,6 @@ OpenList分享来源与本站稳定内容标识的映射。
 | `latest_update` | `varchar(32)` | 否 | `` | RSS 最新文章时间，UTC ISO 8601，空值表示未知 |
 | `description` | `text` | 否 | — | 网站简介 |
 | `example` | `tinyint unsigned` | 否 | — | 示例数据标记，保留旧数据契约 |
-| `position` | `bigint` | 否 | — | 展示排序值 |
 | `status` | `varchar(16)` | 否 | `展示中` | 展示中 / 待审核 / 已失效 |
 | `review_result` | `varchar(255)` | 否 | `` | 最近一次友链审核结果说明 |
 | `review_checked_at` | `varchar(32)` | 否 | `` | 最近一次友链审核时间，UTC ISO 8601 |
@@ -189,7 +189,8 @@ OpenList分享来源与本站稳定内容标识的映射。
 
 索引与约束：
 
-- 普通索引 `friends_order`：`position`, `id`。
+- 唯一索引 `friends_number`：`number`。
+- 普通索引 `friends_updated`：`latest_update`, `number`。
 - 唯一索引 `friends_url_hash`：`url_hash`。
 - 主键 `PRIMARY`：`id`。
 - CHECK `friends_example`：``((`example` in (0,1)))``。

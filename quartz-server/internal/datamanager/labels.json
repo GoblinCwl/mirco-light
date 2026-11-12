@@ -21,6 +21,7 @@
   "description": "简介 / 描述",
   "example": "测试条目",
   "position": "排序",
+ "number": "编号",
   "status": "状态",
   "email": "邮箱",
   "browser": "浏览器",

@@ -2,14 +2,14 @@
 export function createInfiniteScroll(
   target: HTMLElement,
   load: () => void | Promise<void>,
-  options: { root?: HTMLElement; signal: AbortSignal },
+  options: { root?: HTMLElement; signal: AbortSignal; loadWhenPast?: boolean },
 ) {
   let enabled = false, busy = false, frame = 0
   const nearBottom = () => {
     if (!target.isConnected || !target.getClientRects().length) return false
     const box = target.getBoundingClientRect()
     const viewport = options.root?.getBoundingClientRect() || { top: 0, bottom: innerHeight }
-    return box.bottom >= viewport.top && box.top <= viewport.bottom + 240
+    return (options.loadWhenPast || box.bottom >= viewport.top) && box.top <= viewport.bottom + 240
   }
   const check = () => {
     frame = 0

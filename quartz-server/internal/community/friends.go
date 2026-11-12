@@ -22,6 +22,7 @@ type Store struct {
 }
 type Friend struct {
 	ID              string `json:"id"`
+	Number          int64  `json:"number"`
 	Name            string `json:"name"`
 	URL             string `json:"url"`
 	BacklinkURL     string `json:"backlinkUrl"`
@@ -150,11 +151,11 @@ type queryer interface {
 }
 
 func readFriends(ctx context.Context, q queryer, public bool) ([]Friend, error) {
-	query := "SELECT id,name,url,backlink_url,rss_url,avatar,avatar_source,latest_update,description,example,status,review_result,review_checked_at,health_failures,health_checked_on,health_error FROM friends"
+	query := "SELECT id,number,name,url,backlink_url,rss_url,avatar,avatar_source,latest_update,description,example,status,review_result,review_checked_at,health_failures,health_checked_on,health_error FROM friends"
 	if public {
 		query += " WHERE status='展示中'"
 	}
-	query += " ORDER BY latest_update DESC,position,id"
+	query += " ORDER BY latest_update DESC,number,id"
 	rows, err := q.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -163,7 +164,7 @@ func readFriends(ctx context.Context, q queryer, public bool) ([]Friend, error) 
 	friends := []Friend{}
 	for rows.Next() {
 		var f Friend
-		if err = rows.Scan(&f.ID, &f.Name, &f.URL, &f.BacklinkURL, &f.RSSURL, &f.Avatar, &f.AvatarSource, &f.LatestUpdate, &f.Description, &f.Example, &f.Status, &f.ReviewResult, &f.ReviewCheckedAt, &f.HealthFailures, &f.HealthCheckedOn, &f.HealthError); err != nil {
+		if err = rows.Scan(&f.ID, &f.Number, &f.Name, &f.URL, &f.BacklinkURL, &f.RSSURL, &f.Avatar, &f.AvatarSource, &f.LatestUpdate, &f.Description, &f.Example, &f.Status, &f.ReviewResult, &f.ReviewCheckedAt, &f.HealthFailures, &f.HealthCheckedOn, &f.HealthError); err != nil {
 			return nil, err
 		}
 		friends = append(friends, f)
@@ -206,8 +207,7 @@ func (s Store) CreateFriend(ctx context.Context, f Friend, application bool) (Fr
 	}
 	defer tx.Rollback()
 	var count int
-	var position int64
-	if err = tx.QueryRowContext(ctx, "SELECT count(*),coalesce(max(position),-1)+1 FROM friends").Scan(&count, &position); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM friends").Scan(&count); err != nil {
 		return f, nil, err
 	}
 	if count >= 150 {
@@ -220,7 +220,12 @@ func (s Store) CreateFriend(ctx context.Context, f Friend, application bool) (Fr
 	if duplicates > 0 {
 		return f, nil, errors.New("该站点已展示或已提交申请，请勿重复提交")
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO friends(id,name,url,backlink_url,rss_url,avatar,avatar_source,latest_update,description,example,position,status,review_result,review_checked_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", f.ID, f.Name, f.URL, f.BacklinkURL, f.RSSURL, f.Avatar, f.AvatarSource, f.LatestUpdate, f.Description, f.Example, position, f.Status, f.ReviewResult, f.ReviewCheckedAt); err != nil {
+	result, err := tx.ExecContext(ctx, "INSERT INTO friends(id,name,url,backlink_url,rss_url,avatar,avatar_source,latest_update,description,example,status,review_result,review_checked_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", f.ID, f.Name, f.URL, f.BacklinkURL, f.RSSURL, f.Avatar, f.AvatarSource, f.LatestUpdate, f.Description, f.Example, f.Status, f.ReviewResult, f.ReviewCheckedAt)
+	if err != nil {
+		return f, nil, err
+	}
+	f.Number, err = result.LastInsertId()
+	if err != nil {
 		return f, nil, err
 	}
 	if err = EnqueueFriendTx(ctx, tx, f.ID); err != nil {
@@ -235,7 +240,7 @@ func (s Store) CreateFriend(ctx context.Context, f Friend, application bool) (Fr
 	}
 	return f, friends, nil
 }
-func (s Store) UpdateFriend(ctx context.Context, id string, f Friend, action string, offset int) ([]Friend, error) {
+func (s Store) UpdateFriend(ctx context.Context, id string, f Friend, action string, _ int) ([]Friend, error) {
 	tx, err := s.transaction(ctx)
 	if err != nil {
 		return nil, err
@@ -258,19 +263,6 @@ func (s Store) UpdateFriend(ctx context.Context, id string, f Friend, action str
 	switch action {
 	case "delete":
 		_, err = tx.ExecContext(ctx, "DELETE FROM friends WHERE id=?", id)
-	case "move":
-		if offset != 1 && offset != -1 {
-			return nil, errors.New("排序方向无效")
-		}
-		other := index + offset
-		if other >= 0 && other < len(friends) {
-			friends[index], friends[other] = friends[other], friends[index]
-			for i, row := range friends {
-				if _, err = tx.ExecContext(ctx, "UPDATE friends SET position=? WHERE id=?", i, row.ID); err != nil {
-					return nil, err
-				}
-			}
-		}
 	case "review":
 		current := friends[index]
 		current.Status = f.Status

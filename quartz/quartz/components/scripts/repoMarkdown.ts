@@ -1,3 +1,4 @@
+import {renderRepoMermaid} from './repoMermaid'
 import {sharedState} from "./sharedRequest"
 import {repoMarkdownLink,type RepoInfo} from "./repoShared"
 const scripts = sharedState("repo-render-libraries:v1",()=>new Map<string, Promise<void>>())
@@ -37,6 +38,8 @@ export async function markdown(host: HTMLElement, text: string, filename: string
     const slug = (heading.textContent || "").trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s/g, "-")
     const count = ids.get(slug) || 0; ids.set(slug, count + 1); heading.id = slug + (count ? `-${count}` : "")
   }
+  await renderRepoMermaid(host,signal,svg=>runtime.DOMPurify!.sanitize(svg,{USE_PROFILES:{svg:true,svgFilters:true},FORBID_TAGS:["foreignObject"],FORBID_ATTR:["onload","onclick"]}))
+  if (signal.aborted) return
   if (revealHash && host.isConnected && location.hash) {
     try { document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView() } catch { /* Ignore malformed fragments. */ }
   }

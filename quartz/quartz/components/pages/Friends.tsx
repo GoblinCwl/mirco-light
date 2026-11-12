@@ -15,9 +15,10 @@ export const FriendsApply: QuartzComponent = ({ cfg }) => {
   const origin = `https://${cfg.baseUrl || 'goblincwl.site'}`
   const avatar = `${origin}/static/Profile_compressed.png`
   const description = homeConfig.description
+  const rss = `${origin}/index.xml`
   return <section class="friends-tools">
     <button class="friends-panel-launch" type="button" data-friends-panel-open aria-haspopup="dialog" aria-controls="friends-panel" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l2-2"/><path d="M17 20h6m-3-3v6"/></svg><span>申请友链</span></button>
-    <dialog id="friends-panel" class="friends-sidebar" data-friends-panel open tabIndex={-1} aria-label="本站信息与申请友链">
+    <dialog id="friends-panel" class="friends-sidebar" data-friends-panel data-friends-rss={rss} open tabIndex={-1} aria-label="本站信息与申请友链">
     <button type="button" class="friends-panel-close" data-friends-panel-close aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
     <section class="friends-sidebar-group" aria-label="本站信息">
       <div class="friends-site-identity"><button type="button" class="friends-site-avatar" data-friends-copy={avatar} data-copy-label="头像地址" title="复制头像地址" aria-label="复制本站头像地址"><img src={avatar} alt="" width="42" height="42"/></button><div><strong>{cfg.pageTitle}</strong><a href={origin} data-no-popover="true">{cfg.baseUrl || 'goblincwl.site'}</a></div><button type="button" class="friends-site-copy" data-friends-info-open aria-haspopup="dialog" aria-controls="friends-site-info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>复制</span></button></div>
@@ -39,11 +40,11 @@ export const FriendsApply: QuartzComponent = ({ cfg }) => {
     <dialog id="friends-site-info" class="friends-confirm friends-info-dialog" data-friends-info-dialog tabIndex={-1} aria-labelledby="friends-info-heading">
       <header><h2 id="friends-info-heading">本站信息</h2></header>
       <form class="friends-info-fields" >
-        {[{key:"name",label:"名称",value:cfg.pageTitle},{key:"url",label:"地址",value:origin},{key:"avatar",label:"头像地址",value:avatar},{key:"description",label:"简介",value:description}].map(field => (
-          <label><span>{field.label}</span>{field.key === "description" ? <textarea data-friends-info-field={field.key} value={field.value} rows={3} readOnly /> : <input data-friends-info-field={field.key} value={field.value} readOnly />}</label>
+        {[{key:"name",label:"名称",value:cfg.pageTitle},{key:"url",label:"地址",value:origin},{key:"avatar",label:"头像地址",value:avatar},{key:"rss",label:"RSS",value:rss},{key:"description",label:"简介",value:description}].map(field => (
+          <div class="friends-info-item"><label for={`friends-info-${field.key}`}>{field.label}</label><div class="friends-info-control">{field.key === "description" ? <textarea id={`friends-info-${field.key}`} data-friends-info-field={field.key} value={field.value} rows={3} readOnly /> : <input id={`friends-info-${field.key}`} data-friends-info-field={field.key} value={field.value} readOnly />}<button type="button" data-friends-info-copy-field={field.key} aria-label={`复制${field.label}`} title={`复制${field.label}`}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button></div></div>
         ))}
       </form>
-      <footer><button type="button" data-friends-info-close>关闭</button><button type="button" data-friends-info-copy>复制</button></footer>
+      <footer><button type="button" data-friends-info-close>关闭</button><button type="button" data-friends-info-copy>复制全部</button></footer>
     </dialog>
     <dialog class="friends-confirm" data-friends-application-preview tabIndex={-1} aria-labelledby="friends-confirm-heading">
       <header><h2 id="friends-confirm-heading">友链申请</h2><button type="button" data-friends-confirm-cancel aria-label="关闭友链申请"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>

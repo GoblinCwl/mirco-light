@@ -242,7 +242,7 @@ func (m Manager) List(ctx context.Context, id string, page int, query string) (m
 	if page > pages {
 		page = pages
 	}
-	ordering := map[string]string{"friends": "position,id", "feedback": "created_at DESC,id", "visitors": "last_seen DESC,meteor_id", "daily-visitors": "day DESC,identity", "videos": "published_at DESC,bvid", "journal": "completed_at DESC,id DESC"}
+	ordering := map[string]string{"friends": "latest_update DESC,number,id", "feedback": "created_at DESC,id", "visitors": "last_seen DESC,meteor_id", "daily-visitors": "day DESC,identity", "videos": "published_at DESC,bvid", "journal": "completed_at DESC,id DESC"}
 	order := ordering[id]
 	if order == "" {
 		primary := []string{}
@@ -422,7 +422,7 @@ func (m Manager) Save(ctx context.Context, id string, values, key map[string]any
 	}
 	now := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	if key == nil {
-		defaults := map[string]map[string]any{"friends": {"id": uuid.NewString(), "example": 0, "position": 0, "status": "待审核"}, "feedback": {"id": uuid.NewString(), "status": "待处理", "user_agent": "", "created_at": now}, "visitors": {"identity": strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", ""), "meteor_id": strings.ReplaceAll(uuid.NewString(), "-", "")[:24], "first_seen": now, "last_seen": now}, "videos": {"fetched_at": now, "cover": "", "description": "", "duration": 0, "play": 0, "danmaku": 0, "comment_count": 0}, "journal": {"completed_at": now}, "adapter-snapshots": {"updated_at": now, "value": "{}"}, "content-index": {"id": uuid.NewString(), "content": "", "description": "", "tags": "[]", "links": "[]", "published_at": now, "updated_at": now, "encrypted": 0, "revision": "", "event_revision": "", "search_text": "", "extra": "{}"}}
+		defaults := map[string]map[string]any{"friends": {"id": uuid.NewString(), "example": 0, "status": "待审核"}, "feedback": {"id": uuid.NewString(), "status": "待处理", "user_agent": "", "created_at": now}, "visitors": {"identity": strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", ""), "meteor_id": strings.ReplaceAll(uuid.NewString(), "-", "")[:24], "first_seen": now, "last_seen": now}, "videos": {"fetched_at": now, "cover": "", "description": "", "duration": 0, "play": 0, "danmaku": 0, "comment_count": 0}, "journal": {"completed_at": now}, "adapter-snapshots": {"updated_at": now, "value": "{}"}, "content-index": {"id": uuid.NewString(), "content": "", "description": "", "tags": "[]", "links": "[]", "published_at": now, "updated_at": now, "encrypted": 0, "revision": "", "event_revision": "", "search_text": "", "extra": "{}"}}
 		for name, value := range defaults[id] {
 			if row[name] == nil || row[name] == "" {
 				row[name] = value

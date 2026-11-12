@@ -1,3 +1,4 @@
+import {visitorDistribution} from './visitorDistribution'
 import { visitorHeaders, ownMeteorId } from "./visitorIdentity"
 import { createInfiniteScroll } from "./infiniteScroll"
 import { showSiteDialog, closeSiteDialog } from "./siteDialog"
@@ -87,21 +88,17 @@ export function setupVisitorDetails() {
       page = data.page
       if (!append) {
         chart.replaceChildren(node("strong", "来访星系", "visitor-distribution-title"))
-        const distribution = data.distribution.slice(0, 6)
-        const remaining = data.distribution.slice(6).reduce((sum, item) => sum + item.count, 0)
-        if (remaining) distribution.push({ region: "其他", count: remaining })
-        const maximum = Math.max(1, ...distribution.map(item => item.count))
+        const distribution = visitorDistribution(data.distribution)
         distribution.forEach((item, index) => {
           const row = node("div", "", "visitor-distribution-row")
           const track = node("span", "", "visitor-distribution-track")
           const bar = node("span")
-          bar.style.width = `${item.count / maximum * 100}%`
+          bar.style.width = `${item.percent}%`
           track.append(bar)
           row.style.setProperty("--distribution-color", ["#75aabd", "#a58abc", "#80ad9c", "#bea06b", "#839fbe", "#b18fa1", "#88939d"][index])
-          const distributionTotal=data.distributionTotal??data.total
-          const share = distributionTotal ? Math.round(item.count / distributionTotal * 100) : 0
+          const share = Math.round(item.percent*10)/10
           row.title = `${item.region} · ${item.count} 位 · ${share}%`
-          row.append(node("span", item.region, "visitor-distribution-label"), track, node("span", `${item.count} · ${share}%`, "visitor-distribution-value"))
+          row.append(node("span", item.region, "visitor-distribution-label"), track, node("span", `${item.count} 人 · ${share}%`, "visitor-distribution-value"))
           chart.append(row)
         })
         if (!distribution.length) chart.append(node("p", "暂无对应地区记录", "visitor-details-caption"))

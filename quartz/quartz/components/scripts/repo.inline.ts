@@ -1,3 +1,4 @@
+import {repoLanguageChart} from './repoLanguageChart'
 import {PageNotFoundError,showSiteNotFound} from "./siteError"
 import {fileNameIcon,fileTypeIcons} from '../../util/fileTypeIcons'
 import {readContentCatalog} from './contentCatalog'
@@ -185,6 +186,8 @@ async function renderRepo(root: HTMLElement, signal: AbortSignal) {
     if (sidebar && sidebar.dataset.repoSignature !== sidebarSignature) {
       sidebar.innerHTML = sidebarMarkup; sidebar.dataset.repoSignature = sidebarSignature
     }
+    const languageHost=sidebar?.querySelector<HTMLElement>('[data-repo-languages]')
+    if(languageHost)void read<{languages:Record<string,number>}>('languages').then(result=>{if(!signal.aborted&&languageHost.isConnected)languageHost.innerHTML=repoLanguageChart(result.languages)}).catch(()=>{if(!signal.aborted&&languageHost.isConnected)languageHost.innerHTML='<p class="repo-language-caption">语言统计暂不可用</p>'})
     const content = root.querySelector<HTMLElement>("[data-repo-content]")!
     const showReadme = async (host: HTMLElement, folder = "") => {
       const readme = await read<FileResult>("readme", { path: folder })

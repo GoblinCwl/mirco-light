@@ -17,10 +17,10 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
     catch (error) { if (!signal.aborted) { showPasswordToast(error instanceof Error ? error.message : '保存失败',true) }; return false }
     finally { busy = false; controls.forEach((control, i) => control.disabled = disabled[i]) }
   }
-  const edit = (friend?: FriendLink, reviewing=false) => {
+  const edit = (friend: FriendLink, reviewing=false) => {
     status.textContent = ''; status.classList.remove('is-error')
     const form = node('form', '', 'friend-admin-form'), header = node('header', '', 'friend-admin-heading'), back = node('button', '返回列表')
-    back.type = 'button'; back.onclick = render; header.append(node('h3', reviewing ? '审核友链' : friend ? '编辑友链' : '新增友链'), back)
+    back.type = 'button'; back.onclick = render; header.append(node('h3', reviewing ? '审核友链' : '编辑友链'), back)
     const fields = node('div', '', 'friend-admin-fields')
     const field = (title: string, value: string, type = 'text') => {
       const label = node('label', title), input = node('input'); input.type = type; input.value = value; label.append(input); fields.append(label); return input
@@ -52,17 +52,17 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
     form.append(header, fields, footer, status)
     form.onsubmit = async event => {
       event.preventDefault(); validateURL(); if (!form.reportValidity()) return
-      const value: FriendLink = { id: friend?.id || crypto.randomUUID(), name: name.value.trim(), url: url.value.trim(), backlinkUrl: backlink.value.trim(), rssUrl:rss.value.trim(), avatar: avatar.value.trim(), avatarSource:avatarSource.value.trim(), description: description.value.trim(), status: state.value as FriendLink["status"], ...(friend?.example ? { example: true } : {}) }
-      const path = friend ? '/'+friend.id+(reviewing?'/review':'') : ''
-      if (await persist(path, friend?'PUT':'POST', reviewing?{status:state.value}:value)) render()
+      const value: FriendLink = { id: friend.id, name: name.value.trim(), url: url.value.trim(), backlinkUrl: backlink.value.trim(), rssUrl:rss.value.trim(), avatar: avatar.value.trim(), avatarSource:avatarSource.value.trim(), description: description.value.trim(), status: state.value as FriendLink["status"], ...(friend?.example ? { example: true } : {}) }
+      const path = '/'+friend.id+(reviewing?'/review':'')
+      if (await persist(path, 'PUT', reviewing?{status:state.value}:value)) render()
     }
-    if(friend?.reviewResult && friend.reviewResult!=='已检测到指向本站的友链，自动审核通过'){const result=node('p',friend.reviewResult+(friend.reviewCheckedAt?` · ${new Date(friend.reviewCheckedAt).toLocaleString('zh-CN')}`:''),'data-admin-note');header.after(result)}
+    if(friend?.reviewResult && friend.reviewResult!=='已检测到指向本站的友链，自动审核通过' && !friend.reviewResult.startsWith('人工审核：')){const result=node('p',friend.reviewResult+(friend.reviewCheckedAt?` · ${new Date(friend.reviewCheckedAt).toLocaleString('zh-CN')}`:''),'data-admin-note');header.after(result)}
     root.replaceChildren(form)
   }
   const render = () => {
     if (signal.aborted) return
-    const toolbar = node('div', '', 'friend-admin-heading'), add = node('button', '添加友链'), refresh=node('button','刷新'); add.type = refresh.type = 'button'; add.className='stellar-admin-add'; add.onclick = () => edit()
-    const summary=node('span',`${friends.length} 个站点 · 按最近更新排序`);summary.style.marginRight='auto';toolbar.append(summary,refresh,add)
+    const toolbar = node('div', '', 'friend-admin-heading'), refresh=node('button','刷新'); refresh.type = 'button'
+    const summary=node('span',`${friends.length} 个站点 · 按最近更新排序`);summary.style.marginRight='auto';toolbar.append(summary,refresh)
     refresh.onclick=async()=>{
       if(busy)return;busy=true
       const controls=[...root.querySelectorAll<HTMLButtonElement>('button')],disabled=controls.map(control=>control.disabled);controls.forEach(control=>control.disabled=true)
@@ -71,24 +71,21 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
       finally{busy=false;controls.forEach((control,i)=>control.disabled=disabled[i])}
     }
     const list = node('div', '', 'friend-admin-list')
-    friends.forEach((friend, index) => {
+    friends.forEach(friend => {
       const row = node('div', '', 'friend-admin-row'), avatar = node('span', Array.from(friend.name)[0], 'friend-admin-avatar')
       if((friend.healthFailures||0)>0){row.classList.add('is-unavailable');avatar.classList.add('is-unavailable')}
       if (friend.avatar) { const image = node('img'); image.alt = ''; image.loading = 'lazy'; image.referrerPolicy = 'strict-origin-when-cross-origin'; image.src = friend.avatar; image.addEventListener('error', () => image.remove(), { once: true, signal }); avatar.append(image) }
-      const text = node('div', '', 'friend-admin-copy'),meta=node('div','','friend-admin-meta'),state=node('span',friend.status||'展示中','stellar-admin-badge');state.dataset.state=(friend.healthFailures||0)>0 && (friend.healthFailures||0)<7?'重试中':friend.status||'展示中';if(state.dataset.state==='重试中')state.textContent=`重试中 ${friend.healthFailures}/7`;meta.append(node('small',new URL(friend.url).host),state);if(friend.healthError)meta.append(node('small',friend.healthError));if(friend.latestUpdate)meta.append(node('small',`最近更新 ${new Date(friend.latestUpdate).toLocaleString('zh-CN')}`));text.append(node('strong', friend.name),meta);if(friend.reviewResult && friend.reviewResult!=='已检测到指向本站的友链，自动审核通过'){const review=node('p',friend.reviewResult,'data-admin-note');review.style.margin='0.35rem 0 0';if(friend.reviewCheckedAt)review.title=`检查于 ${new Date(friend.reviewCheckedAt).toLocaleString('zh-CN')}`;text.append(review)}
+      const text = node('div', '', 'friend-admin-copy'),meta=node('div','','friend-admin-meta'),state=node('span',friend.status||'展示中','stellar-admin-badge');state.dataset.state=(friend.healthFailures||0)>0 && (friend.healthFailures||0)<7?'重试中':friend.status||'展示中';if(state.dataset.state==='重试中')state.textContent=`重试中 ${friend.healthFailures}/7`;meta.append(node('small',new URL(friend.url).host),state);if(friend.healthError)meta.append(node('small',friend.healthError));if(friend.latestUpdate)meta.append(node('small',`最近更新 ${new Date(friend.latestUpdate).toLocaleString('zh-CN')}`));text.append(node('strong', friend.name),meta);if(friend.reviewResult && friend.reviewResult!=='已检测到指向本站的友链，自动审核通过' && !friend.reviewResult.startsWith('人工审核：')){const review=node('p',friend.reviewResult,'data-admin-note');review.style.margin='0.35rem 0 0';if(friend.reviewCheckedAt)review.title=`检查于 ${new Date(friend.reviewCheckedAt).toLocaleString('zh-CN')}`;text.append(review)}
       const actions = node('div', '', 'friend-admin-actions')
       const button = (label: string, handler: () => void) => { const item = node('button', label); item.type = 'button'; item.onclick = handler; actions.append(item); return item }
       button('编辑', () => edit(friend))
       button('审核', () => edit(friend,true)).disabled=friend.status!=='待审核'
       if(friend.status==='待审核')button('自动审核',()=>{void persist('/'+friend.id+'/auto-review','PUT',{}).then(saved=>{if(saved)render()})})
-      const move = async (offset: number) => { if (await persist('/'+friend.id+'/move','PUT',{offset})) render() }
-      button('前移', () => void move(-1)).disabled = index === 0 || (friend.latestUpdate||'') !== (friends[index-1]?.latestUpdate||'')
-      button('后移', () => void move(1)).disabled = index === friends.length - 1 || (friend.latestUpdate||'') !== (friends[index+1]?.latestUpdate||'')
       let confirming = false
       const remove = button('移除', () => { if (!confirming) { confirming = true; remove.textContent = '确认移除'; return }; void persist('/'+friend.id,'DELETE').then(saved => { if (saved) render() }) })
       remove.className = 'is-danger'; row.append(avatar, text, actions); list.append(row)
     })
-    if (!friends.length) showAdminListMessage(list, '暂无友链', '添加站点，或在这里审核访客提交的友链申请。')
+    if (!friends.length) showAdminListMessage(list, '暂无友链', '在这里审核访客提交的友链申请。')
     root.replaceChildren(toolbar, list, status)
   }
   render()

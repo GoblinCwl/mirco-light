@@ -104,6 +104,7 @@ CREATE TABLE `feedback` (
 
 CREATE TABLE `friends` (
   `id` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '友链唯一标识',
+  `number` int unsigned NOT NULL AUTO_INCREMENT COMMENT '友链固定编号，用于卡片编号，不随 RSS 排序变化',
   `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '网站名称',
   `url` varchar(1500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '网站 HTTPS 地址',
   `backlink_url` varchar(1500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '包含本站友链的页面 HTTPS 地址',
@@ -113,7 +114,6 @@ CREATE TABLE `friends` (
   `latest_update` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT 'RSS 最新文章时间，UTC ISO 8601，空值表示未知',
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '网站简介',
   `example` tinyint unsigned NOT NULL COMMENT '示例数据标记，保留旧数据契约',
-  `position` bigint NOT NULL COMMENT '展示排序值',
   `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '展示中' COMMENT '展示中 / 待审核 / 已失效',
   `review_result` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '最近一次友链审核结果说明',
   `review_checked_at` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '最近一次友链审核时间，UTC ISO 8601',
@@ -123,10 +123,11 @@ CREATE TABLE `friends` (
   `url_hash` binary(32) GENERATED ALWAYS AS (unhex(sha2(`url`,256))) STORED COMMENT 'URL 的 SHA-256 二进制生成列，用于唯一约束',
   PRIMARY KEY (`id`),
   UNIQUE KEY `friends_url_hash` (`url_hash`),
-  KEY `friends_order` (`position`,`id`),
+  UNIQUE KEY `friends_number` (`number`),
+  KEY `friends_updated` (`latest_update`,`number`),
   CONSTRAINT `friends_example` CHECK ((`example` in (0,1))),
   CONSTRAINT `friends_status` CHECK ((`status` in (_utf8mb4'展示中',_utf8mb4'待审核',_utf8mb4'已失效')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='友链资料、展示顺序及审核状态';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='友链资料、固定编号及审核状态';
 
 CREATE TABLE `friend_jobs` (
   `friend_id` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '待处理友链标识',

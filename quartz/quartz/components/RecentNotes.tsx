@@ -8,6 +8,7 @@ import { classNames } from "../util/lang"
 interface Options { title?:string;limit:number;linkToMore:SimpleSlug|false;showTags:boolean }
 export default ((userOpts?:Partial<Options>)=>{
  const RecentNotes:QuartzComponent=({fileData,displayClass,cfg}:QuartzComponentProps)=>{
+  if(fileData.slug==='site-404')return null
   const opts:Options={limit:3,linkToMore:false,showTags:true,...userOpts}
   return <div class={classNames(displayClass,"recent-notes")} data-recent-content={opts.limit} data-recent-locale={cfg.locale} data-recent-tags={String(opts.showTags)} aria-busy="true">
    <h3>{opts.title??i18n(cfg.locale).components.recentNotes.title}</h3>

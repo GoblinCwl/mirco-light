@@ -539,6 +539,7 @@ export const MeldEncrypt: QuartzTransformerPlugin = () => {
         form.appendChild(result)
         const output = result.querySelector("textarea")
         output.value = plaintext
+        document.dispatchEvent(new CustomEvent("reading-content-unlocked", {detail:{href:location.pathname,text:plaintext}}))
         const copyButton = result.querySelector("[data-action=copy]")
         copyButton.addEventListener("click", async (event) => {
           event.preventDefault()

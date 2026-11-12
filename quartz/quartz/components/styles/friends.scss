@@ -303,3 +303,11 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
 
 // Unreachable sites remain visible during their daily retry window.
 .friends-page .friend-letter.is-unavailable {filter:grayscale(1);opacity:.55;}
+
+.friends-info-dialog {
+ .friends-info-item {display:grid;gap:.35rem;min-width:0;}
+ .friends-info-control {position:relative;min-width:0;
+  >input,>textarea {display:block;padding-right:2.9rem;}
+  >button {position:absolute;top:.35rem;right:.35rem;display:grid;place-items:center;width:1.9rem;height:1.9rem;padding:.35rem;border:0;border-radius:4px;background:transparent;color:var(--gray);cursor:pointer;>svg {display:block;width:1.05rem;height:1.05rem;} &:hover {color:var(--secondary);background:var(--highlight);} &:focus-visible {outline:2px solid var(--secondary);outline-offset:1px;}}
+ }
+}

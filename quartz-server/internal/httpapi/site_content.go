@@ -4,11 +4,21 @@ import (
 	"errors"
 	"goblincwl/quartz-server/internal/content"
 	"net/http"
+	"strconv"
 )
 
 func (s *Server) siteContent(w http.ResponseWriter, r *http.Request, path string) {
 	catalog := content.Store{DB: s.DB, Origin: s.Origin, ArticleDirectory: s.ArticleDirectory}
 	switch {
+	case path == "/content/reading" && r.Method == "GET":
+		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+		value, err := catalog.Reading(r.Context(), page, r.URL.Query().Get("type"))
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-cache")
+		JSON(w, 200, value)
 	case path == "/content" && r.Method == "GET":
 		value, err := catalog.Catalog(r.Context())
 		if err != nil {

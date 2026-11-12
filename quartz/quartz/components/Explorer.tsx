@@ -80,7 +80,7 @@ export default ((userOpts?: Partial<Options>) => {
     // Per-page allFiles snapshots can differ after incremental builds; using
     // them here would repeatedly discard the same live tree during navigation.
     const directoryVersion = createHash("sha256").update(JSON.stringify([
-      "directory-layout-v17-shared-row-box",
+      "directory-layout-v21-horizon-realm",
       opts.title, opts.folderClickBehavior, opts.folderDefaultState, opts.useSavedState,
       opts.order, opts.sortFn.toString(), opts.filterFn.toString(), opts.mapFn.toString(), toolPages, cfg.locale,
     ])).digest("hex").slice(0, 16)
@@ -96,7 +96,7 @@ export default ((userOpts?: Partial<Options>) => {
     const realmDirectory = (mobile: boolean) => (
       <details class={`directory-tools directory-realm is-loaded ${mobile ? "directory-tools-mobile" : "directory-tools-desktop"}`} data-realm-directory open>
         <summary><h2>星垣</h2><DirectoryChevron /></summary>
-        <ul>{[{ title: "标签", href: "/tags/", slug: "tags/index", icon: "tags" }, { title: "友链", href: "/friends/", slug: "friends/index", icon: "friends" }, { title: "星枢", href: "/observatory/", slug: "observatory/index", icon: "observatory" }, { title: "关于", href: "/about/", slug: "", icon: "about" }].map(link => (
+        <ul>{[{ title: "视界", href: "/reading/", slug: "reading/index", icon: "reading" }, { title: "标签", href: "/tags/", slug: "tags/index", icon: "tags" }, { title: "友链", href: "/friends/", slug: "friends/index", icon: "friends" }, { title: "星枢", href: "/observatory/", slug: "observatory/index", icon: "observatory" }, { title: "关于", href: "/about/", slug: "", icon: "about" }].map(link => (
           <li><a href={link.href} data-about-link={link.icon === "about" ? "true" : undefined} data-no-popover="true" class={props.fileData.slug === link.slug ? "active" : undefined} aria-current={props.fileData.slug === link.slug ? "page" : undefined}><span class="realm-entry-icon" aria-hidden="true" dangerouslySetInnerHTML={{ __html: homeIcons[link.icon] }} /><span>{link.title}</span></a></li>
         ))}</ul>
       </details>
