@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"goblincwl/quartz-server/internal/alerts"
+	"goblincwl/quartz-server/internal/taskconfig"
 	"io"
 	_ "modernc.org/sqlite"
 	"net/http"
@@ -68,7 +69,7 @@ func Open(ctx context.Context, path string, settings func(context.Context) (map[
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
-		tick := time.NewTicker(10 * time.Second)
+		tick := taskconfig.NewTicker(root, "monitor-cleanup")
 		defer tick.Stop()
 		for {
 			select {

@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"goblincwl/quartz-server/internal/taskconfig"
 	"time"
 )
 
@@ -31,12 +32,8 @@ func (r *Runtime) watchVideoIndex(root context.Context) {
 				return
 			}
 			r.app.Log.Warn("video index refresh failed; retrying")
-			timer := time.NewTimer(15 * time.Second)
-			select {
-			case <-root.Done():
-				timer.Stop()
+			if !taskconfig.Wait(root, "video-index-retry", nil) {
 				return
-			case <-timer.C:
 			}
 		}
 	}

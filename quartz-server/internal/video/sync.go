@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"goblincwl/quartz-server/internal/alerts"
+	"goblincwl/quartz-server/internal/taskconfig"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ type Controller struct {
 	Social    func(context.Context, bool) error
 	mu        sync.Mutex
 	wg        sync.WaitGroup
+	retrying  bool
 	running   bool
 	closed    bool
 	interval  time.Duration
@@ -37,7 +39,34 @@ func NewController(ctx context.Context, store Store, client *Client) (*Controlle
 		interval = time.Duration(milliseconds) * time.Millisecond
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	return &Controller{Store: store, Client: client, interval: interval, ctx: ctx, cancel: cancel}, nil
+	c := &Controller{Store: store, Client: client, interval: interval, ctx: ctx, cancel: cancel}
+	if taskconfig.From(ctx) != nil {
+		c.interval = taskconfig.Duration(ctx, "video-sync")
+		changed, stop := taskconfig.Watch(ctx, taskconfig.Key("video-sync"), taskconfig.Key("video-retry"))
+		c.wg.Add(1)
+		go func() {
+			defer c.wg.Done()
+			defer stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-changed:
+					c.mu.Lock()
+					c.interval = taskconfig.Duration(ctx, "video-sync")
+					if !c.running {
+						delay := c.interval
+						if c.retrying {
+							delay = taskconfig.Duration(ctx, "video-retry")
+						}
+						c.schedule(delay)
+					}
+					c.mu.Unlock()
+				}
+			}
+		}()
+	}
+	return c, nil
 }
 func (c *Controller) schedule(delay time.Duration) {
 	if c.timer != nil {
@@ -72,10 +101,11 @@ func (c *Controller) Start() {
 		c.mu.Lock()
 		defer c.mu.Unlock()
 		c.running = false
+		c.retrying = err != nil || !complete
 		delay := c.interval
 		if err != nil || !complete {
 			alerts.Emit(alerts.Event{Kind: "task", Level: "warning", Source: "视频同步", Title: "Bilibili 视频同步未完成", Message: "保留已有数据，将按原有机制重试"})
-			delay = 15 * time.Minute
+			delay = taskconfig.Duration(c.ctx, "video-retry")
 		}
 		c.schedule(delay)
 	}()

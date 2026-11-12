@@ -39,3 +39,27 @@ func TestAboutArticleRoute(t *testing.T) {
 		}
 	}
 }
+
+func TestTaskSettingsValidation(t *testing.T) {
+	for _, v := range []any{"24:00", "6:00", "06:00:00", "hello", float64(600)} {
+		if _, err := validate("tasks.friendsTime", v); err == nil {
+			t.Fatalf("accepted invalid time %v", v)
+		}
+	}
+	if _, err := validate("tasks.friendsTime", "00:00"); err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range []any{float64(0), float64(1.5), float64(86401), "60"} {
+		if _, err := validate("tasks.index-shareSeconds", v); err == nil {
+			t.Fatalf("accepted invalid period %v", v)
+		}
+	}
+	if _, err := validate("tasks.index-shareSeconds", float64(120)); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range fields() {
+		if len(f.Key) > 6 && f.Key[:6] == "tasks." && !Sensitive(f.Key) {
+			t.Fatalf("exposed %s", f.Key)
+		}
+	}
+}

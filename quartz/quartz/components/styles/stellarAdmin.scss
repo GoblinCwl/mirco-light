@@ -447,3 +447,6 @@
 .drive-action-body .service-icon-field >span {display:flex;align-items:center;justify-content:space-between;gap:1rem;}
 .drive-action-body .service-icon-field .service-manager-icon {display:grid;place-items:center;width:20px;height:20px;color:var(--secondary);>svg{width:20px;height:20px;}}
 @media(prefers-reduced-motion:reduce){.drive-action-body .service-edit-switch input::after{transition:none;}}
+
+.stellar-admin .friend-admin-avatar.is-unavailable {filter:grayscale(1);opacity:.55;}
+.stellar-admin .stellar-admin-badge[data-state="重试中"] {color:var(--stellar-waiting);background:color-mix(in srgb,var(--stellar-waiting) 9%,var(--light));}

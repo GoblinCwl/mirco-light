@@ -119,7 +119,9 @@ document.addEventListener('nav', () => {
    const result=await response.json()
    if(!response.ok)throw new Error(result.error||'提交失败，请稍后重试')
     confirmation.classList.add('is-complete')
-   applicationError('友链申请已提交，当前状态为待审核。',false)
+   const message='友链申请提交成功，已进入后台处理队列。'
+   const notice=confirmation.querySelector<HTMLElement>('[data-friends-review-notice]');if(notice){notice.textContent=message;notice.hidden=false}
+   applicationError(message,false)
    submit.disabled=false;submit.textContent='完成';pendingApplication=undefined
    application?.reset();syncApplication()
    const counter=sidebar?.querySelector('[data-friends-description-count]');if(counter)counter.textContent='0 / 40'
@@ -130,7 +132,7 @@ document.addEventListener('nav', () => {
   }finally{submittingApplication=false}
  },{signal})
  const application=sidebar?.querySelector<HTMLFormElement>('[data-friends-apply-form]')
- const applicationComplete=()=>Boolean(application&&['name','url','avatar','description'].every(name=>(application.elements.namedItem(name) as HTMLInputElement).value.trim()))
+ const applicationComplete=()=>Boolean(application&&['name','url','backlinkUrl','avatar','description'].every(name=>(application.elements.namedItem(name) as HTMLInputElement).value.trim()))
  const syncApplication=()=>{const submit=application?.querySelector<HTMLButtonElement>('[data-friends-apply]');if(submit)submit.disabled=!applicationComplete();for(const input of application?.querySelectorAll('[aria-invalid]')||[])input.removeAttribute('aria-invalid')}
  application?.addEventListener('input',syncApplication,{signal});application?.addEventListener('change',syncApplication,{signal});syncApplication()
 
@@ -138,10 +140,10 @@ document.addEventListener('nav', () => {
   event.preventDefault()
   const field=(name:string)=>application.elements.namedItem(name) as HTMLInputElement
   if(!applicationComplete()||submittingApplication)return
-  const website=field('url'),avatarField=field('avatar')
-  const address=(input:HTMLInputElement)=>{const value=input.value.trim();if(!/^https:\/\//i.test(value))throw new Error();const url=new URL(value);if(url.protocol!=='https:'||!url.hostname)throw new Error();return url.href}
+  const website=field('url'),avatarField=field('avatar'),backlinkField=field('backlinkUrl')
+  const address=(input:HTMLInputElement)=>{const value=input.value.trim();if(!/^https:\/\//i.test(value))throw new Error();const url=new URL(value);if(url.protocol!=='https:'||!url.hostname||url.username||url.password)throw new Error();return url.href}
   const validated:string[]=[]
-  for(const [input,label] of [[website,'网站地址'],[avatarField,'头像地址']] as const){
+  for(const [input,label] of [[website,'网站地址'],[avatarField,'头像地址'],[backlinkField,'包含本站友链的页面地址']] as const){
    try{validated.push(address(input))}
    catch{
     input.setAttribute('aria-invalid','true')
@@ -150,8 +152,14 @@ document.addEventListener('nav', () => {
     return
    }
   }
-  const [siteUrl,avatarUrl]=validated
-  const friend:FriendLink={id:'application-preview',name:field('name').value.trim(),url:siteUrl,avatar:avatarUrl,description:Array.from(field('description').value.trim()).slice(0,40).join('')}
+  const rssField=field('rssUrl')
+  let rssUrl=''
+  if(rssField.value.trim()){
+   try{const rss=new URL(rssField.value.trim());if(!['http:','https:'].includes(rss.protocol)||!rss.hostname||rss.username||rss.password)throw new Error();rssUrl=rss.href}
+   catch{rssField.setAttribute('aria-invalid','true');if(!compact.matches)rssField.focus();applicationError('请填写有效的 RSS 地址（HTTP 或 HTTPS），或留空。');return}
+  }
+  const [siteUrl,avatarUrl,backlinkUrl]=validated
+  const friend:FriendLink={id:'application-preview',name:field('name').value.trim(),url:siteUrl,avatar:avatarUrl,backlinkUrl,rssUrl,description:Array.from(field('description').value.trim()).slice(0,40).join('')}
   const stage=confirmation?.querySelector<HTMLElement>('[data-friends-preview-card]')
   if(!stage||!confirmation)return
   const card=node('div','','friend-letter');card.setAttribute('role','img');card.setAttribute('aria-label',`${friend.name}的友链卡片预览`);card.style.setProperty('--letter-angle','-2deg')
@@ -160,7 +168,7 @@ document.addEventListener('nav', () => {
   const art=node('div','','friend-stamp-art'),avatar=node('span','','friend-letter-avatar')
   avatar.append(node('span',Array.from(friend.name)[0]))
   if(friend.avatar){
-   const image=node('img');image.alt='';image.referrerPolicy='no-referrer';avatar.classList.add('is-loading')
+   const image=node('img');image.alt='';image.referrerPolicy='strict-origin-when-cross-origin';avatar.classList.add('is-loading')
    image.addEventListener('load',()=>{avatar.classList.remove('is-loading');avatar.classList.add('is-loaded')},{once:true,signal})
    image.addEventListener('error',()=>{avatar.classList.remove('is-loading');image.remove()},{once:true,signal})
    avatar.append(image);image.src=friend.avatar
@@ -169,6 +177,7 @@ document.addEventListener('nav', () => {
   const caption=node('div','','friend-letter-caption'),destination=node('div','','friend-letter-destination')
   destination.append(node('span',new URL(friend.url).host.replace(/^www\./,'')),sitePostmark(friend));caption.append(destination);paper.append(edge,caption);card.append(paper)
   confirmation.classList.remove('is-complete')
+  const notice=confirmation.querySelector<HTMLElement>('[data-friends-review-notice]');if(notice){notice.textContent='';notice.hidden=true}
   stage.replaceChildren(card);pendingApplication=friend
   const summary=confirmation.querySelector<HTMLElement>('[data-friends-preview-description]');if(summary)fillBubble(summary,friend.description)
   const submit=confirmation.querySelector<HTMLButtonElement>('[data-friends-confirm-submit]');if(submit){submit.disabled=false;submit.textContent='提交'}
@@ -484,7 +493,7 @@ document.addEventListener('nav', () => {
   fragment.append(dust)
   const rope=document.createElementNS('http://www.w3.org/2000/svg','svg');rope.classList.add('friends-letter-rope');rope.setAttribute('aria-hidden','true');fragment.append(rope)
   friends.forEach((friend,i)=>{
-   const letter=node('a','','friend-letter');letter.href=friend.url;letter.target='_blank';letter.rel='noopener noreferrer';letter.dataset.noPopover='true';letter.draggable=false;letter.dataset.tone=String(i%5);letter.dataset.cardNumber=String(i+1).padStart(3,'0');letter.id=`friend-card-${letter.dataset.cardNumber}`
+   const letter=node('a','','friend-letter');letter.classList.toggle('is-unavailable',(friend.healthFailures||0)>0);if((friend.healthFailures||0)>0)letter.setAttribute('aria-label',`${friend.name}，暂时无法访问`);letter.href=friend.url;letter.target='_blank';letter.rel='noopener noreferrer';letter.dataset.noPopover='true';letter.draggable=false;letter.dataset.tone=String(i%5);letter.dataset.cardNumber=String(i+1).padStart(3,'0');letter.id=`friend-card-${letter.dataset.cardNumber}`
    let mobileSeed=2166136261
    for(const character of friend.id)mobileSeed=Math.imul(mobileSeed^character.charCodeAt(0),16777619)
    const mobileRandom=()=>{mobileSeed|=0;mobileSeed=mobileSeed+0x6D2B79F5|0;let n=Math.imul(mobileSeed^mobileSeed>>>15,1|mobileSeed);n^=n+Math.imul(n^n>>>7,61|n);return ((n^n>>>14)>>>0)/4294967296}
@@ -501,7 +510,7 @@ document.addEventListener('nav', () => {
    const avatar=node('span','','friend-letter-avatar');avatar.setAttribute('aria-hidden','true');avatar.append(node('span',Array.from(friend.name)[0]))
    if(friend.avatar){
     avatar.classList.add('is-loading')
-    const image=node('img');image.alt='';image.draggable=false;image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer'
+    const image=node('img');image.alt='';image.draggable=false;image.loading='lazy';image.decoding='async';image.referrerPolicy='strict-origin-when-cross-origin'
     const failed=()=>{avatar.classList.remove('is-loading');image.remove()}
     image.addEventListener('error',failed,{once:true,signal})
     image.addEventListener('load',async()=>{

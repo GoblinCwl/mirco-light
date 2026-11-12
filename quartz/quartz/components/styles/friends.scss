@@ -300,3 +300,6 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
  .friends-page .friends-postbag { touch-action:pan-y pinch-zoom; -webkit-touch-callout:none; user-select:none; -webkit-user-select:none; .friend-letter,.friend-letter img { -webkit-touch-callout:none; -webkit-user-drag:none; } }
  .friends-page .friends-postbag.is-held { cursor:grabbing; }
 }
+
+// Unreachable sites remain visible during their daily retry window.
+.friends-page .friend-letter.is-unavailable {filter:grayscale(1);opacity:.55;}

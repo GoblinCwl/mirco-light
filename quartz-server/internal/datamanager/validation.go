@@ -17,7 +17,7 @@ func validate(id string, row map[string]any) error {
 	text := func(key string) string { v, _ := row[key].(string); return v }
 	if id == "friends" {
 		example := fmt.Sprint(row["example"]) != "0" && row["example"] != nil
-		f, err := community.ValidateFriend(community.Friend{ID: text("id"), Name: text("name"), URL: text("url"), Avatar: text("avatar"), Description: text("description"), Status: text("status"), Example: example})
+		f, err := community.ValidateFriend(community.Friend{ID: text("id"), Name: text("name"), URL: text("url"), BacklinkURL: text("backlink_url"), RSSURL: text("rss_url"), Avatar: text("avatar"), AvatarSource: text("avatar_source"), Description: text("description"), Status: text("status"), Example: example})
 		if err != nil {
 			return err
 		}
@@ -26,7 +26,10 @@ func validate(id string, row map[string]any) error {
 		}
 		row["name"] = f.Name
 		row["url"] = f.URL
+		row["backlink_url"] = f.BacklinkURL
+		row["rss_url"] = f.RSSURL
 		row["avatar"] = f.Avatar
+		row["avatar_source"] = f.AvatarSource
 		row["description"] = f.Description
 		row["status"] = f.Status
 	}

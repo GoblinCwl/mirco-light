@@ -9,7 +9,7 @@ import subprocess
 # Column descriptions come from database COMMENT, maintained in database/init.sql.
 GROUPS = {
  '内容发现': ['content','content_meta','content_sources','share_identities'],
- '友链与反馈': ['friends','feedback'],
+ '友链与反馈': ['friends','friend_jobs','feedback'],
  '访客统计': ['visitors','daily_visitors','visitor_fixtures','geoip_datasets'],
  '视频与仓库缓存': ['videos','video_meta','video_assets','repo_snapshots','repo_avatar','adapter_snapshots'],
  '认证与配置': ['settings','auth_state','auth_sessions','auth_attempts','provider_credentials','service_credentials'],

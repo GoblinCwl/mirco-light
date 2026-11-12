@@ -33,6 +33,7 @@ func (s *Server) siteData(w http.ResponseWriter, r *http.Request, path string) {
 			}
 		}
 		manager := datamanager.Manager{DB: s.DB}
+
 		if len(parts) == 2 && r.Method == "GET" {
 			data, mime, err := manager.Blob(r.Context(), parts[0], key, r.URL.Query().Get("column"))
 			if err != nil {
@@ -89,6 +90,9 @@ func (s *Server) siteData(w http.ResponseWriter, r *http.Request, path string) {
 			if err != nil {
 				s.fail(w, err)
 				return
+			}
+			if parts[0] == "friends" {
+				s.wakeFriendJobs()
 			}
 			status := 200
 			if r.Method == "POST" {

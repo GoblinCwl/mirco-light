@@ -1,0 +1,102 @@
+package openlist
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"goblincwl/quartz-server/internal/friendavatar"
+	"image"
+	"image/png"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+)
+
+func TestAvatarUploadAndReadPreserveOriginalAndReuseStoredPath(t *testing.T) {
+	var pngData bytes.Buffer
+	png.Encode(&pngData, image.NewRGBA(image.Rect(0, 0, 3, 3)))
+	original := append(pngData.Bytes(), []byte("APNG-data-preserved")...)
+	var data []byte
+	var savedPath string
+	uploads := 0
+	failUpload := false
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply := func(code int, value any) { json.NewEncoder(w).Encode(map[string]any{"code": code, "data": value}) }
+		if r.URL.Path == "/source.png" {
+			w.Write(original)
+			return
+		}
+		if r.URL.Path == "/raw" {
+			w.Write(data)
+			return
+		}
+		if r.URL.Path == "/api/auth/login" {
+			reply(200, map[string]string{"token": "fixture"})
+			return
+		}
+		if r.Header.Get("Authorization") != "fixture" {
+			t.Error("missing storage authentication")
+		}
+		switch r.URL.Path {
+		case "/api/me":
+			reply(200, map[string]int{"role": 2})
+		case "/api/fs/get":
+			var input map[string]string
+			json.NewDecoder(r.Body).Decode(&input)
+			if input["path"] == savedPath && data != nil {
+				reply(200, map[string]any{"raw_url": server.URL + "/raw", "is_dir": false})
+			} else if input["path"] == "/Vault/MicroLight" || input["path"] == friendavatar.Directory {
+				reply(200, map[string]any{"is_dir": true})
+			} else {
+				reply(404, nil)
+			}
+		case "/api/fs/put":
+			if failUpload {
+				reply(500, nil)
+				return
+			}
+			var err error
+			savedPath, err = url.PathUnescape(r.Header.Get("File-Path"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.HasPrefix(savedPath, friendavatar.Directory+"/") || r.Header.Get("As-Task") != "false" {
+				t.Error("unexpected upload destination or async upload")
+			}
+			data, _ = io.ReadAll(r.Body)
+			uploads++
+			reply(200, nil)
+		default:
+			t.Error("unexpected route", r.URL.Path)
+			reply(500, nil)
+		}
+	}))
+	defer server.Close()
+	read := func(context.Context) (map[string]any, error) {
+		return map[string]any{"openlist.url": server.URL, "openlist.username": "admin", "openlist.password": "secret"}, nil
+	}
+	avatars := &Avatars{Session: &Session{ReadSettings: read}, Settings: read, ImageClient: server.Client()}
+	address, err := avatars.Save(context.Background(), server.URL+"/source.png")
+	if err != nil || !friendavatar.Local(address) || !bytes.Equal(data, original) {
+		t.Fatal("upload failed or transformed image", address, err)
+	}
+	result, mime, err := avatars.Read(context.Background(), strings.TrimPrefix(address, friendavatar.Prefix))
+	if err != nil || mime != "image/png" || !bytes.Equal(result, original) {
+		t.Fatal("read failed or transformed image", mime, err)
+	}
+	if _, err = avatars.Save(context.Background(), address); err != nil || uploads != 1 {
+		t.Fatal("stored avatar uploaded again", uploads, err)
+	}
+	data = nil
+	failUpload = true
+	if _, err = avatars.Save(context.Background(), server.URL+"/source.png"); err == nil {
+		t.Fatal("upload failure ignored")
+	}
+	if _, _, err = avatars.Read(context.Background(), "../secret"); err == nil {
+		t.Fatal("path traversal accepted")
+	}
+}

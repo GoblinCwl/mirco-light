@@ -3,6 +3,7 @@ package adapters
 import (
 	"context"
 	"errors"
+	"goblincwl/quartz-server/internal/taskconfig"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -40,6 +41,14 @@ func WatchAttendance(ctx context.Context, root string, quiet time.Duration, refr
 	if quiet <= 0 {
 		quiet = time.Minute
 	}
+	delay := func() time.Duration {
+		if taskconfig.From(ctx) != nil {
+			return taskconfig.Duration(ctx, "attendance-quiet")
+		}
+		return quiet
+	}
+	changed, stop := taskconfig.Watch(ctx, taskconfig.Key("attendance-quiet"))
+	defer stop()
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 	var done <-chan error
@@ -58,6 +67,10 @@ func WatchAttendance(ctx context.Context, root string, quiet time.Duration, refr
 	}
 	for {
 		select {
+		case <-changed:
+			if pending {
+				timer.Reset(delay())
+			}
 		case <-ctx.Done():
 			return nil
 		case err, ok := <-watcher.Errors:
@@ -81,7 +94,7 @@ func WatchAttendance(ctx context.Context, root string, quiet time.Duration, refr
 			// Directory renames/removals can remove many dates in one event.
 			if directory || event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) || strings.HasSuffix(event.Name, ".md") {
 				pending = true
-				timer.Reset(quiet)
+				timer.Reset(delay())
 			}
 		case <-timer.C:
 			if done == nil && pending {
@@ -93,7 +106,7 @@ func WatchAttendance(ctx context.Context, root string, quiet time.Duration, refr
 				report(err)
 			}
 			if pending {
-				timer.Reset(quiet)
+				timer.Reset(delay())
 			}
 		}
 	}

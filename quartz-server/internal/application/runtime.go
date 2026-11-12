@@ -17,11 +17,13 @@ import (
 	"goblincwl/quartz-server/internal/openlist"
 	"goblincwl/quartz-server/internal/repo"
 	"goblincwl/quartz-server/internal/settings"
+	"goblincwl/quartz-server/internal/taskconfig"
 	"goblincwl/quartz-server/internal/video"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -52,6 +54,7 @@ type Runtime struct {
 	videoSocial        *video.Social
 	sources            cache.Cache
 	videoIndexUpdates  chan struct{}
+	friendJobsWake     chan struct{}
 	settingsCache      cache.Cache
 	articleIndex       *eventTask
 	commentPermissions *eventTask
@@ -61,7 +64,7 @@ type Runtime struct {
 
 func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Runtime, err error) {
 	root, cancel := context.WithCancel(ctx)
-	runtime = &Runtime{ctx: root, cancel: cancel, app: app, options: options, videoIndexUpdates: make(chan struct{}, 1)}
+	runtime = &Runtime{ctx: root, cancel: cancel, app: app, options: options, videoIndexUpdates: make(chan struct{}, 1), friendJobsWake: make(chan struct{}, 1)}
 	allocated := runtime
 	defer func() {
 		if err != nil {
@@ -76,6 +79,21 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 			return (settings.Store{DB: app.DB}).Read(ctx, false)
 		})
 	}
+	values, readErr := read(root)
+	if readErr != nil {
+		return nil, readErr
+	}
+	config := taskconfig.New(values)
+	root = taskconfig.With(root, config)
+	runtime.ctx = root
+	publishObserver := func() {
+		if options.EventsSocket != "" {
+			if err := taskconfig.WriteObserver(filepath.Join(filepath.Dir(options.EventsSocket), "task-config.json"), taskconfig.Duration(root, "container-observer")); err != nil {
+				app.Log.Error("observer task configuration export failed", "error", err)
+			}
+		}
+	}
+	publishObserver()
 	app.Credentials, err = credentials.New(app.DB, filepath.Join(options.AuthDirectory, "totp.key"))
 	if err != nil {
 		return nil, err
@@ -85,6 +103,8 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 		return nil, err
 	}
 	app.ShareSession = &openlist.Session{ReadSettings: read}
+	app.FriendAvatars = &openlist.Avatars{Session: app.ShareSession, Settings: read}
+	app.FriendJobsChanged = runtime.requestFriendJobs
 	app.ArticleDirectory = options.ArticleDirectory
 	app.Build = &buildcontrol.Client{Directory: filepath.Dir(options.ArticleSnapshot)}
 	app.Monitoring, err = monitoring.Open(root, options.BeszelDB, read)
@@ -172,10 +192,18 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 		return nil
 	})
 	runtime.mirrorCredential = newEventTask("gitea-mirror-credential", 10*time.Second, runtime.projectGitHubToken)
-	app.SettingsChanged = func(string) {
+	app.SettingsChanged = func(key string) {
 		app.Jellyfin.Danmaku.Invalidate()
 		app.Jellyfin.Catalog.Details.Invalidate()
 		allocated.settingsCache.Invalidate()
+		if strings.HasPrefix(key, "tasks.") {
+			if values, err := (settings.Store{DB: app.DB}).Read(root, false); err == nil {
+				config.Reload(values)
+				publishObserver()
+			} else {
+				app.Log.Error("task settings reload failed", "error", err)
+			}
+		}
 		app.Adapters.Cache.Invalidate()
 		app.Repo.Cache.Invalidate()
 		app.Comments.Cache.Invalidate()
@@ -219,7 +247,7 @@ func (r *Runtime) goTask(work func(context.Context)) {
 	r.wg.Add(1)
 	go func() { defer r.wg.Done(); work(r.ctx) }()
 }
-func (r *Runtime) periodic(name string, every, timeout time.Duration, work func(context.Context) error) {
+func (r *Runtime) periodic(name string, timeout time.Duration, work func(context.Context) error) {
 	r.goTask(func(root context.Context) {
 		run := func() {
 			ctx, cancel := context.WithTimeout(root, timeout)
@@ -230,7 +258,7 @@ func (r *Runtime) periodic(name string, every, timeout time.Duration, work func(
 			}
 		}
 		run()
-		ticker := time.NewTicker(every)
+		ticker := taskconfig.NewTicker(root, name)
 		defer ticker.Stop()
 		for {
 			select {
@@ -270,45 +298,42 @@ func (r *Runtime) Start() {
 	r.startOnce.Do(r.start)
 }
 func (r *Runtime) start() {
+	r.goTask(r.runFriendJobs)
 	for _, task := range []*eventTask{r.articleIndex, r.commentPermissions, r.mirrorCredential} {
 		r.goTask(func(ctx context.Context) { task.run(ctx, r.app.Log) })
 	}
 	r.articleIndex.request()
 	r.mirrorCredential.request()
-	for _, source := range []struct {
-		kind     string
-		interval time.Duration
-	}{{"share", time.Minute}, {"repo", 5 * time.Minute}} {
-		r.periodic("index-"+source.kind, source.interval, 60*time.Second, func(ctx context.Context) error {
-			if err := r.syncSource(ctx, source.kind); err != nil {
+	for _, kind := range []string{"share", "repo"} {
+		r.periodic("index-"+kind, 60*time.Second, func(ctx context.Context) error {
+			if err := r.syncSource(ctx, kind); err != nil {
 				return err
 			}
-			if source.kind == "repo" {
+			if kind == "repo" {
 				return r.repoSocial.RefreshMirroredActivities(ctx)
 			}
 			return nil
 		})
 	}
-	r.periodic("service-journal", time.Second, 10*time.Second, func(ctx context.Context) error {
+	r.periodic("service-journal", 10*time.Second, func(ctx context.Context) error {
 		return (journal.Store{DB: r.app.DB}).ServiceFile(ctx, filepath.Join(filepath.Dir(r.options.ArticleSnapshot), "observer-state.json"))
 	})
-	r.periodic("build-journal", time.Second, 10*time.Second, func(ctx context.Context) error {
+	r.periodic("build-journal", 10*time.Second, func(ctx context.Context) error {
 		return (journal.Store{DB: r.app.DB}).BuildFile(ctx, filepath.Join(filepath.Dir(r.options.ArticleSnapshot), "build-state.json"))
 	})
-	r.periodic("github-social", 30*time.Minute, 40*time.Minute, r.repoSocial.Refresh)
-	r.periodic("bilibili-social", 30*time.Minute, 2*time.Minute, func(ctx context.Context) error { return r.videoSocial.Refresh(ctx, false) })
-	r.periodic("activitywatch-summary", 10*time.Minute, 90*time.Second, r.app.Adapters.RefreshSummary)
-	r.periodic("auth-cleanup", time.Hour, 10*time.Second, r.app.Auth.Cleanup)
+	r.periodic("github-social", 40*time.Minute, r.repoSocial.Refresh)
+	r.periodic("bilibili-social", 2*time.Minute, func(ctx context.Context) error { return r.videoSocial.Refresh(ctx, false) })
+	r.periodic("activitywatch-summary", 90*time.Second, r.app.Adapters.RefreshSummary)
+	r.periodic("auth-cleanup", 10*time.Second, r.app.Auth.Cleanup)
+	r.dailyFriends()
 	r.goTask(func(ctx context.Context) {
 		for ctx.Err() == nil {
 			err := adapters.WatchAttendance(ctx, r.options.DiaryDirectory, time.Minute, r.app.Adapters.RefreshAttendance, func(error) { r.app.Log.Warn("calendar refresh failed; retaining previous data") })
 			if err != nil && ctx.Err() == nil {
 				r.app.Log.Warn("calendar watcher unavailable; retrying")
 			}
-			select {
-			case <-ctx.Done():
+			if !taskconfig.Wait(ctx, "attendance-retry", nil) {
 				return
-			case <-time.After(10 * time.Second):
 			}
 		}
 	})

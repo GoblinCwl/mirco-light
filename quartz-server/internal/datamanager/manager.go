@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"goblincwl/quartz-server/internal/community"
 	"goblincwl/quartz-server/internal/journal"
 	"strconv"
 	"strings"
@@ -38,7 +39,9 @@ type Field struct {
 	Auto     bool   `json:"-"`
 	JSON     bool   `json:"-"`
 }
-type Manager struct{ DB *sql.DB }
+type Manager struct {
+	DB *sql.DB
+}
 
 func resolve(id string) (definition, error) {
 	for _, d := range definitions {
@@ -377,6 +380,34 @@ func (m Manager) Save(ctx context.Context, id string, values, key map[string]any
 			}
 		}
 	}
+	if id == "friends" {
+		for _, key := range []string{"review_result", "review_checked_at", "health_failures", "health_checked_on", "health_error"} {
+			if _, provided := values[key]; provided {
+				return nil, errors.New("审核结果由审核流程维护")
+			}
+		}
+		if value, present := values["url"]; present && value != row["url"] || (values["status"] == "展示中" || values["status"] == "待审核") && values["status"] != row["status"] {
+			row["health_failures"] = 0
+			row["health_checked_on"] = ""
+			row["health_error"] = ""
+		}
+		for _, key := range []string{"url", "backlink_url"} {
+			if value, provided := values[key]; provided && value != row[key] {
+				row["review_result"] = ""
+				row["review_checked_at"] = ""
+			}
+		}
+		if value, provided := values["status"]; provided && key != nil && value != row["status"] {
+			row["review_result"] = "人工审核：" + fmt.Sprint(value)
+			row["review_checked_at"] = time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
+		}
+		if _, provided := values["latest_update"]; provided {
+			return nil, errors.New("最近更新时间由 RSS 任务自动维护")
+		}
+		if value, provided := values["rss_url"]; provided && value != row["rss_url"] {
+			row["latest_update"] = ""
+		}
+	}
 	for name, value := range values {
 		row[name] = value
 	}
@@ -526,6 +557,11 @@ func (m Manager) Save(ctx context.Context, id string, values, key map[string]any
 	}
 	if id == "journal" {
 		if err = journal.Trim(ctx, tx); err != nil {
+			return nil, err
+		}
+	}
+	if id == "friends" {
+		if err = community.EnqueueFriendTx(ctx, tx, fmt.Sprint(row["id"])); err != nil {
 			return nil, err
 		}
 	}

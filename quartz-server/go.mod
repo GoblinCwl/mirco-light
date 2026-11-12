@@ -8,9 +8,11 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20261109085535-d003e9ea1cbc
 	github.com/rivo/uniseg v0.4.7
-	golang.org/x/crypto v0.48.0
-	golang.org/x/term v0.40.0
-	golang.org/x/text v0.34.0
+	github.com/yuin/goldmark v1.8.7
+	golang.org/x/crypto v0.58.0
+	golang.org/x/net v0.62.0
+	golang.org/x/term v0.47.0
+	golang.org/x/text v0.43.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.62.0
 )

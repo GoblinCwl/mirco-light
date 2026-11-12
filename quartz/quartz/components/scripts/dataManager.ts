@@ -25,6 +25,7 @@ export function setupDataManager(root:HTMLElement,signal:AbortSignal,request:Req
    const form=node('form','','data-admin-form'),header=node('div','','friend-admin-heading'),back=node('button','返回列表'),fields=node('div','','data-admin-fields'),save=node('button',key?'保存修改':'新增记录'),controls=new Map<string,HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement>(),uploads=new Map<string,File>()
    header.append(node('h3',`${key?'编辑':'新增'}${table.title}`),back);back.type='button';back.onclick=()=>void load();save.type='submit';save.className='friend-admin-submit';fields.setAttribute('aria-label',table.title)
    for(const field of table.fields.filter(field=>!['example','source_key'].includes(field.name)&&!(['search_text','revision'].includes(field.name)&&table.id==='content-index'))){
+    if(table.id==='friends'&&field.name==='review_result'&&value[field.name]==='已检测到指向本站的友链，自动审核通过')continue
     const label=node('label','','data-admin-field'),caption=node('span',field.label);label.append(caption)
     if(field.type==='file'){
      const input=node('input');input.type='file';input.accept='image/png,image/jpeg,image/gif,image/webp,image/avif';input.setAttribute('aria-label',field.label)
@@ -41,15 +42,19 @@ export function setupDataManager(root:HTMLElement,signal:AbortSignal,request:Req
     if(!key&&text===undefined){if(table.id==='content-index'&&['tags','links'].includes(field.name))text='[]';else if(table.id==='content-index'&&field.name==='extra')text='{}';else if(table.id==='content-index'&&field.name==='type')text='article';else if(field.name==='status'&&options)text=options[0];else if(field.name==='kind')text='content';else if(field.default!=null)text=field.default.replace(/^'|'$/g,'');else if(field.type==='number'&&!field.primary)text=0}
     if(typeof text==='string'&&['value','payload','geo_raw'].includes(field.name)){try{const json=JSON.parse(text);if(json&&typeof json==='object')text=JSON.stringify(json,null,2)}catch{}}
     input.value=text==null?'':String(text);input.setAttribute('aria-label',field.label);input.disabled=!!key&&!!field.primary
+    if(table.id==='friends'&&field.name==='backlink_url'&&input instanceof HTMLInputElement){input.type='url';input.pattern='[Hh][Tt][Tt][Pp][Ss]://.+';input.placeholder='https://example.com/friends';input.title='请填写包含本站友链的页面 HTTPS 地址';input.maxLength=1500}
+    if(table.id==='friends'&&field.name==='rss_url'&&input instanceof HTMLInputElement){input.type='url';input.required=false;input.maxLength=1500;input.pattern='[Hh][Tt][Tt][Pp][Ss]?://.+';input.placeholder='排序依据：https://example.com/feed.xml'}
+    if(table.id==='friends'&&field.name==='avatar_source'&&input instanceof HTMLInputElement){input.type='url';input.maxLength=1500;input.pattern='[Hh][Tt][Tt][Pp][Ss]?://.+';input.placeholder='选填：远程头像地址，每日 06:00 检查'}
+    if(table.id==='friends'&&['latest_update','review_result','review_checked_at','health_failures','health_checked_on','health_error'].includes(field.name)&&input instanceof HTMLInputElement){input.readOnly=true;input.placeholder=field.name.startsWith('health_')?'由每日首页检查维护':field.name==='latest_update'?'由每日 RSS 任务更新':'由审核流程维护'}
     const automatic=automaticField(table,field.name)
-    input.required=field.required&&field.default==null&&!(automatic&&!key)&&!(table.id==='content-index'&&['content','description','event_revision'].includes(field.name))
+    input.required=table.id==='friends'&&field.name==='backlink_url'||field.required&&field.default==null&&!(automatic&&!key)&&!(table.id==='content-index'&&['content','description','event_revision'].includes(field.name))
     if(automatic&&!key&&!(input instanceof HTMLSelectElement))input.placeholder='留空自动生成'
     controls.set(field.name,input);label.append(input);fields.append(label)
    }
    const actions=node('div','','friend-admin-footer');actions.append(save);form.append(header,fields,actions);body.replaceChildren(form);footer.replaceChildren();toolbar.hidden=true
    form.onsubmit=async event=>{
     event.preventDefault();if(save.disabled)return
-    const values:Record<string,unknown>={};for(const field of table.fields){const input=controls.get(field.name);if(!input)continue;if(key&&field.primary)continue;if(!key&&!input.value.trim()&&(field.default!=null||automaticField(table,field.name)))continue;values[field.name]=field.type==='number'?(input.value===''?null:Number(input.value)):input.value===''&&!field.required?null:input.value}
+    const values:Record<string,unknown>={};for(const field of table.fields){const input=controls.get(field.name);if(!input)continue;if(key&&field.primary)continue;if(table.id==='friends'&&['latest_update','review_result','review_checked_at','health_failures','health_checked_on','health_error'].includes(field.name))continue;if(!key&&!input.value.trim()&&(field.default!=null||automaticField(table,field.name)))continue;values[field.name]=field.type==='number'?(input.value===''?null:Number(input.value)):input.value===''&&!field.required?null:input.value}
     const fieldsToDisable=[...form.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement|HTMLButtonElement>('input,select,textarea,button')],disabled=fieldsToDisable.map(field=>field.disabled)
     fieldsToDisable.forEach(field=>field.disabled=true)
     try{

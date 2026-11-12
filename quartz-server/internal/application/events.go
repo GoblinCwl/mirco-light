@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"goblincwl/quartz-server/internal/alerts"
+	"goblincwl/quartz-server/internal/taskconfig"
 	"log/slog"
 	"time"
 )
@@ -44,14 +45,8 @@ func (t *eventTask) run(root context.Context, log *slog.Logger) {
 			}
 			alerts.Emit(alerts.Event{Kind: "task", Source: alerts.TaskName(t.name), Title: "事件处理失败", Message: "保留已有数据，将按原有机制重试"})
 			log.Warn("event task failed; retrying", "task", t.name)
-			timer := time.NewTimer(15 * time.Second)
-			select {
-			case <-root.Done():
-				timer.Stop()
+			if !taskconfig.Wait(root, "event-retry", t.pending) {
 				return
-			case <-t.pending:
-				timer.Stop()
-			case <-timer.C:
 			}
 		}
 	}

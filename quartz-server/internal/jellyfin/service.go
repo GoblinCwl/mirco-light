@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"goblincwl/quartz-server/internal/alerts"
+	"goblincwl/quartz-server/internal/taskconfig"
 	"io"
 	"math"
 	"net/http"
@@ -89,7 +90,7 @@ func NewService(ctx context.Context, backend *Backend, origin string) *Service {
 	}}
 	go func() {
 		defer close(s.done)
-		ticker := time.NewTicker(time.Minute)
+		ticker := taskconfig.NewTicker(root, "media-cleanup")
 		defer ticker.Stop()
 		for {
 			select {

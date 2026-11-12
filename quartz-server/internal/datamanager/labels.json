@@ -55,5 +55,14 @@
   "data": "图片文件",
   "kind": "类型",
   "completed_at": "发生时间",
-  "payload": "纪事内容"
+  "payload": "纪事内容",
+  "backlink_url": "包含本站友链的页面地址",
+  "rss_url": "RSS 地址（排序依据）",
+  "avatar_source": "原始头像地址",
+  "latest_update": "最近更新（RSS 自动维护）",
+  "review_result": "审核结果（自动维护）",
+  "review_checked_at": "审核时间（自动维护）",
+  "health_failures": "首页连续失败天数",
+  "health_checked_on": "首页检查日期",
+  "health_error": "首页检查结果"
 }

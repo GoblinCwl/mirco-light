@@ -109,16 +109,24 @@ func TestCommunityTransactionsAndHTTP(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
 	store := community.Store{DB: db}
-	friend := community.Friend{Name: "测试", URL: "https://example.com/", Avatar: "https://example.com/a.png", Description: "简介"}
+	friend := community.Friend{Name: "测试", URL: "https://example.com/", BacklinkURL: "https://example.com/friends", Avatar: "https://example.com/a.png", Description: "简介"}
+	uploads := 0
+	store.StoreAvatar = func(context.Context, string) (string, error) {
+		uploads++
+		return "", fmt.Errorf("request must not upload")
+	}
 	row, _, err := store.CreateFriend(ctx, friend, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if row.Status != "待审核" {
+	if row.Status != "待审核" || row.Avatar != friend.Avatar || row.RSSURL != "" {
 		t.Fatal("application not pending")
 	}
 	if _, _, err = store.CreateFriend(ctx, friend, true); err == nil {
 		t.Fatal("duplicate accepted")
+	}
+	if uploads != 0 {
+		t.Fatal("submission performed remote work", uploads)
 	}
 	public, err := store.Friends(ctx, true)
 	if err != nil || len(public) != 0 {
@@ -128,8 +136,18 @@ func TestCommunityTransactionsAndHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	public, err = store.Friends(ctx, true)
-	if err != nil || len(public) != 1 {
-		t.Fatal("review failed")
+	if err != nil || len(public) != 1 || public[0].BacklinkURL != friend.BacklinkURL {
+		t.Fatal("review or backlink persistence failed")
+	}
+	updated := public[0]
+	updated.BacklinkURL = "https://example.com/links"
+	updated.RSSURL = "https://example.com/feed.xml"
+	if _, err = store.UpdateFriend(ctx, row.ID, updated, "update", 0); err != nil {
+		t.Fatal(err)
+	}
+	saved, err := store.Friends(ctx, false)
+	if err != nil || len(saved) != 1 || saved[0].BacklinkURL != updated.BacklinkURL || saved[0].RSSURL != updated.RSSURL {
+		t.Fatal("backlink update lost", saved, err)
 	}
 	// URLs above the former MySQL index length still obey the original 1500-char contract.
 	friend.URL = "https://long.example/" + strings.Repeat("a", 1100)

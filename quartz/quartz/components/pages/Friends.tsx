@@ -28,6 +28,8 @@ export const FriendsApply: QuartzComponent = ({ cfg }) => {
       <form class="friends-form-fields" data-friends-apply-form noValidate>
         <label class="friends-form-field"><span>网站名称</span><input name="name" placeholder="你的站点名称" maxLength={80}/></label>
         <label class="friends-form-field"><span>网站地址</span><input name="url" type="url" inputMode="url" placeholder="https://" spellcheck={false}/></label>
+        <label class="friends-form-field"><span>包含本站友链的页面地址</span><input name="backlinkUrl" type="url" inputMode="url" placeholder="https://example.com/friends" required maxLength={1500} spellcheck={false}/></label>
+        <label class="friends-form-field"><span>RSS 地址（排序依据）</span><input name="rssUrl" type="url" inputMode="url" placeholder="https://example.com/feed.xml" maxLength={1500} spellcheck={false}/></label>
         <label class="friends-form-field"><span>头像地址</span><input name="avatar" type="url" inputMode="url" placeholder="https://…（头像图片链接）" spellcheck={false}/></label>
         <label class="friends-form-field"><span>网站简介<output data-friends-description-count aria-live="polite">0 / 40</output></span><textarea name="description" rows={3} placeholder="简单介绍一下你的网站（最多40字）" maxLength={80} data-friends-description aria-label="网站简介，最多40个字符"/></label>
         <button class="friends-form-submit" type="submit" data-friends-apply disabled title="生成申请卡片预览"><span>申请友链</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 3-7 18-4-7-7-4 18-7ZM10 14 21 3"/></svg></button>
@@ -46,7 +48,7 @@ export const FriendsApply: QuartzComponent = ({ cfg }) => {
     <dialog class="friends-confirm" data-friends-application-preview tabIndex={-1} aria-labelledby="friends-confirm-heading">
       <header><h2 id="friends-confirm-heading">友链申请</h2><button type="button" data-friends-confirm-cancel aria-label="关闭友链申请"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
       <div class="friends-confirm-art"><svg class="friends-confirm-cord" viewBox="0 0 400 60" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M-10 8Q100 40 200 32Q300 24 410 8"/></svg><div class="friends-page friends-preview-stage" data-friends-preview-card/><div class="friend-letter-tooltip friend-mobile-bubble friends-confirm-description" data-placement="right" data-friends-preview-description/></div>
-      <div class="friends-confirm-notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.01"/></svg><div><p>待审核过您的站点已经添加本站点为友链后，您的卡片将会悬挂在纽带上！</p><p>连续7日无法访问时将会被移出纽带。</p></div></div>
+      <div class="friends-confirm-notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.01"/></svg><div><p><strong>检测到贵站友链地址存在本站后将自动审核通过</strong></p><p data-friends-review-notice hidden/><p>连续7日无法访问时将会被移出纽带。</p></div></div>
       <footer><button type="button" data-friends-confirm-cancel>取消</button><button type="button" data-friends-confirm-submit>提交</button></footer>
     </dialog>
   </section>

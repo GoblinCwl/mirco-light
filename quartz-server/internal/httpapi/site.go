@@ -131,7 +131,7 @@ func (s *Server) site(mux *http.ServeMux) {
 		}
 
 		switch {
-		case strings.HasPrefix(path, "/admin/data/friends"), strings.HasPrefix(path, "/admin/data/feedback"), path == "/friends", path == "/friends/apply", path == "/feedback":
+		case strings.HasPrefix(path, "/admin/data/friends"), strings.HasPrefix(path, "/admin/data/feedback"), path == "/friends", strings.HasPrefix(path, "/friends/avatar/"), path == "/friends/apply", path == "/feedback":
 			s.siteCommunity(w, r, path, feedbackLimits)
 		case strings.HasPrefix(path, "/admin/services"), strings.HasPrefix(path, "/admin/service-credentials"):
 			s.siteServices(w, r, path)

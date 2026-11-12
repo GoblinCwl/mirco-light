@@ -1,6 +1,6 @@
 # 本站库表设计
 
-数据库：`quartz`；MySQL 8.4；共 27 张表。
+数据库：`quartz`；MySQL 8.4；共 28 张表。
 
 本文描述本站 MySQL，不包含 OpenList、Jellyfin、Beszel、Gitea、Artalk 自有库。字段、默认值、索引和约束从已应用结构生成；不读取或导出业务行、账号密码、Token、Cookie 或密钥。完整建表语句见 [初始化 SQL](../quartz-server/database/init.sql)。
 
@@ -41,6 +41,7 @@ flowchart LR
 | 内容发现 | [`content_sources`](#content_sources) | 各类内容来源最近一次成功索引检查时间 |
 | 内容发现 | [`share_identities`](#share_identities) | OpenList分享来源与本站稳定内容标识的映射 |
 | 友链与反馈 | [`friends`](#friends) | 友链资料、展示顺序及审核状态 |
+| 友链与反馈 | [`friend_jobs`](#friend_jobs) | 友链头像、RSS 和自动审核持久化队列 |
 | 友链与反馈 | [`feedback`](#feedback) | 访客问题反馈、联系邮箱、浏览器信息及处理状态 |
 | 访客统计 | [`visitors`](#visitors) | 彗星来访者身份、首次及最近访问、地区与浏览器信息 |
 | 访客统计 | [`daily_visitors`](#daily_visitors) | 按日期和访客身份去重的每日来访明细 |
@@ -170,11 +171,20 @@ OpenList分享来源与本站稳定内容标识的映射。
 | `id` | `varchar(80)` | 否 | — | 友链唯一标识 |
 | `name` | `text` | 否 | — | 网站名称 |
 | `url` | `varchar(1500)` | 否 | — | 网站 HTTPS 地址 |
+| `backlink_url` | `varchar(1500)` | 否 | `` | 包含本站友链的页面 HTTPS 地址 |
+| `rss_url` | `varchar(1500)` | 否 | `` | RSS 订阅地址，选填 HTTP 或 HTTPS 链接 |
 | `avatar` | `text` | 否 | — | 网站头像 HTTPS 地址 |
+| `avatar_source` | `varchar(1500)` | 否 | `` | 原始头像 HTTP 或 HTTPS 地址，空值不参与每日刷新 |
+| `latest_update` | `varchar(32)` | 否 | `` | RSS 最新文章时间，UTC ISO 8601，空值表示未知 |
 | `description` | `text` | 否 | — | 网站简介 |
 | `example` | `tinyint unsigned` | 否 | — | 示例数据标记，保留旧数据契约 |
 | `position` | `bigint` | 否 | — | 展示排序值 |
 | `status` | `varchar(16)` | 否 | `展示中` | 展示中 / 待审核 / 已失效 |
+| `review_result` | `varchar(255)` | 否 | `` | 最近一次友链审核结果说明 |
+| `review_checked_at` | `varchar(32)` | 否 | `` | 最近一次友链审核时间，UTC ISO 8601 |
+| `health_failures` | `tinyint unsigned` | 否 | `0` | 首页连续失败天数，0 为正常，7 次后停止重试 |
+| `health_checked_on` | `varchar(10)` | 否 | `` | 最近首页检查日期，北京时间 YYYY-MM-DD，同日不重复计数 |
+| `health_error` | `varchar(255)` | 否 | `` | 最近首页检查失败原因 |
 | `url_hash` | `binary(32)` | 是 | 生成列：``unhex(sha2(`url`,256))`` | URL 的 SHA-256 二进制生成列，用于唯一约束 |
 
 索引与约束：
@@ -184,6 +194,31 @@ OpenList分享来源与本站稳定内容标识的映射。
 - 主键 `PRIMARY`：`id`。
 - CHECK `friends_example`：``((`example` in (0,1)))``。
 - CHECK `friends_status`：``((`status` in (_utf8mb4'展示中',_utf8mb4'待审核',_utf8mb4'已失效')))``。
+
+<a id="friend_jobs"></a>
+
+### friend_jobs
+
+友链头像、RSS 和自动审核持久化队列。
+
+引擎：`InnoDB`；排序规则：`utf8mb4_bin`。
+
+| 字段 | 类型 | 可空 | 默认值 / 自动值 | 含义 |
+| --- | --- | --- | --- | --- |
+| `friend_id` | `varchar(80)` | 否 | — | 待处理友链标识 |
+| `generation` | `bigint unsigned` | 否 | `1` | 任务版本，重复提交递增以保护新任务 |
+| `state` | `varchar(16)` | 否 | `pending` | pending / running |
+| `attempts` | `int unsigned` | 否 | `0` | 后台处理失败次数 |
+| `available_at` | `bigint` | 否 | `0` | 下次可处理的 Unix 毫秒时间，0 表示立即 |
+| `last_error` | `varchar(1000)` | 否 | `` | 最近处理失败原因 |
+| `enqueued_at` | `varchar(32)` | 否 | `` | 任务提交时间，UTC ISO 8601 |
+
+索引与约束：
+
+- 普通索引 `friend_jobs_ready`：`state`, `available_at`, `enqueued_at`。
+- 主键 `PRIMARY`：`friend_id`。
+- CHECK `friend_jobs_state`：``((`state` in (_utf8mb4'pending',_utf8mb4'running')))``。
+- 外键 `friend_jobs_friend`：`friend_id` → `friends.id`；删除 CASCADE，更新 NO ACTION。
 
 <a id="feedback"></a>
 

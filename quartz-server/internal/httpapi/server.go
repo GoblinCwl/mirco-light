@@ -28,6 +28,7 @@ type Server struct {
 	SettingsChanged   func(string)
 	CredentialChanged func(string)
 	DataChanged       func(string)
+	FriendJobsChanged func()
 	Comments          *comments.Archive
 	Shares            *openlist.Shares
 	Monitoring        *monitoring.Manager
@@ -37,6 +38,7 @@ type Server struct {
 	Repo              *repo.Adapter
 	OpenList          *openlist.Adapter
 	ShareSession      *openlist.Session
+	FriendAvatars     *openlist.Avatars
 	Visitors          *visitors.Store
 	Origin            string
 	Auth              *auth.Service

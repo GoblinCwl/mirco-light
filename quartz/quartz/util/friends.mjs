@@ -8,17 +8,21 @@ export function parseFriends(raw) {
   const ids = new Set(), urls = new Set()
   return items.map(item => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('友链信息无效')
-    const { id, name, url, avatar = '', description = '', example = false, status = '展示中' } = item
+    const { id, name, url, backlinkUrl = '', rssUrl = '', avatarSource = '', latestUpdate = '', reviewResult = '', reviewCheckedAt = '', healthFailures = 0, healthCheckedOn = '', healthError = '', avatar = '', description = '', example = false, status = '展示中' } = item
     if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(id) || ids.has(id)) throw new Error('友链标识无效或重复')
     if (typeof name !== 'string' || !name.trim() || name.trim().length > 80 || /[\u0000-\u001f]/.test(name)) throw new Error('请填写站点名称，最多 80 字')
+    if (typeof latestUpdate !== 'string' || latestUpdate && Number.isNaN(Date.parse(latestUpdate))) throw new Error('最近更新时间无效')
+    if (typeof avatarSource !== 'string') throw new Error('原始头像地址无效')
+    if (typeof rssUrl !== 'string') throw new Error('RSS 地址无效')
     const website = safeWebsite(url)
+    if (backlinkUrl && (!/^https:\/\//i.test(backlinkUrl) || !safeWebsite(backlinkUrl).startsWith('https://'))) throw new Error('包含本站友链的页面地址须为有效的 HTTPS 链接')
     if (urls.has(website)) throw new Error('该站点链接已经存在')
-    if (typeof avatar !== 'string' || avatar.length > 1500 || avatar && !(avatar.startsWith('/static/') && !avatar.includes('\\') && !avatar.split('/').includes('..'))) { if (typeof avatar !== 'string' || !avatar) throw new Error('头像链接无效'); safeWebsite(avatar) }
+    if (typeof avatar !== 'string' || avatar.length > 1500 || avatar && !(/^\/api\/site\/friends\/avatar\/[a-f0-9]{64}\.(png|jpg|gif|webp|avif)$/.test(avatar)) && !(avatar.startsWith('/static/') && !avatar.includes('\\') && !avatar.split('/').includes('..'))) { if (typeof avatar !== 'string' || !avatar) throw new Error('头像链接无效'); safeWebsite(avatar) }
     if (typeof description !== 'string' || description.length > 300) throw new Error('站点简介最多 300 字')
     if (typeof example !== 'boolean') throw new Error('示例标识无效')
     if (!['展示中', '待审核', '已失效'].includes(status)) throw new Error('友链状态无效')
     ids.add(id); urls.add(website)
-    return { id, name: name.trim(), url: website, avatar: avatar.trim(), description: description.trim(), status, ...(example ? { example: true } : {}) }
+    return { id, name: name.trim(), url: website, rssUrl: rssUrl.trim() ? safeWebsite(rssUrl.trim()) : '', backlinkUrl: backlinkUrl ? safeWebsite(backlinkUrl) : '', avatar: avatar.trim(), latestUpdate, reviewResult, reviewCheckedAt, healthFailures, healthCheckedOn, healthError, avatarSource: avatarSource.trim() ? safeWebsite(avatarSource.trim()) : '', description: description.trim(), status, ...(example ? { example: true } : {}) }
   })
 }
 function safeWebsite(value) {

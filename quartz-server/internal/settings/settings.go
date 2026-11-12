@@ -6,9 +6,12 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
+	"goblincwl/quartz-server/internal/taskconfig"
 	"math"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -28,9 +31,14 @@ type Store struct{ DB *sql.DB }
 func Schema() []map[string]any {
 	var out []map[string]any
 	json.Unmarshal(schemaJSON, &out)
+	return append(out, taskconfig.Schema()...)
+}
+func fields() []Field {
+	var out []Field
+	raw, _ := json.Marshal(Schema())
+	json.Unmarshal(raw, &out)
 	return out
 }
-func fields() []Field { var out []Field; json.Unmarshal(schemaJSON, &out); return out }
 func (s Store) Read(ctx context.Context, public bool) (map[string]any, error) {
 	values := map[string]any{}
 	visible := map[string]bool{}
@@ -38,6 +46,17 @@ func (s Store) Read(ctx context.Context, public bool) (map[string]any, error) {
 		visible[field.Key] = !public || field.Public == nil || *field.Public
 		if visible[field.Key] {
 			values[field.Key] = field.Default
+		}
+	}
+	// Legacy video intervals remain effective until an explicit task value is saved.
+	if !public {
+		var legacy string
+		err := s.DB.QueryRowContext(ctx, "SELECT value FROM video_meta WHERE `key`='sync_interval_ms'").Scan(&legacy)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+		if ms, err := strconv.ParseInt(legacy, 10, 64); err == nil && ms >= 1800000 && ms <= 604800000 {
+			values[taskconfig.Key("video-sync")] = float64(ms / 1000)
 		}
 	}
 	rows, err := s.DB.QueryContext(ctx, "SELECT `key`,value FROM settings")
@@ -103,6 +122,10 @@ func validate(key string, value any) (any, error) {
 			return nil, errors.New("文本长度不符合要求")
 		}
 		switch field.Type {
+		case "time":
+			if _, err := time.Parse("15:04", v); err != nil || len(v) != 5 {
+				return nil, errors.New("请输入有效时间（HH:mm）")
+			}
 		case "select":
 			valid := false
 			for _, option := range field.Options {
