@@ -1,3 +1,4 @@
+import {showSiteNotFound} from "./siteError"
 import {renderShareHome} from './driveShareHome'
 import {syncShareAdminSession} from './shareAdminSession'
 import {requireDriveUser as readAuthorizedDriveUser} from './driveClient'
@@ -34,7 +35,7 @@ document.addEventListener("nav", () => {
     return root.querySelector<T>(sharedGate[name] || `[data-drive-${name}]`)!
   }
   const url = new URL(location.href), route = driveRoute(url)
-  const notFound = () => document.dispatchEvent(new CustomEvent("quartz-not-found"))
+  const notFound = showSiteNotFound
   if (!route.valid) { notFound(); return }
   const { view, share } = route, anonymous = view === "guest" || view === "share"
   const knownMediaMode = view === "share" ? driveShareMedia(share) : false

@@ -3,7 +3,7 @@ import {retainShareGraph} from './shareGraphPersistence'
 import { retainDirectory } from "./directoryPersistence"
 import micromorph from "micromorph"
 import { FullSlug, RelativeURL, getFullSlug, normalizeRelativeURLs } from "../../util/path"
-import { fetchCanonical } from "./util"
+import { fetchNavigationPage, SITE_NOT_FOUND_PATH } from "./util"
 
 // adapted from `micromorph`
 // https://github.com/natemoo-re/micromorph
@@ -65,7 +65,7 @@ async function _navigate(url: URL, isBack: boolean = false, source = url) {
   isNavigating = true
   const loadingBar=startLoading()
   p = p || new DOMParser()
-  const contents = await fetchCanonical(source)
+  const contents = await fetchNavigationPage(source)
     .then((res) => {
       const contentType = res.headers.get("content-type")
       if (contentType?.startsWith("text/html")) {
@@ -244,14 +244,14 @@ async function navigate(url: URL, isBack: boolean = false, source = url) {
   }
 }
 
-// Dynamic routes share the site's real 404 template without replacing the
-// requested URL or adding a second history entry.
+// Dynamic route misses render the dedicated site 404 and retain the requested
+// URL, navigation sidebar and current history entry.
 document.addEventListener("quartz-not-found", () => {
   const requested = location.href
   const render = () => {
     if (location.href !== requested) return
     if (isNavigating) { requestAnimationFrame(render); return }
-    void navigate(new URL(requested), true, new URL("/404.html", location.origin))
+    void navigate(new URL(requested), true, new URL(SITE_NOT_FOUND_PATH, location.origin))
   }
   requestAnimationFrame(render)
 })

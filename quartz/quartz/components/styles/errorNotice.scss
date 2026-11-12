@@ -1,0 +1,67 @@
+.error-notice {display:flex;flex-direction:column;align-items:center;gap:.65rem;box-sizing:border-box;width:100%;color:var(--dark);text-align:center;}
+.error-notice-icon {display:grid;place-items:center;color:var(--secondary);line-height:0;--error-notice-cycle:6s;}
+.error-notice-icon>svg {display:block;width:clamp(7.5rem,19vw,9rem);height:auto;}
+.error-notice-orbit {opacity:.75;}
+.error-notice-point {animation:error-notice-point-drift var(--error-notice-cycle) linear infinite both;}
+.error-notice-point-secondary {animation-delay:calc(var(--error-notice-cycle) * .03);}
+.error-notice-star {transform-box:fill-box;transform-origin:center;opacity:.85;animation:error-notice-arrival var(--error-notice-cycle) ease-in-out infinite;}
+.error-notice-barrier {opacity:.7;animation:error-notice-boundary var(--error-notice-cycle) ease-in-out infinite;}
+.error-notice-blocked-point {animation:error-notice-blocked var(--error-notice-cycle) ease-in-out infinite both;}
+.error-notice-impact {transform-origin:48px 32px;opacity:0;animation:error-notice-impact var(--error-notice-cycle) ease-out infinite both;}
+.error-notice--403 .error-notice-star {animation:error-notice-emission var(--error-notice-cycle) ease-in-out infinite;}
+.error-notice-copy {display:flex;flex-direction:column;align-items:center;gap:.1rem;width:100%;min-width:0;text-align:center;}
+.error-notice .error-notice-title {display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;gap:.15rem .5rem;margin:0;padding:0;line-height:1;color:var(--dark);}
+.error-notice-code {color:var(--secondary);font:500 clamp(2.75rem,5vw,3.5rem)/1 var(--codeFont);}
+.error-notice-name {font:600 1.15rem/1.5 var(--headerFont);}
+.error-notice .error-notice-description {max-width:100%;margin:0;padding:0;text-align:center;text-indent:0;letter-spacing:normal;color:var(--darkgray);color:color-mix(in srgb,var(--darkgray) 68%,var(--light));font:400 .85rem/1.45 var(--bodyFont);}
+@media(prefers-reduced-motion:reduce) {
+ .error-notice-point,.error-notice-star,.error-notice-barrier,.error-notice-blocked-point,.error-notice-impact,.error-notice--403 .error-notice-star {animation:none;}
+ .error-notice-point-secondary {display:none;}
+}
+// One shared rhythm: approach, arrival, then a quiet pause.
+@keyframes error-notice-point-drift {
+  0%,5% {transform:translate(0,0);opacity:0;}
+  10% {transform:translate(0,0);opacity:1;}
+  14.667% {transform:translate(2.691px,-0.647px);}
+  19.333% {transform:translate(5.278px,-1.593px);}
+  24.000% {transform:translate(7.781px,-2.844px);}
+  28.667% {transform:translate(10.222px,-4.407px);}
+  33.333% {transform:translate(12.622px,-6.291px);}
+  38.000% {transform:translate(15.000px,-8.500px);}
+  42.667% {transform:translate(17.378px,-11.043px);}
+  47.333% {transform:translate(19.778px,-13.926px);}
+  52.000% {transform:translate(22.219px,-17.156px);opacity:1;}
+  56.667% {transform:translate(24.722px,-20.741px);}
+  61.333% {transform:translate(27.309px,-24.686px);}
+  66.000% {transform:translate(30.000px,-29.000px);opacity:0;}
+  68% {transform:translate(30px,-29px);opacity:0;}
+  69%,100% {transform:translate(0,0);opacity:0;}
+}
+@keyframes error-notice-arrival {
+  0%,55%,82%,100% {transform:scale(1);opacity:.85;}
+  66% {transform:scale(1.1);opacity:1;}
+  73% {transform:scale(1.035);opacity:.95;}
+}
+
+// A restricted signal approaches the boundary, pauses at contact and returns.
+@keyframes error-notice-blocked {
+ 0%,8%,100% {transform:translateX(0);opacity:0;}
+ 12% {transform:translateX(0);opacity:1;}
+ 39%,46% {transform:translateX(18.6px);opacity:1;}
+ 66% {transform:translateX(2px);opacity:.85;}
+ 72% {transform:translateX(0);opacity:0;}
+}
+@keyframes error-notice-boundary {
+ 0%,25%,70%,100% {opacity:.65;}
+ 39%,46% {opacity:1;}
+}
+@keyframes error-notice-impact {
+ 0%,33%,72%,100% {transform:scaleY(.65);opacity:0;}
+ 40% {transform:scaleY(1);opacity:.85;}
+ 58% {transform:scaleY(1.2);opacity:0;}
+}
+@keyframes error-notice-emission {
+ 0%,30%,85%,100% {transform:scale(1);opacity:.85;}
+ 12% {transform:scale(1.08);opacity:1;}
+ 72% {transform:scale(1.04);opacity:1;}
+}

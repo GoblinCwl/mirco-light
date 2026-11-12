@@ -49,3 +49,13 @@ export async function fetchCanonical(url: URL, init?: RequestInit): Promise<Resp
   const [_, redirect] = text.match(canonicalRegex) ?? []
   return redirect ? fetch(`${new URL(redirect, url)}`,init) : res
 }
+
+// Direct page requests already receive the site layout from the blog gateway.
+// Only older/unmarked page responses need the SPA fallback; APIs are not affected.
+export const SITE_NOT_FOUND_PATH = "/static/site-404.html"
+export async function fetchNavigationPage(url: URL): Promise<Response> {
+  const response = await fetchCanonical(url)
+  if (response.status !== 404 || response.headers.get("X-Site-Error") === "404" || url.pathname === SITE_NOT_FOUND_PATH) return response
+  const fallback = await fetchCanonical(new URL(SITE_NOT_FOUND_PATH, url))
+  return fallback.ok ? fallback : response
+}

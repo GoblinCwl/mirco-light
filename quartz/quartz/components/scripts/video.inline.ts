@@ -1,3 +1,4 @@
+import {PageNotFoundError,showSiteNotFound} from "./siteError"
 import {readContentCatalog,peekContentCatalog} from './contentCatalog'
 import { sidebarModule } from "./sidebarModule"
 import { videoProfile } from "./videoProfile"
@@ -11,7 +12,7 @@ import { repoEscape as e } from "./repoShared"
 import { createRepoViewNavigation } from "./repoViewNavigation"
 import { activateDirectoryGroup } from "./directoryGroups"
 import { setupVideoDirectories, prepareVideoDirectoryNavigation } from "./videoNavigation"
-import { collectionVideos, readVideoLibrary, videoHref, videoIcon, videoPlayerUrl, videoRoute, type VideoCollection, type VideoDetail, type VideoStats, type VideoItem, type VideoLibrary } from "./videoLibrary"
+import { collectionVideos, readVideoLibrary, resolveVideoPage, videoHref, videoIcon, videoPlayerUrl, videoRoute, type VideoCollection, type VideoDetail, type VideoStats, type VideoItem, type VideoLibrary } from "./videoLibrary"
 
 const date = (value: string | null) => value ? new Date(value).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }) : "—"
 const duration = (value: number) => `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")}`
@@ -200,11 +201,8 @@ document.addEventListener("nav", () => {
       try {
         const [library]=await Promise.all([readVideoLibrary(),readContentCatalog().catch(()=>undefined)])
         if (signal.aborted) return
-        const route = videoRoute(new URL(location.href)), aside = document.querySelector<HTMLElement>("[data-video-sidebar]")!
-        if (!route.valid) throw new Error("视频目录不存在")
-        const video: VideoItem | undefined = route.bvid ? library.videos.find(item => item.bvid === route.bvid) || { bvid: route.bvid, title: "视频已失效", availability: "unavailable", unavailableReason: "该视频已失效、已取消公开，或不在本站视频库中。", cover: "", description: "", duration: 0, publishedAt: null, play: 0, danmaku: 0, commentCount: 0, url: `https://www.bilibili.com/video/${route.bvid}/` } : undefined
-        const group = route.collection ? library.collections.find(item => item.id === route.collection && (!video || video.availability === "unavailable" || item.bvids.includes(video.bvid))) : (video ? library.collections.find(item => item.bvids.includes(video.bvid)) : undefined)
-        if (route.collection && !group) throw new Error("视频系列不存在")
+        const {route,video,group}=resolveVideoPage(library,new URL(location.href))
+        const aside=document.querySelector<HTMLElement>("[data-video-sidebar]")!
         heading(group, video, latestPageDate((group ? collectionVideos(library, group) : library.videos).map(item => item.publishedAt)), video ? [...videoTagsByBvid(library).get(video.bvid) || []] : [])
         if (!video) {
           detailRequest?.abort()
@@ -298,6 +296,7 @@ document.addEventListener("nav", () => {
         renderParts(video.bvid, group?.id)
       } catch (error) {
         if (signal.aborted) return
+        if(error instanceof PageNotFoundError){showSiteNotFound();return}
         detailRequest?.abort()
         playerLoad?.abort()
         delete root.dataset.playerKey

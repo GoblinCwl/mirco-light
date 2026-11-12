@@ -32,3 +32,12 @@ test("catalog readers share the same pending snapshot used by initial titles", a
   assert.equal(calls, 1)
   assert.deepEqual(peekRepoCatalog()?.repositories[0], repository)
 })
+
+test('missing repository content is distinct from temporary service failures',async context=>{
+ const {repoRequest}=await import('./repoClient')
+ const {PageNotFoundError}=await import('./siteError')
+ context.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({error:'仓库不存在'}),{status:404,headers:{'Content-Type':'application/json'}}))
+ await assert.rejects(repoRequest('/api/repo/missing/info'),PageNotFoundError)
+ context.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({error:'仓库服务暂时不可用'}),{status:503,headers:{'Content-Type':'application/json'}}))
+ await assert.rejects(repoRequest('/api/repo/missing/info'),error=>error instanceof Error&&!(error instanceof PageNotFoundError))
+})

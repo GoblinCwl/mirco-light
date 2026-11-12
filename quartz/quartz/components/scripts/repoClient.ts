@@ -1,3 +1,4 @@
+import {PageNotFoundError} from "./siteError"
 import type { RepoCatalog } from "./repoShared"
 import { RequestCache, sharedState } from "./sharedRequest"
 const state = sharedState("repo-client:v2", () => ({
@@ -22,6 +23,7 @@ export async function repoRequest<T>(url: string, signal?: AbortSignal): Promise
     credentials: "omit",
   })
   const data = await response.json()
+  if (response.status === 404) throw new PageNotFoundError(data.error || "仓库内容不存在")
   if (!response.ok) throw Error(data.error || "仓库数据读取失败")
   return data as T
 }

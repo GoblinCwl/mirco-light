@@ -43,3 +43,18 @@ test("directory series and videos use latest publication, keeping Other last and
   assert.equal(library.videos[0].bvid, "old")
   assert.equal(library.collections[0].id, "series-old")
 })
+
+test('missing video routes use the site 404 while known expired videos retain their real project',async()=>{
+ const {resolveVideoPage}=await import('./videoLibrary')
+ const {PageNotFoundError}=await import('./siteError')
+ const library={videos:[{bvid:'BV1xx411c7mD',availability:'available'},{bvid:'BV1yy411c7mD',availability:'unavailable'}],collections:[{id:'series-9',bvids:['BV1xx411c7mD','BV1yy411c7mD']}]} as VideoLibrary
+ const resolve=(route:string)=>resolveVideoPage(library,new URL(route,'https://example.com'))
+ assert.throws(()=>resolve('/Video/missing/'),PageNotFoundError)
+ assert.throws(()=>resolve('/Video/BV0000000000/'),PageNotFoundError)
+ assert.throws(()=>resolve('/Video/collection/missing/'),PageNotFoundError)
+ assert.throws(()=>resolve('/Video/BV1xx411c7mD/?collection=missing'),PageNotFoundError)
+ assert.equal(resolve('/Video/BV1xx411c7mD/').video,library.videos[0])
+ assert.equal(resolve('/Video/BV1yy411c7mD/').video,library.videos[1])
+ assert.equal(resolve('/Video/BV1yy411c7mD/').video?.availability,'unavailable')
+ assert.equal(resolve('/Video/collection/series-9/').group,library.collections[0])
+})

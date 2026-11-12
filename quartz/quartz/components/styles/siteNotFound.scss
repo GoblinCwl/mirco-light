@@ -1,0 +1,15 @@
+@use '../../styles/variables.scss' as *;
+
+body[data-slug="site-404"] {
+ .page > #quartz-body {
+  > .sidebar.left {opacity:1;}
+  > .sidebar.right {display:none;}
+  > .center {
+   box-sizing:border-box;padding-top:clamp(8rem,21svh,14rem);
+   > .page-header,> .page-footer,> hr {display:none;}
+  }
+ }
+ .site-not-found {box-sizing:border-box;width:min(100%,34rem);margin:clamp(2rem,6svh,4rem) auto 0;padding:.5rem clamp(1.5rem,4vw,2.25rem);}
+ @media all and ($mobile) {.page > #quartz-body > .center {padding-top:clamp(3rem,12svh,6rem);}}
+ @media(max-width:500px) {.site-not-found {padding:.5rem 1rem;}}
+}

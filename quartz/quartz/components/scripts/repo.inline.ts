@@ -1,3 +1,4 @@
+import {PageNotFoundError,showSiteNotFound} from "./siteError"
 import {fileNameIcon,fileTypeIcons} from '../../util/fileTypeIcons'
 import {readContentCatalog} from './contentCatalog'
 import {markdown,library,runtime} from "./repoMarkdown"
@@ -133,6 +134,7 @@ async function renderRepo(root: HTMLElement, signal: AbortSignal) {
   const read = <T>(action: string, extra: Record<string, string> = {}) => repoCachedRequest<T>(repoApi(route.name, action, params(extra)))
   const renderError = (error: unknown) => {
     if (signal.aborted) return
+    if(error instanceof PageNotFoundError){showSiteNotFound();return}
     updateRepoHeading(peekRepoCatalog()?.repositories.find(repo => repo.name.toLowerCase() === route.name.toLowerCase()))
     const target = root.querySelector<HTMLElement>("[data-repo-content]") || root
     target.innerHTML = `${message(error instanceof Error ? error.message : "仓库读取失败")}<button class="repo-button" data-repo-reload>重新加载</button>`
@@ -145,6 +147,7 @@ async function renderRepo(root: HTMLElement, signal: AbortSignal) {
       const data = await readRepoCatalog()
       if (signal.aborted) return
       const repos = data.repositories.filter(r => !route.language || (r.language || "其他") === route.language)
+      if(route.language&&!repos.length)throw new PageNotFoundError("语言分类不存在")
       setPageModified(root.closest(".center")!, latestPageDate(repos.map(repo => repo.pushed_at)))
       showGraph()
       const requestedSort=new URL(location.href).searchParams.get("sort")
@@ -360,6 +363,6 @@ async function renderRepo(root: HTMLElement, signal: AbortSignal) {
         }
       }
       if (!signal.aborted) content.replaceChildren(...next.childNodes)
-    } else content.innerHTML = message("此仓库视图不存在")
+    } else throw new PageNotFoundError("仓库视图不存在")
   } catch (error) { renderError(error) }
 }

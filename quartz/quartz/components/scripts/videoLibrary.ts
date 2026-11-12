@@ -1,3 +1,4 @@
+import {PageNotFoundError} from "./siteError"
 import { RequestCache, sharedState } from "./sharedRequest"
 import { bilibiliVideoIcon } from "../../util/fileTypeIcons"
 import type { Activity } from "./activityTimeline"
@@ -89,6 +90,16 @@ export function videoRoute(url: URL) {
     valid,
     page: Number.isSafeInteger(page) && page > 0 && page <= 1000 ? page : 1,
   }
+}
+/** Resolve a real site project; a missing BV must not invent an expired video. */
+export function resolveVideoPage(library: VideoLibrary, url: URL) {
+  const route=videoRoute(url)
+  if(!route.valid)throw new PageNotFoundError('视频目录不存在')
+  const video=route.bvid?library.videos.find(item=>item.bvid===route.bvid):undefined
+  if(route.bvid&&!video)throw new PageNotFoundError('视频不存在')
+  const group=route.collection?library.collections.find(item=>item.id===route.collection&&(!video||video.availability==='unavailable'||item.bvids.includes(video.bvid))):(video?library.collections.find(item=>item.bvids.includes(video.bvid)):undefined)
+  if(route.collection&&!group)throw new PageNotFoundError('视频系列不存在')
+  return {route,video,group}
 }
 const publishedTime = (video: VideoItem) => Date.parse(video.publishedAt || "") || 0
 const newestVideo = (a: VideoItem, b: VideoItem) => publishedTime(b) - publishedTime(a)
