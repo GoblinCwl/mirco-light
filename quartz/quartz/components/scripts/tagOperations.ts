@@ -4,12 +4,11 @@ import {readContentCatalog} from './contentCatalog'
 import {driveActionDialog} from './driveActionDialog'
 import {node} from './driveUi'
 import {showPasswordToast} from './passwordFeedback'
-import {homeIcons} from '../../home/icons'
 import {tagPrefixes} from './shareContent'
 import {slugTag} from '../../util/path'
 export function setupTagOperations(sidebar:HTMLElement,tag:string,signal:AbortSignal){
  sidebar.replaceChildren();sidebar.hidden=true;sidebar.removeAttribute('aria-busy')
- const section=node('section','','tag-project-operations');section.append(node('h3','操作'));sidebar.append(section)
+ const section=node('div','','tag-project-operations');sidebar.append(section)
  let editing=false
  const edit=async(remove:boolean)=>{
   if(editing)return;editing=true
@@ -26,7 +25,12 @@ export function setupTagOperations(sidebar:HTMLElement,tag:string,signal:AbortSi
     if(articles.length&&!signal.aborted)await window.spaNavigate(new URL(location.href),true)})
   }catch(error){editing=false;if(!signal.aborted)showPasswordToast(error instanceof Error?error.message:'读取失败',true)}
  }
- for(const remove of [false,true]){const button=node('button','','drive-operation-action is-applicable'),icon=node('span','','drive-operation-icon');icon.innerHTML=remove?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14"/></svg>':homeIcons.tags;button.type='button';button.append(icon,node('span',remove?'移除项目':'添加项目'));button.onclick=()=>void edit(remove);section.append(button)}
+ for(const remove of [false,true]){
+  const label=remove?'移除项目':'添加项目',button=node('button','','tag-project-edit')
+  button.type='button';button.setAttribute('aria-label',label);button.title=label
+  button.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5M7 9h3M7 13h3M7 17h6"/><circle cx="17.5" cy="6.5" r="5" fill="var(--light)"/><path d="M15 6.5h5${remove?'':'M17.5 4v5'}"/></svg>`
+  button.addEventListener('click',()=>void edit(remove),{signal});section.append(button)
+ }
  const show=(authenticated:boolean)=>{sidebar.hidden=!authenticated}
  document.addEventListener('stellar-auth-changed',event=>show(!!(event as CustomEvent).detail?.authenticated),{signal})
  void readSiteSession().then(value=>{if(!signal.aborted)show(!!value?.authenticated)}).catch(()=>{})

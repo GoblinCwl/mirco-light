@@ -35,3 +35,15 @@ test('Markdown website project links become internal references without changing
   assert.ok((links[4].properties.className as string[]).includes('external'))
   assert.ok((links[5].properties.className as string[]).includes('internal'))
 })
+
+test('tag galaxy query links bypass Markdown path slugification', async () => {
+ const file=new VFile();file.data.slug='Memo/source' as typeof file.data.slug
+ const processor=unified().use(remarkParse).use(remarkRehype).use(CrawlLinks().htmlPlugins!(ctx))
+ const href='/tags/?tag=%E6%8A%80%E6%9C%AF%2FC%2B%2B'
+ const tree=await processor.run(processor.parse(`[标签](${href})`),file) as Root
+ let link:Element|undefined
+ visit(tree,'element',node=>{if(node.tagName==='a')link=node})
+ assert.equal(link?.properties.href,href)
+ assert.equal(link?.properties['data-no-popover'],'true')
+ assert.deepEqual(file.data.links,[])
+})

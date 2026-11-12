@@ -121,7 +121,7 @@ export function attachVideoPreview(
       panel.style.width = "320px"
       panel.style.height = "180px"
     }
-    document.body.append(panel)
+    (element.closest("dialog[open]")||document.body).append(panel)
     activePreview = destroy
   }
 

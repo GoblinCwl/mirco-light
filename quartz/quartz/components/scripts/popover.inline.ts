@@ -22,10 +22,10 @@ async function showDriveHover(link:HTMLAnchorElement,event:{clientX:number;clien
   clearActivePopover();
   if(repo&&!repoHoverAvailable(new URL(link.href)))return
   activeAnchor=link
-  const eligibility=repo?Promise.resolve(true):driveHoverAllowed(new URL(link.href),Boolean(link.closest('.home-encounter,[data-tag-results]')))
+  const eligibility=repo?Promise.resolve(true):driveHoverAllowed(new URL(link.href),Boolean(link.closest('.home-encounter,.tag-project-dialog')))
   {
     const request=driveHoverRequest=new AbortController()
-    const allowMedia=Boolean(link.closest('.home-encounter,[data-tag-results]'))
+    const allowMedia=Boolean(link.closest('.home-encounter,.tag-project-dialog'))
     if(!await eligibility||request.signal.aborted||activeAnchor!==link)return
     document.querySelectorAll('.drive-popover,.repo-popover').forEach(node=>node.remove())
     const popover=document.createElement('div'),inner=document.createElement('div')
@@ -34,7 +34,7 @@ async function showDriveHover(link:HTMLAnchorElement,event:{clientX:number;clien
       const {x,y}=await computePosition(link,popover,{strategy:'fixed',middleware:[inline({x:event.clientX,y:event.clientY}),shift({padding:8}),flip()]})
       if(!request.signal.aborted)popover.style.transform=`translate(${x.toFixed()}px,${y.toFixed()}px)`
     }
-    inner.append(previewLoading());document.body.append(popover);void position()
+    inner.append(previewLoading());(link.closest("dialog[open]")||document.body).append(popover);void position()
     const cancel=()=>popover.remove();request.signal.addEventListener('abort',cancel,{once:true})
     try{
       const url=new URL(link.href),label=link.textContent?.trim()||link.getAttribute('aria-label')||''
@@ -88,6 +88,8 @@ async function mouseEnterHandler(
   }
 
   function showPopover(popoverElement: HTMLElement) {
+    const host=link.closest("dialog[open]")||document.body
+    if(popoverElement.parentElement!==host)host.append(popoverElement)
     document.querySelectorAll('.active-popover').forEach(node=>node.classList.remove('active-popover'))
     popoverElement.classList.add("active-popover")
     setPosition(popoverElement as HTMLElement)
@@ -123,7 +125,7 @@ async function mouseEnterHandler(
   popoverInner.classList.add("popover-inner")
   popoverInner.append(previewLoading())
   popoverElement.appendChild(popoverInner)
-  document.body.append(popoverElement)
+  ;(link.closest("dialog[open]")||document.body).append(popoverElement)
   showPopover(popoverElement)
   const cancel=()=>popoverElement.remove()
   request.signal.addEventListener("abort",cancel,{once:true})

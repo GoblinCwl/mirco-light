@@ -20,7 +20,7 @@ test('navigation includes all tags sorted by count, with escaped links and label
  assert.ok(ranking.indexOf('标签11</span>')<ranking.indexOf('标签0</span>'))
  assert.ok(html.includes('&lt;script&gt;&quot;&amp;'))
  assert.ok(!html.includes('<script>'))
- assert.ok(html.includes('/tags/%3Cscript%3E%22%26/'))
+ assert.ok(html.includes('/tags/?tag=%3Cscript%3E%22%26'))
  assert.ok(!renderTagNavigation(stats).includes('<svg'))
  assert.ok(!html.includes('tag-index-heading'))
  assert.ok(!html.includes('data-tag-visible-count'))
@@ -37,7 +37,7 @@ test('nebula layout keeps every tag destination visible without pagination',()=>
  assert.equal((html.match(/class="tag-nebula-entry"/g)||[]).length,stats.counts.length)
  assert.equal((html.match(/class="tag-nebula-entry" data-tag-name="[^"]+" hidden/g)||[]).length,0)
  assert.ok(html.includes('data-tag-name="开发/Go/并发"'))
- assert.ok(html.includes('href="/tags/%E5%BC%80%E5%8F%91/Go/%E5%B9%B6%E5%8F%91/"'))
+ assert.ok(html.includes('href="/tags/?tag=%E5%BC%80%E5%8F%91%2FGo%2F%E5%B9%B6%E5%8F%91"'))
  assert.ok(html.includes('class="tag-index-name">开发/Go/并发</span>'))
 
  assert.ok(html.includes('aria-label="开发/Go/并发，1 项内容"'))

@@ -1,6 +1,7 @@
+import {tagHref} from "../util/tagLink"
 import {formatDirectoryDate} from '../util/formatDate'
 import {fileTypeIcons} from '../util/fileTypeIcons'
-import { FullSlug, isFolderPath, resolveRelative } from "../util/path"
+import { isFolderPath, resolveRelative } from "../util/path"
 import { QuartzPluginData } from "../plugins/vfile"
 import { Date, getDate, formatDate } from "./Date"
 import { QuartzComponent, QuartzComponentProps } from "./types"
@@ -82,7 +83,7 @@ export const PageList: QuartzComponent = ({ cfg, fileData, allFiles, limit, sort
         return <tr data-directory-name={page.frontmatter?.title || ""} data-directory-folder={String(directory)} data-directory-modified={updated && Number.isFinite(updated.getTime()) ? updated.getTime() : ""}>
           <td class="drive-kind-cell"><span class="drive-file-icon" role="img" aria-label={directory ? "文件夹" : "文章"} dangerouslySetInnerHTML={{__html:directory ? fileTypeIcons.folder : fileTypeIcons.article}}/></td>
           <td class="drive-name-cell"><div class="drive-entry-name">{encrypted && <EncryptedMark/>}<a class="internal drive-file-open" href={resolveRelative(fileData.slug!, page.slug!)} data-no-popover={encrypted ? "true" : undefined}><span class="drive-file-name">{page.frontmatter?.title}</span></a></div></td>
-          {hasTags && <td class="drive-tags-cell">{!!page.frontmatter?.tags?.length && <ul class="tags directory-tags" title={page.frontmatter.tags.map(tag => `#${tag}`).join(" · ")}><li><a class="internal tag-link" data-no-popover="true" href={resolveRelative(fileData.slug!, `tags/${page.frontmatter.tags[0]}` as FullSlug)}>{page.frontmatter.tags[0]}</a></li>{page.frontmatter.tags.length > 1 && <li><span class="directory-tags-more">+{page.frontmatter.tags.length - 1}</span></li>}</ul>}</td>}
+          {hasTags && <td class="drive-tags-cell">{!!page.frontmatter?.tags?.length && <ul class="tags directory-tags" title={page.frontmatter.tags.map(tag => `#${tag}`).join(" · ")}><li><a class="internal tag-link" data-no-popover="true" href={tagHref(page.frontmatter.tags[0])}>{page.frontmatter.tags[0]}</a></li>{page.frontmatter.tags.length > 1 && <li><span class="directory-tags-more">+{page.frontmatter.tags.length - 1}</span></li>}</ul>}</td>}
           {hasDates && <td class="drive-modified-cell">{updated && Number.isFinite(updated.getTime()) ? <span title={updated.toLocaleString(cfg.locale)}><time datetime={updated.toISOString()}><span class="directory-date-full">{formatDate(updated,cfg.locale)}</span><span class="directory-date-compact">{formatDirectoryDate(updated,cfg.locale)}</span></time></span> : "—"}</td>}
         </tr>
       })}</tbody>
@@ -120,7 +121,7 @@ export const PageList: QuartzComponent = ({ cfg, fileData, allFiles, limit, sort
                     <a
                       class="internal tag-link"
                       data-no-popover="true"
-                      href={resolveRelative(fileData.slug!, `tags/${tag}` as FullSlug)}
+                      href={tagHref(tag)}
                     >
                       {tag}
                     </a>

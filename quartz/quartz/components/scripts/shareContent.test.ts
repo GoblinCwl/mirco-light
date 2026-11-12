@@ -16,6 +16,6 @@ test("public discovery indexes only share roots, retaining index IDs and public 
 })
 test("parent tags aggregate without duplicating shares; tag links use canonical encoded paths", () => {
   assert.deepEqual(tagPrefixes(["分类/日语", "分类/语法", "分类/日语"]), ["分类", "分类/日语", "分类/语法"])
-  assert.equal(tagHref("分类/日语"), "/tags/%E5%88%86%E7%B1%BB/%E6%97%A5%E8%AF%AD/")
+  assert.equal(tagHref("分类/日语"), "/tags/?tag=%E5%88%86%E7%B1%BB%2F%E6%97%A5%E8%AF%AD")
   assert.deepEqual(shareContent([]), [])
 })

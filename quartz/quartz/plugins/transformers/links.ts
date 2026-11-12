@@ -58,6 +58,13 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
               ) {
                 let dest = node.properties.href as RelativeURL
                 const classes = (node.properties.className ?? []) as string[]
+                // Tag destinations carry a query, not a Markdown file path. Do
+                // not slugify their query or include a nonexistent archive node.
+                if (dest.startsWith("/tags/?tag=")) {
+                  node.properties.className = [...classes, "internal", "tag-link"]
+                  node.properties["data-no-popover"] = "true"
+                  return
+                }
                 const project = projectReference(dest, ctx.cfg.configuration.baseUrl)
                 if (project) {
                   outgoing.add(project.slug as SimpleSlug)

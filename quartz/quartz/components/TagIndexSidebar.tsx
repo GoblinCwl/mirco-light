@@ -1,7 +1,6 @@
 import {QuartzComponent,QuartzComponentConstructor} from './types'
 const TagIndexSidebar:QuartzComponent=({fileData})=>{
  if(!fileData.slug?.startsWith('tags/'))return null
- if(fileData.slug!=='tags/index')return <aside class="tag-index-aside" data-tag-sidebar hidden />
  return <>
   <button type="button" class="tag-panel-launch" data-tag-panel-open aria-label="全部标签" aria-haspopup="dialog" aria-controls="tag-navigation-panel" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="currentColor" opacity=".12" d="M3 4h8l10 10-7 7L3 10Z"/><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M4 3h7l10 10a1.5 1.5 0 0 1 0 2l-6 6a1.5 1.5 0 0 1-2 0L3 11V4a1 1 0 0 1 1-1Z"/><circle cx="7.5" cy="7.5" r="1.3" fill="currentColor"/></svg><span>全部标签</span></button>
   <aside class="tag-index-aside" data-tag-sidebar aria-busy="true">

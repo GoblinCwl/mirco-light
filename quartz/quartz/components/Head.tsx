@@ -41,7 +41,6 @@ export default (() => {
       <head>
         {!isListed(fileData, cfg) && <meta name="robots" content="noindex, nofollow" />}
         <title>{title}</title>
-        {fileData.slug?.startsWith("tags/") && <base href={`/${fileData.slug.split("/").map(encodeURIComponent).join("/")}`} />}
         <meta charSet="utf-8" />
         {cfg.theme.fontOrigin === "local" && [
           "6xK3dSBYKcSV-LCoeQqfX1RYOo3aPw.ttf",

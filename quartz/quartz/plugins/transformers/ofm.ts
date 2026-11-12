@@ -1,3 +1,4 @@
+import {tagHref} from "../../util/tagLink"
 import { QuartzTransformerPlugin } from "../types"
 import {
   Root,
@@ -22,7 +23,7 @@ import checkboxScript from "../../components/scripts/checkbox.inline"
 // @ts-ignore
 import mermaidScript from "../../components/scripts/mermaid.inline"
 import mermaidStyle from "../../components/styles/mermaid.inline.scss"
-import { FilePath, pathToRoot, slugTag, slugifyFilePath } from "../../util/path"
+import { FilePath, slugTag, slugifyFilePath } from "../../util/path"
 import { toHast } from "mdast-util-to-hast"
 import { toHtml } from "hast-util-to-html"
 import { capitalize } from "../../util/lang"
@@ -215,7 +216,6 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
       plugins.push(() => {
         return (tree: Root, file) => {
           const replacements: [RegExp, string | ReplaceFunction][] = []
-          const base = pathToRoot(file.data.slug!)
 
           if (opts.wikilinks) {
             replacements.push([
@@ -350,7 +350,7 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
 
                 return {
                   type: "link",
-                  url: base + `/tags/${tag}`,
+                  url: tagHref(tag),
                   data: {
                     hProperties: {
                       className: ["tag-link"],

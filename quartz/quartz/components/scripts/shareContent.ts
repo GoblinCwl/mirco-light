@@ -14,4 +14,4 @@ export function shareContent(entries: DriveEntry[]) {
   })
 }
 export const tagPrefixes = (tags: string[]) => [...new Set(tags.flatMap(getAllSegmentPrefixes))]
-export const tagHref = (tag: string) => `/tags/${tag.split("/").map(encodeURIComponent).join("/")}/`
+export {tagHref} from "../../util/tagLink"

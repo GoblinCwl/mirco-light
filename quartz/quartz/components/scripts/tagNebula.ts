@@ -1,10 +1,11 @@
+import {tagCameraOverview,tagCameraTarget,projectTagPoint,interpolateTagCamera,type TagCamera} from '../../util/tagCamera'
 import {bindTagOrbitDrag} from './tagOrbitDrag'
 import type {TagStats} from '../../util/tagIndex'
 import {layoutTagRiver,tagRandom,tagStarPositions,tagRiverPosition,tagClusterColors,tagStarMotion,tagFocusAngle,type ClusterBounds,type GalaxyWindow} from '../../util/tagClusters'
 
 type Cluster = ClusterBounds & {
  entry:HTMLElement;stars:ReturnType<typeof tagStarPositions>
- spark:HTMLCanvasElement;scale:number;hover:number
+ spark:HTMLCanvasElement;scale:number;hover:number;screenX:number;screenY:number
 }
 const color=(rgb:number[],alpha:number)=>`rgba(${rgb.join(',')},${alpha})`
 function deepSpaceTexture(width:number,height:number,light:boolean) {
@@ -139,7 +140,7 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
  const stage=root.querySelector<HTMLElement>('[data-tag-nebula]')!,canvas=stage.querySelector<HTMLCanvasElement>('canvas')!,ctx=canvas.getContext('2d')!
  const lifecycle=new AbortController(),signal=lifecycle.signal,reduced=matchMedia('(prefers-reduced-motion:reduce)')
  const entries=new Map([...stage.querySelectorAll<HTMLElement>('[data-tag-name]')].map(entry=>[entry.dataset.tagName!,entry]))
- let clusters:Cluster[]=[],width=0,height=0,frame=0,last=0,disposed=false,light=false
+ let clusters:Cluster[]=[],width=0,height=0,frame=0,disposed=false,light=false
  const start=performance.now()
  const angularSpeed=.021
  let galaxy:GalaxyWindow={centerX:0,centerY:0,innerRadius:1,outerRadius:1}
@@ -147,6 +148,13 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
  let pointer:{x:number;y:number}|undefined,space:HTMLCanvasElement|undefined,meteor:HTMLCanvasElement|undefined
  let rivers:RiverLayer[]=[]
  let focusMotion:{from:number;target:number;elapsed:number;duration:number;arrived?:()=>void}|undefined
+ let camera=tagCameraOverview(),inspecting:string|undefined
+ let cameraMotion:{from:TagCamera;tag?:string;angle:number;elapsed:number;duration:number;arrived?:()=>void}|undefined
+ const resetFocus=()=>{
+  focusMotion=undefined;inspecting=undefined
+  cameraMotion={from:{...camera},angle:0,elapsed:0,duration:.22}
+  requestPaint()
+ }
  let drag:{id:number;x:number;y:number;lastX:number;lastY:number;lastTime:number;velocity:number;active:boolean}|undefined,suppressClick=false
  const freeTextures=()=>{for(const river of rivers)river.texture.width=0;rivers=[];space&&(space.width=0);meteor&&(meteor.width=0);for(const cluster of clusters){cluster.spark.width=0}}
  const positionClusters=()=>{
@@ -154,7 +162,8 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
   clusters.forEach(cluster=>{
    const position=tagRiverPosition(cluster,travel,galaxy)
    cluster.x=position.x;cluster.y=position.y
-   cluster.entry.style.transform=`translate3d(${cluster.x.toFixed(2)}px,${cluster.y.toFixed(2)}px,0) translate(-50%,-50%)`
+   const screen=projectTagPoint(position,camera,width,height);cluster.screenX=screen.x;cluster.screenY=screen.y
+   cluster.entry.style.transform=`translate3d(${screen.x.toFixed(2)}px,${screen.y.toFixed(2)}px,0) translate(-50%,-50%) scale(${camera.scale.toFixed(4)})`
   })
  }
  const rebuild=()=>{
@@ -169,14 +178,15 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
    const rgb=tagClusterColors(bounds.tag)[light?'light':'dark'],entry=entries.get(bounds.tag)!
    const members=stats.counts.find(item=>item.tag===bounds.tag)?.members??[]
    entry.style.width=`${bounds.radius*2}px`;entry.style.height=`${bounds.radius*1.5}px`
-   return {...bounds,entry,stars:tagStarPositions(bounds.tag,members,bounds.radius),spark:starTexture(rgb,light),scale:1,hover:0}
+   return {...bounds,screenX:bounds.x,screenY:bounds.y,entry,stars:tagStarPositions(bounds.tag,members,bounds.radius),spark:starTexture(rgb,light),scale:1,hover:0}
   })
   positionClusters();requestPaint()
  }
  function paint(now:number) {
   frame=0;if(disposed||document.hidden)return
-  const delta=lastFlow?Math.min((now-lastFlow)/1000,.12):1/24
-  if(!reduced.matches&&lastFlow&&!drag?.active)flowTime+=delta
+  let cameraArrived:(()=>void)|undefined
+  const delta=lastFlow?Math.min((now-lastFlow)/1000,.12):1/60
+  if(!reduced.matches&&lastFlow&&!drag?.active&&!inspecting)flowTime+=delta
   // Ease manual navigation into the same orbit used by automatic drift.
   const wheelStep=wheelAngle*(reduced.matches?1:1-Math.exp(-delta/.22))
   rotationOffset+=wheelStep;wheelAngle-=wheelStep
@@ -196,8 +206,21 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
    rotationOffset=motion.from+(motion.target-motion.from)*eased-flowTime*angularSpeed
    if(progress===1){focusMotion=undefined;motion.arrived?.()}
   }
+  if(cameraMotion){
+   const motion=cameraMotion;motion.elapsed+=delta
+   const cluster=motion.tag?clusters.find(item=>item.tag===motion.tag):undefined
+   const target=cluster?tagCameraTarget(tagRiverPosition(cluster,motion.angle,galaxy),width,height):tagCameraOverview()
+   const progress=reduced.matches?1:Math.min(1,motion.elapsed/motion.duration)
+   camera=interpolateTagCamera(motion.from,target,progress)
+   if(progress===1){cameraMotion=undefined;cameraArrived=motion.arrived}
+  }else if(inspecting){
+   const cluster=clusters.find(item=>item.tag===inspecting)
+   if(cluster)camera=tagCameraTarget(tagRiverPosition(cluster,flowTime*angularSpeed+rotationOffset,galaxy),width,height)
+  }
   lastFlow=now
-  const elapsed=(now-start)/1000,box=stage.getBoundingClientRect(),travel=flowTime*angularSpeed+rotationOffset
+  // Read geometry before moving labels, and only when pointer hit-testing needs it.
+  const box=pointer?stage.getBoundingClientRect():undefined,focused=document.activeElement
+  const elapsed=(now-start)/1000,travel=flowTime*angularSpeed+rotationOffset
   positionClusters();ctx.clearRect(0,0,width,height)
   if(space)ctx.drawImage(space,0,0,width,height)
   // Sparse distant motion shares the scene clock and its visibility lifecycle.
@@ -208,6 +231,7 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
    ctx.translate(width*(side ? .12 : .72)+progress*width*.2,height*(side ? .22 : .68)+progress*height*.1)
    ctx.rotate(.55);ctx.drawImage(meteor,-64,-3,64,6);ctx.restore()
   }
+  ctx.save();ctx.translate(width/2+camera.x,height/2+camera.y);ctx.scale(camera.scale,camera.scale);ctx.translate(-width/2,-height/2)
   for(const [layer,river] of rivers.entries()){
    const phase=layer*Math.PI*2/3
    const weave=reduced.matches?0:(Math.sin(flowTime*.38+phase)-Math.sin(phase))*.024+flowTime*(layer-1)*.0018
@@ -222,11 +246,12 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
    ctx.restore()
   }
   for(const [clusterIndex,cluster] of clusters.entries()){
-   if(cluster.y+cluster.radius<0||cluster.y-cluster.radius>height||cluster.x+cluster.radius<0||cluster.x-cluster.radius>width)continue
-   if(pointer){const x=pointer.x-box.left,y=pointer.y-box.top;cluster.entry.classList.toggle('is-hovered',((x-cluster.x)/cluster.radius)**2+((y-cluster.y)/(cluster.radius*.72))**2<1)}
-   const active=cluster.entry.classList.contains('is-hovered')||cluster.entry.matches(':focus-within')||cluster.entry.classList.contains('is-located')
+   const screenRadius=cluster.radius*camera.scale
+   if(cluster.screenY+screenRadius<0||cluster.screenY-screenRadius>height||cluster.screenX+screenRadius<0||cluster.screenX-screenRadius>width)continue
+   if(pointer&&box){const x=pointer.x-box.left,y=pointer.y-box.top;cluster.entry.classList.toggle('is-hovered',((x-cluster.screenX)/screenRadius)**2+((y-cluster.screenY)/(screenRadius*.72))**2<1)}
+   const active=cluster.entry.classList.contains('is-hovered')||Boolean(focused&&cluster.entry.contains(focused))||cluster.entry.classList.contains('is-located')
    cluster.hover=active?(cluster.hover||now):0
-   cluster.scale=reduced.matches?(active?1.035:1):cluster.scale+(active?1.035-cluster.scale:1-cluster.scale)*.14
+   cluster.scale=reduced.matches?(active?1.035:1):cluster.scale+((active?1.035:1)-cluster.scale)*(1-Math.exp(-delta/.28))
    ctx.save();ctx.translate(cluster.x,cluster.y);ctx.scale(cluster.scale,cluster.scale)
    for(const [index,point] of cluster.stars.entries()){
     const twinkle=reduced.matches ? .95 : .8+.18*Math.sin(elapsed/point.period*Math.PI*2+point.phase)
@@ -239,17 +264,24 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
    }
    ctx.restore()
   }
-  if(!frame&&stageVisible&&(!reduced.matches||wheelAngle!==0||focusMotion))frame=requestAnimationFrame(tick)
+  ctx.restore()
+  // Open the expanding panel only after its source label reached the final view.
+  cameraArrived?.()
+  if(!frame&&stageVisible&&(!reduced.matches||wheelAngle!==0||focusMotion||cameraMotion))frame=requestAnimationFrame(paint)
  }
- function tick(now:number){if(now-last<1000/24){frame=requestAnimationFrame(tick);return}last=now;paint(now)}
  function requestPaint(){if(!disposed&&!document.hidden&&!frame)frame=requestAnimationFrame(paint)}
- const focus=(tag:string,arrived?:()=>void)=>{
+ const focus=(tag:string,arrived?:()=>void,zoomIn=false)=>{
   const cluster=clusters.find(cluster=>cluster.tag===tag);if(!cluster)return
   wheelAngle=0;inertiaVelocity=0
   const from=flowTime*angularSpeed+rotationOffset,target=tagFocusAngle(from,cluster.phase)
+  const duration=.38+Math.min(.32,Math.abs(target-from)*.12)
+  if(zoomIn){
+   inspecting=tag
+   cameraMotion={from:{...camera},tag,angle:target,elapsed:0,duration,arrived}
+  }
   if(reduced.matches||Math.abs(target-from)<.001){
-   focusMotion=undefined;rotationOffset=target-flowTime*angularSpeed;positionClusters();arrived?.()
-  }else focusMotion={from,target,elapsed:0,duration:.65+Math.min(.8,Math.abs(target-from)*.25),arrived}
+   focusMotion=undefined;rotationOffset=target-flowTime*angularSpeed;positionClusters();if(!zoomIn)arrived?.()
+  }else focusMotion={from,target,elapsed:0,duration,arrived:zoomIn?undefined:arrived}
   requestPaint()
  }
  const queueResize=()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(rebuild,120)}
@@ -263,6 +295,7 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
   // Leave browser zoom and horizontal trackpad gestures untouched.
   if(event.ctrlKey||!event.deltaY||Math.abs(event.deltaX)>Math.abs(event.deltaY))return
   if(event.cancelable)event.preventDefault()
+  if(inspecting)resetFocus()
   const pixels=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?height:1)
   focusMotion=undefined;inertiaVelocity=0
   wheelAngle+=Math.max(-height,Math.min(height,pixels))/galaxy.outerRadius
@@ -270,6 +303,7 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
  },{signal,passive:false})
  bindTagOrbitDrag(stage,signal,{
  start(id,x,y){
+  if(inspecting)resetFocus()
   drag={id,x,y,lastX:x,lastY:y,lastTime:performance.now(),velocity:0,active:false}
   focusMotion=undefined;inertiaVelocity=0;wheelAngle=0;suppressClick=false
  },
@@ -303,9 +337,9 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
  stage.addEventListener('focusin',event=>{
   const entry=event.target instanceof Element?event.target.closest<HTMLElement>('[data-tag-name]'):null
   const cluster=clusters.find(cluster=>cluster.entry===entry)
-  if(cluster&&(cluster.y<30||cluster.y>height-30||cluster.x<30||cluster.x>width-30))focus(cluster.tag)
+  if(cluster&&(cluster.screenY<30||cluster.screenY>height-30||cluster.screenX<30||cluster.screenX>width-30))focus(cluster.tag)
   requestPaint()
  },{signal})
  rebuild()
- return {focus,refresh:requestPaint,dispose:()=>{disposed=true;lifecycle.abort();resize.disconnect();sceneObserver.disconnect();cancelAnimationFrame(frame);clearTimeout(resizeTimer);freeTextures();canvas.width=canvas.height=0}}
+ return {focus,resetFocus,refresh:requestPaint,dispose:()=>{disposed=true;lifecycle.abort();resize.disconnect();sceneObserver.disconnect();cancelAnimationFrame(frame);clearTimeout(resizeTimer);freeTextures();canvas.width=canvas.height=0}}
 }

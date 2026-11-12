@@ -150,7 +150,7 @@ Go 加入 `service_net` 接受 Nginx 请求，同时加入私有后端网络访�
 
 身份读取统一为 `/api/site/session`，Share 页面按需追加 `share=true`。本站状态、TOTP 状态及经后端校验的 OpenList 身份从同一入口返回；来源故障不影响本站登录状态。浏览器缓存只服务界面展示，管理写入仍独立验证会话。
 
-标签查询统一读取 `content.tags`，不再维护 `content_tags`。文章的标签编辑及标签页增删文章关联，会按索引中的 `extra.filePath` 修改原始 Markdown frontmatter（`tags`，兼容原有 `tag` 写法），再由 Quartz 热更新成功快照更新索引。文章不设置或保留 `tagsManaged`，Obsidian 中的修改始终是来源。保存文件与构建发布之间，索引暂时保持旧数据。标签筛选页增减文章关联后，在本次操作内等待新标签进入已发布索引，再刷新当前页面一次；等待可随离开页面取消，最长 45 秒，不设置常驻轮询。
+标签查询统一读取 `content.tags`，不再维护 `content_tags`。文章的标签编辑及标签页增删文章关联，会按索引中的 `extra.filePath` 修改原始 Markdown frontmatter（`tags`，兼容原有 `tag` 写法），再由 Quartz 热更新成功快照更新索引。文章不设置或保留 `tagsManaged`，Obsidian 中的修改始终是来源。保存文件与构建发布之间，索引暂时保持旧数据。标签星河项目弹框增减文章关联后，在本次操作内等待新标签进入已发布索引，再刷新当前页面一次；等待可随离开页面取消，最长 45 秒，不设置常驻轮询。
 
 Go 通过 Compose 将笔记目录读写挂载至 `/sources/notes`，配置为 `ARTICLE_DIRECTORY`；日记单独挂载保持只读。宿主笔记目录为 UID 1000 配置访问及默认 ACL，保证现有目录和新建子目录可保存，服务仍以 UID 1000 运行。写入限定为该目录内的普通 `.md` 文件，使用受限文件根、同目录临时文件和原子替换。仅修改标签属性，保留正文、其他属性、BOM、换行格式和文件权限。批量操作先准备全部修改，失败时尽力回退已写文件；回退也检查内容，避免覆盖外部新编辑。写入前检查内容及文件身份，属于乐观并发保护，不承诺与 Obsidian/Syncthing 跨进程事务。临时文件由 Quartz 监听器忽略。
 
@@ -327,3 +327,7 @@ readPlayerAsset 在父页面读取公开的版本化字体，使用浏览器 Cac
 | Beszel | [henrygd/beszel · icon.svg](https://github.com/henrygd/beszel/blob/main/internal/site/public/static/icon.svg) |
 
 同日为其余六个现有条目配置本站绘制的彩色业务图标，同样保存为可编辑的 `icon_svg`，不引入 PNG/WebP 或新的图片请求：Quartz Server 使用蓝色晶体与连接节点；Artalk 使用珊瑚色/紫色双气泡；DanmuApi 使用蓝色播放窗口与弹幕条；Fontinass 使用紫色字形与金色字幕线；ActivityWatch 使用青绿色时钟；NapCat 使用暖橙色猫脸。这组为本站设计，不标记为官方 Logo；已配置的六项官方 SVG 保持不变。
+
+### 标签星河入口
+
+全站标签入口统一为 `/tags/?tag=<标签名>`，标签名按完整字符串 URL 编码，含 `/` 的子标签仍作为一个查询值。构建仅生成 `tags/index.html`，不再生成独立标签筛选页，也不保留动态筛选路由 API。直达链接在索引就绪后定位星团并展开项目弹框，关闭面板清除 `tag` 参数，其他访问参数保留。弹框按每批 20 项渐进渲染，用内部滚动触底追加，不额外请求整套索引；悬停预览沿用四类内容已有组件与权限规则。管理员增减标签项目操作保留在弹框内。
