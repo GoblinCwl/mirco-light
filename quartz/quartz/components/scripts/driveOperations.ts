@@ -216,7 +216,7 @@ export function setupDriveOperations(signal: AbortSignal, callbacks: { clearSele
     }
     {
       add(files, "下载", "download", hasTarget)
-      add(files, "复制直链", "link", true)
+      add(files, "复制直链", "link", count > 0)
       if(!signedIn)return
       if(shareManagement){
         add(files,'编辑分享','edit-share',manageShare&&!state.loading,'请选择一个自己创建的分享，不可混选文件')

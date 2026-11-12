@@ -58,6 +58,7 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
       context={...context,selected:[target]}
     }
     if(["upload","folder","offline"].includes(kind)&&context.user?.role!==2){showPasswordToast("仅管理员可执行此操作",true);return}
+    if(kind==="link"&&!context.selected.length){showPasswordToast("请先选择文件或文件夹",true);return}
     active = true
     const token = driveToken(), { view, path, share, user } = context
     const targetPath = (entry: ActionEntry) => driveRoute(new URL(entry.target, location.origin)).path
@@ -96,7 +97,6 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
       if(kind==="download"&&targets.some(entry=>!canDownloadDriveEntry(entry,id=>Boolean(readDriveShareCode(id)))))throw new Error("所选项目包含未解密的分享，请先解密后再下载")
       if (kind === "refresh") { await refresh(); showPasswordToast("目录已刷新"); return }
       if (kind === "link") {
-        const current = new URL(location.href); current.hash = ""
         const links: string[] = []
         let account = user
         for (const item of targets) {
@@ -120,7 +120,6 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
             links.push(driveDownloadUrl(joinDrivePath(account.base_path || "/", filePath), meta.sign))
           }
         }
-        if (!links.length) links.push(current.href)
         signal.throwIfAborted()
         const text = links.join("\n")
         try { await navigator.clipboard.writeText(text); showPasswordToast(targets.every(item=>item.shared||item.directory) ? "链接已复制" : "直链已复制") }

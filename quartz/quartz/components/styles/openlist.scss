@@ -34,15 +34,7 @@ body[data-slug^="Share/"] {
   }
   .drive-context { color: var(--gray); font-size: 0.85rem; margin: 0; &:empty { display: none; } }
   .drive-stage { position: relative; display: flow-root; min-height: 24rem; }
-  .drive-gate {
-    box-sizing: border-box; width: min(100%, 34rem);
-    margin: clamp(2rem, 6svh, 4rem) auto 0;
-    padding: .5rem clamp(1.5rem, 4vw, 2.25rem);
-    text-align: center;
-    .lock-header > h2 { margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.4; }
-
-  }
-  .drive-stage:has(> :is(.drive-unlock-content, .drive-gate):not([hidden])) { min-height: 0; }
+  .drive-stage:has(> .drive-unlock-content:not([hidden])) { min-height: 0; }
   .drive-unlock-content { min-height: 0; }
   .drive-preview-body {
     min-height: 18rem; display: flex; justify-content: center; align-items: center; overflow: auto;
@@ -153,7 +145,6 @@ body[data-slug^="Share/"] {
 @media (prefers-reduced-motion: reduce) { .drive-page .drive-file-table tbody tr { transition: none; } }
 
 @media screen and (max-width: 500px) {
-  .drive-page .drive-gate { padding-inline: 1rem; }
 }
 
 .drive-page .drive-image-view {
@@ -404,7 +395,7 @@ body.drive-web-fullscreen-host{inset:0!important;touch-action:manipulation;}
 
 // Share's entrance separates curated projects from the visitor file browser.
 .drive-page {
-  .share-home { margin-bottom: 2rem; }
+  .share-home { margin-bottom:1.25rem;padding-bottom:1.35rem;border-bottom:1px solid var(--lightgray); }
   .share-home-space {
     display: flex; align-items: center; gap: .75rem; margin: 0 0 1.5rem;
     padding: .85rem 1rem; border: 1px solid var(--lightgray); border-radius: 9px;
@@ -420,59 +411,66 @@ body.drive-web-fullscreen-host{inset:0!important;touch-action:manipulation;}
   }
   .share-home-space-role { margin-left: auto; color: var(--gray); font-size: .72rem; font-weight: 400; white-space: nowrap; }
   .share-home-space-arrow { display: inline-flex; flex-shrink: 0; width: 1rem; height: 1rem; svg { width: 100%; height: 100%; } }
-  .share-home-heading {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .85rem;
-    > h2 { margin: 0; font-size: 1rem; font-weight: 600; }
-    > span { color: var(--gray); font-size: .8rem; white-space: nowrap; }
+  // Project homes are vertical drive trays. The casing is decorative; labels
+  // and access LEDs always reflect the real project data.
+  .share-home-grid {
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,9.25rem),1fr));gap:1rem .8rem;
+    padding: .15rem 0 .65rem;align-items:stretch;
   }
-  .share-home-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .85rem; }
   .share-home-card {
-    display: flex; flex-direction: column; min-width: 0; padding: 1rem 1.1rem;
-    border: 1px solid var(--lightgray); border-radius: 9px; background: var(--light);
-    transition: border-color 150ms ease;
-    &:hover { border-color: color-mix(in srgb,var(--secondary) 50%,var(--lightgray)); }
-    &.is-selected { border-color: var(--secondary); }
+    --drive-indicator:#42dc70;
+    position:relative;isolation:isolate;display:flex;flex-direction:column;min-width:0;min-height:18rem;
+    box-sizing:border-box;padding:1rem 1.45rem 1rem 1rem;
+    border:1px solid color-mix(in srgb,var(--darkgray) 24%,var(--light));border-radius:10px 10px 6px 6px;
+    background:var(--light);
+    transition:border-color 160ms ease;
+    &:hover,&:focus-within{border-color:var(--secondary);}
+    &[data-access="locked"]{--drive-indicator:#d3a163;}
+    &.is-selected{border-color:var(--secondary);}
   }
-  .share-home-card-top { display: flex; align-items: center; }
-  .share-home-identity {
-    display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--darkgray);
-    .drive-file-icon { width: 1.1rem; height: 1.1rem; }
+  .share-home-hardware{display:flex;align-items:center;gap:.75rem;margin:0 0 1.1rem;min-height:1.5rem;}
+  .share-home-slot{flex:none;color:var(--gray);font:500 .7rem/1.5 var(--codeFont);font-variant-numeric:tabular-nums;letter-spacing:.08em;}
+  .share-home-vents{height:1.15rem;flex:1;max-width:4.5rem;opacity:.6;background:repeating-linear-gradient(90deg,transparent 0 4px,var(--lightgray) 4px 6px);border-block:1px solid color-mix(in srgb,var(--lightgray) 60%,transparent);}
+  .share-home-handle{position:absolute;top:30%;bottom:25%;right:.35rem;width:.3rem;border:1px solid var(--lightgray);border-radius:3px;background:transparent;pointer-events:none;}
+  .share-home-card-top{display:flex;align-items:center;}
+  .share-home-identity{
+    display:inline-flex;align-items:center;gap:.3rem;font-size:.68rem;color:var(--darkgray);
+    .drive-file-icon{width:.95rem;height:.95rem;flex:none;}
   }
-  .share-home-card-body {
-    margin: .55rem 0 .9rem;
-    > h3 { margin: 0; font-size: 1.05rem; line-height: 1.5; }
+  .share-home-card-body{
+    margin:.55rem 0 1.1rem;min-width:0;
+    >h3{margin:0;font-size:.98rem;line-height:1.55;}
   }
-  a.share-home-title {
-    background: transparent; padding: 0; border-radius: 0; line-height: inherit;
-    color: var(--secondary); font-weight: 600; overflow-wrap: anywhere;
-    &:hover { text-decoration: underline; text-underline-offset: .2em; }
+  a.share-home-title{
+    background:transparent;padding:0;border-radius:0;line-height:inherit;
+    color:var(--secondary);font-weight:600;overflow-wrap:anywhere;
+    &:hover{color:var(--secondary);background:transparent;text-decoration:underline;text-underline-offset:.2em;}
   }
-  .share-home-tags {
-    display: flex; flex-wrap: wrap; gap: .3rem .55rem; margin: .4rem 0 0; padding: 0; list-style: none;
-    > li { margin: 0; }
-    .tag-link { display: inline-block; font-size: .75rem; line-height: 1.6; padding: 0; background: transparent; font-weight: 400; color: var(--darkgray); }
-    .tag-link::before { content: "#"; opacity: .6; margin-right: .1em; }
+  .share-home-tags{
+    display:flex;flex-wrap:wrap;gap:.2rem .45rem;margin:.6rem 0 0;padding:0;list-style:none;
+    >li{margin:0;max-width:100%;}
+    .tag-link{display:inline-block;max-width:100%;overflow-wrap:anywhere;white-space:normal;font-size:.7rem;line-height:1.6;padding:0;background:transparent;font-weight:400;color:var(--darkgray);}
+    .tag-link::before{content:"#";opacity:.6;margin-right:.1em;}
   }
-  .share-home-card-footer {
-    display: flex; flex-wrap: wrap; justify-content: space-between; gap: .35rem .65rem;
-    margin-top: auto; color: var(--darkgray); font-size: .72rem; line-height: 1.5;
-    > time { white-space: nowrap; }
+  .share-home-card-footer{
+    display:flex;flex-direction:column;align-items:flex-start;gap:.5rem;margin-top:auto;padding: .8rem 0 .45rem;
+    border-top:1px solid var(--lightgray);color:var(--darkgray);font-size:.68rem;line-height:1.5;
+    >time{white-space:normal;font-variant-numeric:tabular-nums;}
   }
-  .share-home-access { display: inline-flex; align-items: center; gap: .25rem; }
-  .share-home-lock { display: inline-flex; width: .8rem; height: .8rem; svg { width: 100%; height: 100%; } }
+  .share-home-access{
+    display:inline-flex;align-items:center;gap:.3rem;
+    &::before{content:"";display:block;flex:none;width:5px;height:5px;border-radius:50%;background:var(--drive-indicator);}
+  }
+  .share-home-lock{display:inline-flex;width:.75rem;height:.75rem;svg{width:100%;height:100%;}}
   .share-home-empty { color: var(--gray); font-size: .85rem; margin: 1rem 0; }
-  .drive-list-caption:has(> .share-home-files-title:not([hidden])) {
-    display: grid; grid-template-columns: 1fr auto; gap: .75rem; margin-top: 0; margin-bottom: .65rem;
-    > .share-home-files-title { grid-column: 1 / -1; margin: 0; font-size: 1rem; color: var(--dark); font-weight: 600; }
-  }
   .drive-file-table .share-home-files-empty { padding: 1.5rem .5rem; color: var(--gray); font-size: .85rem; }
 }
 @media (max-width: 800px) {
   .drive-page {
-    .share-home-grid { grid-template-columns: minmax(0,1fr); gap: .7rem; }
-    .share-home-card { padding: .95rem 1rem; }
+    .share-home-grid { grid-template-columns: repeat(auto-fill,minmax(min(100%,8.25rem),1fr)); gap: .9rem .7rem; }
+    .share-home-card { min-height:17rem;padding:.85rem 1.3rem .85rem .85rem; }
     .share-home-space { gap: .65rem; padding: .8rem 1rem; }
     .share-home-space-copy { flex-direction: column; gap: .15rem; }
-    .share-home { margin-bottom: 1.75rem; }
+    .share-home { margin-bottom:1.1rem;padding-bottom:1.15rem; }
   }
 }

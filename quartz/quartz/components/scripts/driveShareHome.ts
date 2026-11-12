@@ -15,11 +15,15 @@ export function renderShareHome(container:HTMLElement,entries:ShareHomeEntry[],s
   space.append(fileIcon('space'),text,node('span','管理员','share-home-space-role'),arrow())
   fragment.append(space)
  }
- const section=node('section','','share-home-projects'),heading=node('div','','share-home-heading')
- heading.append(node('h2','分享项目'),node('span',`${entries.length} 个项目`))
+ const section=node('section','','share-home-projects');section.setAttribute('aria-label','分享项目')
  const grid=node('div','','share-home-grid')
- for(const entry of entries){
+ for(const [index,entry] of entries.entries()){
   const card=node('article','','share-home-card');card.dataset.driveEntry=entry.target
+  card.dataset.access=entry.protectedShare?(entry.unlocked?'unlocked':'locked'):'public'
+  const hardware=node('div','','share-home-hardware');hardware.setAttribute('aria-hidden','true')
+  const slot=node('span',String(index+1).padStart(2,'0'),'share-home-slot'),vents=node('span','','share-home-vents')
+  hardware.append(slot,vents)
+  const handle=node('span','','share-home-handle');handle.setAttribute('aria-hidden','true')
   const top=node('div','','share-home-card-top'),identity=node('span','','share-home-identity')
   identity.append(fileIcon(entry.jellyfin?'video':'share'),node('span',entry.jellyfin?'媒体分享':'文件分享'))
   top.append(identity)
@@ -40,9 +44,9 @@ export function renderShareHome(container:HTMLElement,entries:ShareHomeEntry[],s
    time.dateTime=date.toISOString();footer.append(time)
   }
   const body=node('div','','share-home-card-body');body.append(title);if(entry.tags?.length)body.append(tags)
-  card.append(top,body,footer);grid.append(card)
+  card.append(hardware,top,body,footer,handle);grid.append(card)
  }
- section.append(heading,grid)
+ section.append(grid)
  if(!entries.length)section.append(node('p','暂无分享项目','share-home-empty'))
  fragment.append(section);container.replaceChildren(fragment)
 }

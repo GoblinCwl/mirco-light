@@ -176,7 +176,7 @@ document.addEventListener("nav", () => {
   const stopMedia = () => {
     for (const media of previewBody.querySelectorAll<HTMLMediaElement>("audio,video")) { media.pause(); media.removeAttribute("src"); media.load() }
   }
-  const show = (name: string) => { for (const panel of ["boot", "auth", "unlock", "content"]) get(panel).hidden = panel !== name; get("heading").hidden = name === "unlock" }
+  const show = (name: string) => { for (const panel of ["boot", "unlock", "content"]) get(panel).hidden = panel !== name; get("heading").hidden = name === "unlock" }
   let ownShares = new Set<string>(), ownSharesAccount = "", ownSharesRequest = 0
   const account = () => {
     updateOperations()
@@ -295,7 +295,7 @@ document.addEventListener("nav", () => {
       accountUser = user = undefined; selected.clear(); updateSelection()
       if(view==='guest'&&path==='/'&&!get('content').hidden)renderFiles()
       if (view === "storage") {
-        if (!token && path !== "/") void window.spaNavigate(new URL(driveHref("storage"), location.origin))
+        if (!token) notFound()
         else void load()
       } else if (token) {
         void requireDriveUser(lifecycle.signal).then(value => {
@@ -443,7 +443,6 @@ document.addEventListener("nav", () => {
     const home = view === "guest" && path === "/"
     const projects: ListEntry[] = home ? sharedEntries.filter((entry):entry is Extract<DriveEntry,{kind:"share"}>=>entry.kind==='share').map(entry=>({name:entry.title||entry.id,target:driveEntryHref(entry),modified:"",sharedAt:entry.sharedAt,directory:false,shared:true,tags:entry.tags,protectedShare:entry.protected,jellyfin:entry.jellyfin===true,order:entry.order??100})) : []
     get("home").hidden = !home
-    get("home-files-title").hidden = !home
     if(home && !append)renderShareHome(get("home"),projects.map(entry=>({...entry,unlocked:Boolean(drivePassword("share",driveRoute(new URL(entry.target,location.origin)).share,"/"))})),driveToken()?driveHref("storage"):undefined)
     root.querySelector(".drive-file-table")!.classList.toggle("has-directory-tags", entries.some(entry => entry.tags?.length))
     tableEntries = [...projects,...entries]
@@ -540,7 +539,7 @@ document.addEventListener("nav", () => {
     const finishLoading = beginDriveLoading(root, signal)
     if (refresh && view === "guest" && path === "/") ownSharesAccount = ""
     loading = true; writable = false; account(); list.inert = true; list.setAttribute("aria-busy", "true")
-    if (get("auth").hidden && get("unlock").hidden && get("content").hidden) show("boot")
+    if (get("unlock").hidden && get("content").hidden) show("boot")
     message.classList.remove("is-error"); message.textContent = ""
     try {
       if (view === "share") {
@@ -566,6 +565,7 @@ document.addEventListener("nav", () => {
         await syncShareAdminSession()
         signal.throwIfAborted()
         user = accountUser = await requireDriveUser(signal)
+        if(user.role!==2)throw new DriveError("未找到目录",404)
         // A cold page load parses its URL before /me is available. Reparse once
         // the account root is known, before passing any path to OpenList APIs.
         const accountRoute = driveRoute(url)
@@ -696,12 +696,10 @@ document.addEventListener("nav", () => {
       if (error instanceof DriveError && (error.code === 404 || error.code === 410 ||
         /(?:not found|does not exist|doesn't exist|文件不存在|目录不存在|路径不存在|分享不存在)/i.test(text))) {
         notFound(); return false
-      } else if (error instanceof DriveError && error.code === 401 && view === "storage") {
-        if (startedToken && driveToken() === startedToken) setDriveToken("")
+      } else if (error instanceof DriveError && (error.code === 401 || error.code === 403) && view === "storage") {
+        if (error.code === 401 && startedToken && driveToken() === startedToken) setDriveToken("")
         user = accountUser = undefined
-        if (path !== "/") { location.replace(driveHref("storage")); return false }
-        directoryPage = true; title("空间"); account(); show("auth")
-        startedToken && showPasswordToast("登录已失效，请通过星枢重新登录",true)
+        notFound(); return false
       } else if (error instanceof DriveError && error.code === 403 && /password|密码|share code|提取码|no permission/i.test(text)) {
         if (view === "share" && path === "/") {
           try { const entry = (await fetchDriveEntries()).find(entry => entry.kind === "share" && entry.id === share); if (entry?.kind === "share" && !signal.aborted) { shareRootName = entry.id; title(shareRootName) } } catch {}
