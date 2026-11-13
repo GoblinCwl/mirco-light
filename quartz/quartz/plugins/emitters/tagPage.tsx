@@ -75,10 +75,10 @@ export const TagPage: QuartzEmitterPlugin<Partial<FullPageLayout>> = (userOpts) 
       ]
     },
     async *emit(ctx, content, resources) {
-      yield processTagPage(ctx, "index", defaultProcessedContent({slug: "tags/index" as FullSlug, frontmatter: {title: "标签", tags: []}}), content.map(c => c[1].data), opts, resources)
+      yield processTagPage(ctx, "index", defaultProcessedContent({slug: "tags/index" as FullSlug, frontmatter: {title: "流光", tags: []}}), content.map(c => c[1].data), opts, resources)
     },
     async *partialEmit(ctx, content, resources) {
-      yield processTagPage(ctx, "index", defaultProcessedContent({slug: "tags/index" as FullSlug, frontmatter: {title: "标签", tags: []}}), content.map(c => c[1].data), opts, resources)
+      yield processTagPage(ctx, "index", defaultProcessedContent({slug: "tags/index" as FullSlug, frontmatter: {title: "流光", tags: []}}), content.map(c => c[1].data), opts, resources)
     },
   }
 }

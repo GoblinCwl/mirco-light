@@ -1,3 +1,4 @@
+import {siteAgeDays} from '../../util/siteAge'
 import { rememberNavigationSkeleton } from './navigationSkeleton'
 import { navigationIcon } from './navigationIcon'
 import { RequestCache, sharedState } from './sharedRequest'
@@ -24,6 +25,13 @@ export async function refreshSiteSettings() {
   document.dispatchEvent(new CustomEvent('site-settings-changed', { detail: values }))
 }
 export function applySiteSettings(values: SiteSettings) {
+  const age=document.querySelector<HTMLElement>('[data-home-age-count]')
+  if(age){
+    const days=siteAgeDays(String(values['site.foundedDate']||''))
+    age.textContent=days===null?'—':String(days)
+    age.setAttribute('aria-label',days===null?'尚未配置建站日期':`建站 ${days} 天`)
+    delete age.dataset.homeStatPending
+  }
   const aboutRoute = typeof values['site.aboutRoute'] === 'string' ? values['site.aboutRoute'].trim() : ''
   for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-about-link]')) {
     const enabled = aboutRoute.startsWith('/') && !aboutRoute.startsWith('//')

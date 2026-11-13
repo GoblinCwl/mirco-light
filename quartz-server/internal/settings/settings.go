@@ -122,6 +122,14 @@ func validate(key string, value any) (any, error) {
 			return nil, errors.New("文本长度不符合要求")
 		}
 		switch field.Type {
+		case "date":
+			if v != "" {
+				date, err := time.Parse("2006-01-02", v)
+				today := time.Now().In(time.FixedZone("Asia/Shanghai", 8*60*60)).Format("2006-01-02")
+				if err != nil || len(v) != 10 || date.Format("2006-01-02") > today {
+					return nil, errors.New("请输入有效建站日期，不能晚于今天")
+				}
+			}
 		case "time":
 			if _, err := time.Parse("15:04", v); err != nil || len(v) != 5 {
 				return nil, errors.New("请输入有效时间（HH:mm）")

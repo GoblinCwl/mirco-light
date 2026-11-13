@@ -34,17 +34,17 @@ export const renderHomeMarkup = (explore = homeConfig.explore) => `<div class="h
       <div class="home-profile-name"><span>${escape(homeConfig.profile.name)}</span><span class="home-profile-contacts"><a style="display:inline-flex;width:20px;height:20px;" class="home-contact-link" data-home-qq-contact data-qq="${escape(homeConfig.profile.qq)}" data-qq-qr-code="${escape(homeConfig.profile.qqQrCode)}" aria-haspopup="dialog" aria-expanded="false" href="${escape(homeConfig.profile.qqLink)}" target="_blank" rel="noopener noreferrer" aria-label="添加 QQ 好友：${escape(homeConfig.profile.qq)}" title="添加 QQ 好友：${escape(homeConfig.profile.qq)}">${homeIcons.qq}<span class="home-qq-status" data-home-qq-status data-state="unknown" role="status" aria-label="QQ 状态未知" title="QQ 状态未知 · ${escape(homeConfig.profile.qq)}"></span></a></span></div>
       <a class="home-profile-email" href="mailto:${escape(homeConfig.profile.email)}">${escape(homeConfig.profile.email)}</a>
       <div class="home-profile-stats">
-        <a class="home-profile-stat" href="/archives/" title="查看所有文章">
+        <a class="home-profile-stat" href="/reading/" title="前往视界">
           <strong data-home-article-count data-home-stat-pending>—</strong>
-          <span>文章</span>
+          <span>篇章</span>
         </a>
-        <a class="home-profile-stat" href="/Repo/" title="查看所有仓库">
-          <strong data-home-repo-count data-home-stat-pending>—</strong>
-          <span>仓库</span>
+        <a class="home-profile-stat" href="/tags/" title="前往流光">
+          <strong data-home-tag-count data-home-stat-pending>—</strong>
+          <span>标签</span>
         </a>
-        <a class="home-profile-stat" href="/Video/" title="查看所有视频">
-          <strong data-home-video-count data-home-stat-pending>—</strong>
-          <span>视频</span>
+        <a class="home-profile-stat" href="/about/" data-about-link="true" title="建站天数 · 前往星碑">
+          <strong data-home-age-count data-home-stat-pending>—</strong>
+          <span>光阴</span>
         </a>
       </div>
     </div>

@@ -63,3 +63,16 @@ func TestTaskSettingsValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestFoundedDateValidation(t *testing.T) {
+	for _, value := range []string{"", "2024-02-29", "2020-01-01"} {
+		if _, err := validate("site.foundedDate", value); err != nil {
+			t.Fatalf("valid date %q: %v", value, err)
+		}
+	}
+	for _, value := range []string{"2026-02-30", "2025-02-29", "2026-1-01", "9999-01-01", "invalid"} {
+		if _, err := validate("site.foundedDate", value); err == nil {
+			t.Fatalf("accepted invalid date %q", value)
+		}
+	}
+}

@@ -1,3 +1,4 @@
+import {collectTagStats} from "../../util/tagIndex"
 import {readContentCatalog} from "./contentCatalog"
 import { setupDomainDetails } from "./domainDetails"
 import { setupVisitorSky } from "./visitors"
@@ -324,12 +325,12 @@ const updateHomeDashboard = () => {
   const data = document.querySelector<HTMLElement>(".home-dashboard-data")
   if (!data) return
 
-  const articleCount = document.querySelector<HTMLElement>("[data-home-article-count]")
-  if (articleCount) { articleCount.textContent = data.dataset.articleCount ?? "0"; delete articleCount.dataset.homeStatPending }
-  const counters=[['[data-home-repo-count]','repo'],['[data-home-video-count]','video']] as const
-  if(counters.some(([selector])=>document.querySelector(selector)))void readContentCatalog().then(catalog=>{
-    for(const [selector,kind]of counters){const target=document.querySelector<HTMLElement>(selector);if(target)target.textContent=String(Object.values(catalog.pages).filter(page=>page.type===kind).length)}
-  }).catch(()=>{for(const [selector]of counters){const target=document.querySelector<HTMLElement>(selector);if(target)target.textContent='—'}}).finally(()=>{for(const [selector]of counters){const target=document.querySelector<HTMLElement>(selector);if(target)delete target.dataset.homeStatPending}})
+  const counters=['[data-home-article-count]','[data-home-tag-count]'] as const
+  if(counters.some(selector=>document.querySelector(selector)))void readContentCatalog().then(catalog=>{
+    const pages=Object.values(catalog.pages)
+    const totals=[pages.length,collectTagStats(pages).counts.length]
+    counters.forEach((selector,index)=>{const target=document.querySelector<HTMLElement>(selector);if(target)target.textContent=String(totals[index])})
+  }).catch(()=>{for(const selector of counters){const target=document.querySelector<HTMLElement>(selector);if(target)target.textContent='—'}}).finally(()=>{for(const selector of counters){const target=document.querySelector<HTMLElement>(selector);if(target)delete target.dataset.homeStatPending}})
 
 
   const quoteText = document.querySelector<HTMLElement>("[data-home-hitokoto]")

@@ -285,6 +285,15 @@
     "max": 200
   },
   {
+    "key": "site.foundedDate",
+    "group": "首页展示",
+    "label": "建站日期",
+    "type": "date",
+    "default": "",
+    "max": 10,
+    "help": "按北京时间计算建站天数，上线当天记为第 1 天；留空时首页光阴显示 —。"
+  },
+  {
     "key": "site.aboutRoute",
     "group": "首页展示",
     "category": "星垣",
