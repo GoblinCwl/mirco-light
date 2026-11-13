@@ -1,4 +1,4 @@
-// Package friendavatar preserves avatar bytes, including APNG animation frames.
+// Package friendavatar fetches and optimizes avatars while retaining animation.
 package friendavatar
 
 import (

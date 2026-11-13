@@ -84,6 +84,18 @@ func (a *Avatars) Save(ctx context.Context, address string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	values, err := a.Settings(ctx)
+	if err != nil {
+		return "", err
+	}
+	target := friendavatar.DefaultTargetKiB
+	if value, ok := values["friends.avatarTargetKiB"].(float64); ok {
+		target = int(value)
+	}
+	data, mime, ext, err = friendavatar.Compress(ctx, data, target)
+	if err != nil {
+		return "", err
+	}
 	sum := sha256.Sum256(data)
 	name := hex.EncodeToString(sum[:]) + "." + ext
 	base, token, err := a.connection(ctx)

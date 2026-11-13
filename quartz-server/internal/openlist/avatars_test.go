@@ -3,6 +3,8 @@ package openlist
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"goblincwl/quartz-server/internal/friendavatar"
 	"image"
@@ -11,13 +13,27 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os/exec"
 	"strings"
 	"testing"
 )
 
 func TestAvatarUploadAndReadPreserveOriginalAndReuseStoredPath(t *testing.T) {
+	testAvatarUpload(t, false)
+}
+func TestCompressedAvatarUploadHashesStoredBytes(t *testing.T) {
+	if _, err := exec.LookPath("magick"); err != nil {
+		t.Skip("requires native image compressor")
+	}
+	testAvatarUpload(t, true)
+}
+func testAvatarUpload(t *testing.T, compress bool) {
 	var pngData bytes.Buffer
-	png.Encode(&pngData, image.NewRGBA(image.Rect(0, 0, 3, 3)))
+	size := 3
+	if compress {
+		size = 512
+	}
+	png.Encode(&pngData, image.NewRGBA(image.Rect(0, 0, size, size)))
 	original := append(pngData.Bytes(), []byte("APNG-data-preserved")...)
 	var data []byte
 	var savedPath string
@@ -81,11 +97,20 @@ func TestAvatarUploadAndReadPreserveOriginalAndReuseStoredPath(t *testing.T) {
 	}
 	avatars := &Avatars{Session: &Session{ReadSettings: read}, Settings: read, ImageClient: server.Client()}
 	address, err := avatars.Save(context.Background(), server.URL+"/source.png")
-	if err != nil || !friendavatar.Local(address) || !bytes.Equal(data, original) {
+	if err != nil || !friendavatar.Local(address) || (!compress && !bytes.Equal(data, original)) {
 		t.Fatal("upload failed or transformed image", address, err)
 	}
+	expectedMime := "image/png"
+	if compress {
+		expectedMime = "image/webp"
+		sum := sha256.Sum256(data)
+		if bytes.Equal(data, original) || len(data) > 256*1024 || address != friendavatar.Prefix+hex.EncodeToString(sum[:])+".webp" {
+			t.Fatal("upload did not use compressed content hash", address, len(data))
+		}
+	}
+	stored := append([]byte{}, data...)
 	result, mime, err := avatars.Read(context.Background(), strings.TrimPrefix(address, friendavatar.Prefix))
-	if err != nil || mime != "image/png" || !bytes.Equal(result, original) {
+	if err != nil || mime != expectedMime || !bytes.Equal(result, stored) {
 		t.Fatal("read failed or transformed image", mime, err)
 	}
 	if _, err = avatars.Save(context.Background(), address); err != nil || uploads != 1 {

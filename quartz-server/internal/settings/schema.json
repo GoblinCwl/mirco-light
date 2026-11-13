@@ -556,6 +556,19 @@
     "max": 1000
   },
   {
+    "key": "friends.avatarTargetKiB",
+    "public": false,
+    "group": "首页展示",
+    "category": "友链",
+    "label": "头像目标大小（KiB）",
+    "type": "number",
+    "default": 256,
+    "min": 32,
+    "max": 1024,
+    "step": 32,
+    "help": "上传 OpenList 前压缩，默认 256 KiB，最长边 256px；保留动态头像。无法达到目标时保留旧头像并由后台重试。已存头像在后续巡检时按新配置处理。"
+  },
+  {
     "key": "friends.items",
     "public": false,
     "group": "数据管理",

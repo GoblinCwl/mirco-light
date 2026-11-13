@@ -10,7 +10,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/quartz-server ./cm
 FROM alpine:3.23
 ARG APK_MIRROR=https://mirrors.aliyun.com/alpine
 RUN sed -i "s|https://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories && \
-    apk add --no-cache ca-certificates tzdata git && addgroup -g 1000 quartz && adduser -D -u 1000 -G quartz quartz
+    apk add --no-cache ca-certificates tzdata git imagemagick imagemagick-webp imagemagick-heic ffmpeg && addgroup -g 1000 quartz && adduser -D -u 1000 -G quartz quartz
 COPY --from=build /out/ /usr/local/bin/
 COPY internal/emoji/UNICODE_LICENSE.txt /usr/share/licenses/quartz-server/UNICODE_LICENSE.txt
 USER quartz

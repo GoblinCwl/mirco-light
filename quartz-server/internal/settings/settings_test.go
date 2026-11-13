@@ -88,3 +88,16 @@ func TestDirectoryHiddenPatterns(t *testing.T) {
 		}
 	}
 }
+
+func TestFriendAvatarTargetSize(t *testing.T) {
+	for _, value := range []float64{32, 256, 1024} {
+		if _, err := validate("friends.avatarTargetKiB", value); err != nil {
+			t.Fatal(value, err)
+		}
+	}
+	for _, value := range []float64{0, 31, 1025, 256.5} {
+		if _, err := validate("friends.avatarTargetKiB", value); err == nil {
+			t.Fatal("accepted invalid avatar limit", value)
+		}
+	}
+}
