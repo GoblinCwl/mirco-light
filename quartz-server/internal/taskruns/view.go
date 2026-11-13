@@ -18,6 +18,7 @@ type QueueView struct {
 }
 type Instance struct {
 	Definition
+	Retryable bool       `json:"retryable"`
 	Schedule  string     `json:"schedule"`
 	Last      *RunRecord `json:"lastRun"`
 	Remaining int        `json:"remaining"`
@@ -123,6 +124,7 @@ func (t *Tracker) instance(ctx context.Context, d Definition) (Instance, error) 
 		item.Waiting = q.Waiting
 		item.Running = q.Running
 	}
+	item.Retryable = t.canRetry(d.Key) && item.Last != nil && (item.Last.Status == "failed" || item.Last.Status == "interrupted") && item.Running == 0
 	return item, nil
 }
 func (t *Tracker) List(ctx context.Context) (map[string]any, error) {

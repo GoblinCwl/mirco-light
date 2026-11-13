@@ -37,6 +37,7 @@ func nextFriendRefreshSchedule(now time.Time, clock string, days int) time.Time 
 	return next
 }
 func (r *Runtime) dailyFriends() {
+	retry := r.app.TaskRuns.RetrySignal("friends-refresh")
 	r.goTask(func(root context.Context) {
 		changed, stop := taskconfig.Watch(root, "tasks.friendsTime", "tasks.friendsEveryDays")
 		defer stop()
@@ -51,6 +52,8 @@ func (r *Runtime) dailyFriends() {
 			case <-changed:
 				timer.Stop()
 				continue
+			case <-retry:
+				timer.Stop()
 			case <-timer.C:
 			}
 			ctx, cancel := context.WithTimeout(root, 30*time.Minute)

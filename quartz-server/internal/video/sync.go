@@ -43,6 +43,7 @@ func NewController(ctx context.Context, store Store, client *Client) (*Controlle
 	ctx, cancel := context.WithCancel(ctx)
 	c := &Controller{Store: store, Client: client, interval: interval, ctx: ctx, cancel: cancel}
 	if tracker := taskruns.From(ctx); tracker != nil {
+		tracker.RegisterRetry("video-sync", func(context.Context) error { c.Start(); return nil })
 		tracker.RegisterQueue("video-sync", func() []taskruns.QueueItem {
 			c.mu.Lock()
 			defer c.mu.Unlock()

@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"goblincwl/quartz-server/internal/friendavatar"
 	"io"
 	"net/http"
@@ -17,6 +19,8 @@ import (
 
 // Avatars writes only content-addressed files under the site's reserved directory.
 type Avatars struct {
+	DB          *sql.DB
+	compress    func(context.Context, []byte, int, int) ([]byte, string, string, error)
 	Session     *Session
 	Settings    func(context.Context) (map[string]any, error)
 	Client      *http.Client
@@ -92,17 +96,44 @@ func (a *Avatars) Save(ctx context.Context, address string) (string, error) {
 	if value, ok := values["friends.avatarTargetKiB"].(float64); ok {
 		target = int(value)
 	}
-	data, mime, ext, err = friendavatar.Compress(ctx, data, target)
+	memory := friendavatar.DefaultMemoryMiB
+	if value, ok := values["friends.avatarMemoryMiB"].(float64); ok {
+		memory = int(value)
+	}
+	base, token, err := a.connection(ctx)
+	if err != nil {
+		return "", err
+	}
+	sourceSum := sha256.Sum256(data)
+	cacheSum := sha256.Sum256([]byte(fmt.Sprintf("avatar-v2:%x:%d:%d:%s", sourceSum, target, memory, base)))
+	cacheKey := hex.EncodeToString(cacheSum[:])
+	if a.DB != nil {
+		var cached string
+		if a.DB.QueryRowContext(ctx, "SELECT filename FROM friend_avatar_cache WHERE cache_key=?", cacheKey).Scan(&cached) == nil && friendavatar.Filename(cached) {
+			if meta, e := a.get(ctx, base, token, friendavatar.Directory+"/"+cached); e == nil && meta["is_dir"] == false {
+				return friendavatar.Prefix + cached, nil
+			}
+		}
+	}
+	compress := a.compress
+	if compress == nil {
+		compress = func(ctx context.Context, data []byte, target, memory int) ([]byte, string, string, error) {
+			return friendavatar.Compress(ctx, data, target, memory)
+		}
+	}
+	data, mime, ext, err = compress(ctx, data, target, memory)
 	if err != nil {
 		return "", err
 	}
 	sum := sha256.Sum256(data)
 	name := hex.EncodeToString(sum[:]) + "." + ext
-	base, token, err := a.connection(ctx)
-	if err != nil {
-		return "", err
+	remember := func() {
+		if a.DB != nil {
+			_, _ = a.DB.ExecContext(ctx, "REPLACE INTO friend_avatar_cache(cache_key,filename) VALUES(?,?)", cacheKey, name)
+		}
 	}
 	if meta, e := a.get(ctx, base, token, friendavatar.Directory+"/"+name); e == nil && meta["is_dir"] == false {
+		remember()
 		return friendavatar.Prefix + name, nil
 	}
 	for _, directory := range []string{"/Vault/MicroLight", friendavatar.Directory} {
@@ -120,6 +151,7 @@ func (a *Avatars) Save(ctx context.Context, address string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	remember()
 	return friendavatar.Prefix + name, nil
 }
 func (a *Avatars) Read(ctx context.Context, name string) ([]byte, string, error) {

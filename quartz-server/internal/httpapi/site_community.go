@@ -121,6 +121,23 @@ func (s *Server) siteCommunity(w http.ResponseWriter, r *http.Request, path stri
 				action = parts[1]
 			}
 		}
+		if action == "avatar-refresh" && r.Method == "PUT" {
+			if s.FriendAvatars != nil {
+				communityStore.StoreAvatar = s.FriendAvatars.Save
+			}
+			changed, err := communityStore.RefreshAvatar(r.Context(), parts[0])
+			if err != nil {
+				s.fail(w, err)
+				return
+			}
+			value, err := communityStore.Friends(r.Context(), false)
+			if err != nil {
+				s.fail(w, err)
+				return
+			}
+			JSON(w, 200, map[string]any{"friends": value, "avatarChanged": changed})
+			return
+		}
 		if action == "auto-review" && r.Method == "PUT" {
 			if err := communityStore.EnqueueFriend(r.Context(), parts[0]); err != nil {
 				s.fail(w, err)

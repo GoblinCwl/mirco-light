@@ -730,3 +730,7 @@ GitHub用户资料、活动及仓库相关公开快照缓存。
 cd /home/goblincwl/docker/quartz4
 python3 quartz-server/tools/schema_docs.py
 ```
+
+### friend_avatar_cache
+
+可重建的头像压缩缓存。`cache_key` 为源文件 SHA-256、压缩版本、目标大小、内存限制和存储地址的组合 SHA-256（主键）；`filename` 为已成功存储的内容哈希文件名。读取命中还需验证 OpenList 文件存在；源图片及配置未变时跳过压缩。初始化见 `database/init.sql`，已有数据库使用 `20261114_friend_avatar_cache.sql`。

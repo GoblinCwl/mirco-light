@@ -4,16 +4,19 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"goblincwl/quartz-server/internal/friendavatar"
 	"image"
 	"image/png"
 	"io"
+	_ "modernc.org/sqlite"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -92,10 +95,23 @@ func testAvatarUpload(t *testing.T, compress bool) {
 		}
 	}))
 	defer server.Close()
+	target := 256
 	read := func(context.Context) (map[string]any, error) {
-		return map[string]any{"openlist.url": server.URL, "openlist.username": "admin", "openlist.password": "secret"}, nil
+		return map[string]any{"openlist.url": server.URL, "openlist.username": "admin", "openlist.password": "secret", "friends.avatarTargetKiB": float64(target)}, nil
 	}
-	avatars := &Avatars{Session: &Session{ReadSettings: read}, Settings: read, ImageClient: server.Client()}
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "avatar-cache.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err = db.Exec("CREATE TABLE friend_avatar_cache(cache_key TEXT PRIMARY KEY,filename TEXT)"); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	avatars := &Avatars{DB: db, compress: func(ctx context.Context, data []byte, target, memory int) ([]byte, string, string, error) {
+		calls++
+		return friendavatar.Compress(ctx, data, target, memory)
+	}, Session: &Session{ReadSettings: read}, Settings: read, ImageClient: server.Client()}
 	address, err := avatars.Save(context.Background(), server.URL+"/source.png")
 	if err != nil || !friendavatar.Local(address) || (!compress && !bytes.Equal(data, original)) {
 		t.Fatal("upload failed or transformed image", address, err)
@@ -116,10 +132,27 @@ func testAvatarUpload(t *testing.T, compress bool) {
 	if _, err = avatars.Save(context.Background(), address); err != nil || uploads != 1 {
 		t.Fatal("stored avatar uploaded again", uploads, err)
 	}
+	// Recreate the service to verify the source digest cache survives restarts.
+	clone := *avatars
+	if got, err := clone.Save(context.Background(), server.URL+"/source.png"); err != nil || got != address || calls != 1 || uploads != 1 {
+		t.Fatal("unchanged source recompressed", calls, uploads, err)
+	}
+	target = 512
+	if _, err := avatars.Save(context.Background(), server.URL+"/source.png"); err != nil || calls != 2 {
+		t.Fatal("settings change did not invalidate compression", calls, err)
+	}
 	data = nil
 	failUpload = true
 	if _, err = avatars.Save(context.Background(), server.URL+"/source.png"); err == nil {
 		t.Fatal("upload failure ignored")
+	}
+	if calls != 3 {
+		t.Fatal("missing stored file did not trigger recompression", calls)
+	}
+	failUpload = false
+	original = append(original, byte(1))
+	if _, err := avatars.Save(context.Background(), server.URL+"/source.png"); err != nil || calls != 4 {
+		t.Fatal("source change reused old compression", calls, err)
 	}
 	if _, _, err = avatars.Read(context.Background(), "../secret"); err == nil {
 		t.Fatal("path traversal accepted")

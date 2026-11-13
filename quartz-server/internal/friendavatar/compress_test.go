@@ -199,3 +199,30 @@ func TestCompressReferenceImage(t *testing.T) {
 	}
 	t.Logf("source=%d bytes, stored=%d bytes, format=%s, frames=%d", len(input), len(result), mime, webpFrames(result))
 }
+
+func TestCompressMergesIdenticalFramesWithoutLosingDuration(t *testing.T) {
+	requireCompressor(t)
+	palette := color.Palette{color.RGBA{255, 0, 0, 255}, color.RGBA{0, 0, 255, 255}}
+	first := image.NewPaletted(image.Rect(0, 0, 384, 384), palette)
+	second := image.NewPaletted(first.Rect, palette)
+	for i := range second.Pix {
+		second.Pix[i] = 1
+	}
+	var raw bytes.Buffer
+	if err := gif.EncodeAll(&raw, &gif.GIF{Image: []*image.Paletted{first, first, second, second}, Delay: []int{9, 9, 9, 9}, LoopCount: 0}); err != nil {
+		t.Fatal(err)
+	}
+	result, _, _, err := Compress(context.Background(), raw.Bytes(), 256)
+	if err != nil || !animationPreserved(result, 4, 360) {
+		t.Fatal("lost animation", err)
+	}
+	if webpFrames(result) >= 4 {
+		t.Fatal("fixture did not exercise duplicate frame merging")
+	}
+	if animationPreserved(result, 4, 900) {
+		t.Fatal("accepted shortened animation")
+	}
+	if animationPreserved(result[:len(result)-10], 4, 360) {
+		t.Fatal("accepted truncated animation")
+	}
+}

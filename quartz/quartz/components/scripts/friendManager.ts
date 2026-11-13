@@ -3,7 +3,7 @@ import {showAdminListMessage} from './adminListState'
 import { defaultFriends, parseFriends, type FriendLink } from '../../util/friends.mjs'
 import { node } from './driveUi'
 
-export function setupFriendManager(root: HTMLElement, initial: unknown, signal: AbortSignal, request: (path: string, init?: RequestInit) => Promise<{friends: FriendLink[]}>) {
+export function setupFriendManager(root: HTMLElement, initial: unknown, signal: AbortSignal, request: (path: string, init?: RequestInit) => Promise<{friends: FriendLink[];avatarChanged?:boolean}>) {
   let friends: FriendLink[]
   try { friends = parseFriends(initial ?? defaultFriends) } catch { friends = [] }
   let busy = false
@@ -16,6 +16,39 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
     try { const result = await request('/admin/data/friends'+path, {method, ...(value === undefined ? {} : {body:JSON.stringify(value)})}); if (signal.aborted) return false; friends = parseFriends(result.friends); document.dispatchEvent(new Event('friends-changed')); showPasswordToast(path.endsWith('/auto-review')?'已加入后台处理队列':method==='DELETE'?'已删除':'已保存'); return true }
     catch (error) { if (!signal.aborted) { showPasswordToast(error instanceof Error ? error.message : '保存失败',true) }; return false }
     finally { busy = false; controls.forEach((control, i) => control.disabled = disabled[i]) }
+  }
+  const manageAvatar = (friend: FriendLink) => {
+    const panel=node('section','','friend-avatar-manager'),header=node('header','','friend-admin-heading'),back=node('button','返回列表')
+    back.type='button';back.onclick=render;header.append(node('h3',`${friend.name} · 头像管理`),back)
+    const source=friend.avatarSource||(/^https?:\/\//i.test(friend.avatar)?friend.avatar:'')
+    const info=node('p',source?`原始地址：${source}`:'尚未填写原始头像地址，请先编辑友链。','data-admin-note')
+    const previews=node('div','','friend-avatar-previews')
+    const preview=(label:string,address:string)=>{
+      const figure=node('figure'),image=node('img'),caption=node('figcaption',label),hash=node('code',address.match(/\/([a-f0-9]{64})\./)?.[1]||'尚无内容哈希')
+      image.alt=label;image.referrerPolicy='strict-origin-when-cross-origin'
+      if(address)image.src=address;else image.hidden=true
+      const placeholder=node('span',Array.from(friend.name)[0],'friend-avatar-placeholder');placeholder.hidden=!!address
+      image.onerror=()=>{image.hidden=true;placeholder.hidden=false}
+      figure.append(caption,image,placeholder,hash);previews.append(figure)
+      return {image,hash,placeholder}
+    }
+    preview('刷新前',friend.avatar)
+    const current=preview('当前头像',friend.avatar),footer=node('div','','friend-admin-footer'),refresh=node('button','获取并刷新头像'),message=node('p','重新获取源图片并先对比 SHA-256；源图片及压缩配置未变时复用已有头像，否则压缩后更新。','data-admin-note')
+    message.setAttribute('role','status');refresh.className='friend-admin-submit';refresh.type='button';refresh.disabled=!source;footer.append(refresh)
+    refresh.onclick=async()=>{
+      if(busy||signal.aborted)return
+      busy=true;refresh.disabled=true;back.disabled=true;refresh.textContent='正在获取并压缩…';message.textContent='正在获取源图片并检查哈希，必要时压缩，请稍候…'
+      try{
+        const result=await request('/admin/data/friends/'+encodeURIComponent(friend.id)+'/avatar-refresh',{method:'PUT',body:'{}'})
+        if(signal.aborted)return
+        friends=parseFriends(result.friends);const updated=friends.find(item=>item.id===friend.id)
+        if(updated){current.image.hidden=false;current.placeholder.hidden=true;current.image.src=updated.avatar;current.hash.textContent=updated.avatar.match(/\/([a-f0-9]{64})\./)?.[1]||'尚无内容哈希'}
+        document.dispatchEvent(new Event('friends-changed'))
+        message.textContent=result.avatarChanged?'头像已更新，可对比刷新前后的图片和哈希。':'压缩后哈希一致，头像未变化，未重复上传。';showPasswordToast(result.avatarChanged?'头像已更新':'头像未变化')
+      }catch(error){if(!signal.aborted){message.textContent=error instanceof Error?error.message:'头像刷新失败';showPasswordToast(message.textContent,true)}}
+      finally{busy=false;refresh.disabled=!source;back.disabled=false;refresh.textContent='获取并刷新头像'}
+    }
+    panel.append(header,info,previews,message,footer);root.replaceChildren(panel)
   }
   const edit = (friend: FriendLink, reviewing=false) => {
     status.textContent = ''; status.classList.remove('is-error')
@@ -79,6 +112,7 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
       const actions = node('div', '', 'friend-admin-actions')
       const button = (label: string, handler: () => void) => { const item = node('button', label); item.type = 'button'; item.onclick = handler; actions.append(item); return item }
       button('编辑', () => edit(friend))
+      button('头像', () => manageAvatar(friend))
       button('审核', () => edit(friend,true)).disabled=friend.status!=='待审核'
       if(friend.status==='待审核')button('自动审核',()=>{void persist('/'+friend.id+'/auto-review','PUT',{}).then(saved=>{if(saved)render()})})
       let confirming = false

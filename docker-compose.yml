@@ -98,6 +98,7 @@ services:
       ARTICLE_DIRECTORY: /sources/notes
       PUBLIC_DIR: /public/current
       AUTH_DIR: /data/auth
+      FRIEND_AVATAR_TEMP_DIR: /data/avatar-tmp
       TZ: Asia/Shanghai
     volumes:
       - ./runtime/server:/data:rw

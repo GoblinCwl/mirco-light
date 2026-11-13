@@ -70,12 +70,27 @@ func Open(ctx context.Context, path string, settings func(context.Context) (map[
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
+		var retry <-chan struct{}
+		if tracker := taskruns.From(root); tracker != nil {
+			retry = tracker.RetrySignal("monitor-cleanup")
+		}
 		tick := taskconfig.NewTicker(root, "monitor-cleanup")
 		defer tick.Stop()
 		for {
 			select {
 			case <-root.Done():
 				return
+			case <-retry:
+				_ = taskruns.Run(root, "monitor-cleanup", func(context.Context) error {
+					m.mu.Lock()
+					defer m.mu.Unlock()
+					for _, s := range m.live {
+						if s.cancel != nil && time.Since(s.used) > 20*time.Second {
+							s.cancel()
+						}
+					}
+					return nil
+				})
 			case now := <-tick.C:
 				_ = taskruns.Run(root, "monitor-cleanup", func(context.Context) error {
 					m.mu.Lock()

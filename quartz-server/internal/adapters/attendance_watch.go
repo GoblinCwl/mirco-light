@@ -61,9 +61,11 @@ func WatchAttendance(ctx context.Context, root string, quiet time.Duration, refr
 			<-done
 		}
 	}()
+	var retry <-chan struct{}
 	var pendingFlag atomic.Bool
 	state := taskruns.NewQueueState("日历变更刷新")
 	if tracker := taskruns.From(ctx); tracker != nil {
+		retry = tracker.RetrySignal("attendance-refresh")
 		tracker.RegisterQueue("attendance-refresh", func() []taskruns.QueueItem {
 			pending := 0
 			if pendingFlag.Load() {
@@ -84,6 +86,10 @@ func WatchAttendance(ctx context.Context, root string, quiet time.Duration, refr
 	}
 	for {
 		select {
+		case <-retry:
+			pending = true
+			pendingFlag.Store(true)
+			timer.Reset(0)
 		case <-changed:
 			if pending {
 				timer.Reset(delay())

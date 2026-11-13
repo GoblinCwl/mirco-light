@@ -34,12 +34,15 @@ type QueueItem struct {
 	Error       string `json:"error"`
 }
 type Tracker struct {
-	DB        *sql.DB
-	Config    *taskconfig.Config
-	mu        sync.RWMutex
-	writeMu   sync.Mutex
-	providers map[string]func() []QueueItem
-	external  map[string]string
+	DB           *sql.DB
+	Config       *taskconfig.Config
+	mu           sync.RWMutex
+	writeMu      sync.Mutex
+	providers    map[string]func() []QueueItem
+	retries      map[string]func(context.Context) error
+	retryPending map[string]bool
+	running      map[string]int
+	external     map[string]string
 }
 type trackerKey struct{}
 type spanKey struct{}
@@ -135,6 +138,14 @@ func Run(ctx context.Context, key string, work func(context.Context) error) (err
 	if tracker == nil {
 		return work(ctx)
 	}
+	tracker.mu.Lock()
+	delete(tracker.retryPending, key)
+	if tracker.running == nil {
+		tracker.running = map[string]int{}
+	}
+	tracker.running[key]++
+	tracker.mu.Unlock()
+	defer func() { tracker.mu.Lock(); tracker.running[key]--; tracker.mu.Unlock() }()
 	started := time.Now()
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 	id, recordErr := tracker.start(recordCtx, key)
@@ -218,6 +229,7 @@ func (t *Tracker) ImportBatch(ctx context.Context, key string, runs []RunRecord)
 	}
 	t.mu.Lock()
 	t.external[key] = *last
+	delete(t.retryPending, key)
 	t.mu.Unlock()
 	return nil
 }

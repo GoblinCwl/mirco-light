@@ -31,6 +31,7 @@ func (t *eventTask) request() {
 func (t *eventTask) run(root context.Context, log *slog.Logger) {
 	state := taskruns.NewQueueState(t.name)
 	if tracker := taskruns.From(root); tracker != nil {
+		tracker.RegisterRetry(t.name, func(context.Context) error { t.request(); return nil })
 		tracker.RegisterQueue(t.name, func() []taskruns.QueueItem { return state.Snapshot(len(t.pending)) })
 	}
 	for {

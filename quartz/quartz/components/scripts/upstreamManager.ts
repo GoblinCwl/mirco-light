@@ -2,15 +2,17 @@ import {node} from './driveUi'
 import {showPasswordToast} from './passwordFeedback'
 import {adminPassword} from './driveAdminFields'
 type Credential={value?:string;configured:boolean;status:string;checkedAt:string|null}
-export function setupUpstreamManager(root:HTMLElement,signal:AbortSignal,request:(path:string,init?:RequestInit)=>Promise<any>){
+export function setupUpstreamManager(root:HTMLElement,signal:AbortSignal,request:(path:string,init?:RequestInit)=>Promise<any>,existingCards?:Map<string,HTMLElement>){
  const labels:Record<string,string>={valid:'连接正常',expired:'凭据已过期',unavailable:'暂时无法验证',unchecked:'尚未检测',not_configured:'未配置'},loading=request('/admin/upstreams')
  for(const[id,title,label,description]of[
   ['github','GitHub','Token','用于仓库同步、发布版本和公开活动，保存后由服务读取。'],
+  ['gitea','Gitea','Token','用于创建和管理 Gitea 镜像仓库；加密保存后同步给镜像服务使用。'],
   ['bilibili','Bilibili','Cookie','填写包含 SESSDATA 的完整 Cookie；保存后自动同步，过期时在此替换。'],
  ]){
-  const card=node('section','','stellar-setting-card'),form=node('form','','stellar-setting-row'),copy=node('div','','stellar-setting-copy'),caption=node('label',label),help=node('small',description),controls=node('div','','stellar-setting-control'),password=node('div','','stellar-setting-password'),input=adminPassword(password,label,'',true),save=node('button','保存'),check=node('button','检测'),status=node('span','','stellar-setting-status')
+  const existing=id==='gitea'?existingCards?.get(title):undefined
+  const card=existing||node('section','','stellar-setting-card'),form=node('form','','stellar-setting-row'),copy=node('div','','stellar-setting-copy'),caption=node('label',label),help=node('small',description),controls=node('div','','stellar-setting-control'),password=node('div','','stellar-setting-password'),input=adminPassword(password,label,'',true),save=node('button','保存'),check=node('button','检测'),status=node('span','','stellar-setting-status')
   form.noValidate=true;form.dataset.fieldType='password';input.maxLength=16384;input.placeholder='输入新凭据';input.id=`upstream-${id}`;caption.htmlFor=input.id;help.id=`${input.id}-help`;input.setAttribute('aria-describedby',help.id);save.type='submit';save.disabled=true;check.type='button';check.disabled=true
-  copy.append(caption,help);controls.append(password,check,save);form.append(copy,controls,status);card.append(node('h3',title),form);root.append(card)
+  copy.append(caption,help);controls.append(password,check,save);form.append(copy,controls,status);if(!existing){card.append(node('h3',title));root.append(card)}card.append(form)
   let busy=false,configured=false,savedValue=''
   const update=()=>{input.disabled=busy;save.disabled=busy||!input.value.trim()||input.value===savedValue;check.disabled=busy||!configured;form.classList.toggle('is-dirty',Boolean(input.value.trim())&&input.value!==savedValue)}
   const render=(value:Credential)=>{configured=value.configured;if(typeof value.value==='string'){savedValue=value.value;input.value=savedValue}status.textContent='';check.title=(labels[value.status]||'尚未检测')+(value.checkedAt?` · 检测于 ${new Date(value.checkedAt).toLocaleString('zh-CN')}`:'');input.placeholder=configured?'已配置，输入新值以替换':'输入新凭据';update()}

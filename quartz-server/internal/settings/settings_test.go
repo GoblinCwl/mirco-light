@@ -101,3 +101,16 @@ func TestFriendAvatarTargetSize(t *testing.T) {
 		}
 	}
 }
+
+func TestFriendAvatarMemoryLimit(t *testing.T) {
+	for _, value := range []float64{64, 512, 2048} {
+		if _, err := validate("friends.avatarMemoryMiB", value); err != nil {
+			t.Fatal(value, err)
+		}
+	}
+	for _, value := range []float64{0, 63, 2049, 512.5} {
+		if _, err := validate("friends.avatarMemoryMiB", value); err == nil {
+			t.Fatal("accepted invalid memory limit", value)
+		}
+	}
+}

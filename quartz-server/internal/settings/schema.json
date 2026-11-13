@@ -556,6 +556,19 @@
     "max": 1000
   },
   {
+    "key": "friends.avatarMemoryMiB",
+    "public": false,
+    "group": "首页展示",
+    "category": "友链",
+    "label": "头像压缩内存上限（MiB）",
+    "type": "number",
+    "default": 512,
+    "min": 64,
+    "max": 2048,
+    "step": 64,
+    "help": "单次头像压缩的像素缓存内存上限，默认 512 MiB；最多同时压缩 2 张。超出部分使用数据盘临时缓存（每次最多 1 GiB，完成即清理），避免占满 /tmp。保存后对下一次压缩生效。"
+  },
+  {
     "key": "friends.avatarTargetKiB",
     "public": false,
     "group": "首页展示",

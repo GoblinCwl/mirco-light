@@ -45,26 +45,23 @@ func (s *Server) siteConfiguration(w http.ResponseWriter, r *http.Request, path 
 			JSON(w, 503, map[string]string{"error": "平台凭据尚未迁移"})
 			return
 		}
-		github, err := s.Credentials.Describe(r.Context(), "github")
-		if err != nil {
-			s.fail(w, err)
-			return
-		}
-		bilibili, err := s.Credentials.Describe(r.Context(), "bilibili")
-		if err != nil {
-			s.fail(w, err)
-			return
-		}
-		for id, value := range map[string]map[string]any{"github": github, "bilibili": bilibili} {
+		values := map[string]any{}
+		for _, id := range []string{"github", "gitea", "bilibili"} {
+			value, err := s.Credentials.Describe(r.Context(), id)
+			if err != nil {
+				s.fail(w, err)
+				return
+			}
 			secret, err := s.Credentials.Read(r.Context(), id)
 			if err != nil {
 				s.fail(w, err)
 				return
 			}
 			value["value"] = secret
+			values[id] = value
 		}
 		w.Header().Set("Cache-Control", "no-store")
-		JSON(w, 200, map[string]any{"github": github, "bilibili": bilibili})
+		JSON(w, 200, values)
 	case strings.HasPrefix(path, "/admin/upstreams/"):
 		if s.Credentials == nil {
 			JSON(w, 503, map[string]string{"error": "平台凭据尚未迁移"})

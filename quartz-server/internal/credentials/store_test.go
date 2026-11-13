@@ -3,7 +3,7 @@ package credentials
 import "testing"
 
 func TestCredentialInput(t *testing.T) {
-	for _, test := range [][2]string{{"github", "Bearer github_pat_test123"}, {"bilibili", "Cookie: SESSDATA=test; bili_jct=test"}} {
+	for _, test := range [][2]string{{"gitea", "0123456789abcdef"}, {"github", "Bearer github_pat_test123"}, {"bilibili", "Cookie: SESSDATA=test; bili_jct=test"}} {
 		value, err := clean(test[0], test[1])
 		if err != nil || value == "" {
 			t.Fatal(err)

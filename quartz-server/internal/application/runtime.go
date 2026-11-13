@@ -29,7 +29,7 @@ import (
 	"time"
 )
 
-type Options struct{ AuthDirectory, OpenListDB, BeszelDB, RepoRoot, RepoCatalog, RepoOwner, VideoMID, DiaryDirectory, ArticleSnapshot, ArticleDirectory, PublicDirectory, JellyfinDB, GitHubMirrorTokenFile, EventsSocket string }
+type Options struct{ AuthDirectory, OpenListDB, BeszelDB, RepoRoot, RepoCatalog, RepoOwner, VideoMID, DiaryDirectory, ArticleSnapshot, ArticleDirectory, PublicDirectory, JellyfinDB, GitHubMirrorTokenFile, GiteaMirrorTokenFile, EventsSocket string }
 
 func Environment(authDirectory string) Options {
 	env := func(key, fallback string) string {
@@ -38,7 +38,7 @@ func Environment(authDirectory string) Options {
 		}
 		return fallback
 	}
-	return Options{AuthDirectory: authDirectory, OpenListDB: env("OPENLIST_DB", "/sources/openlist/data.db"), BeszelDB: env("BESZEL_DB", "/sources/beszel/data.db"), RepoRoot: env("REPO_ROOT", "/sources/repositories/goblincwl"), RepoCatalog: env("REPO_CATALOG", "/sources/repo-catalog/repositories.json"), RepoOwner: env("REPO_OWNER", "GoblinCwl"), VideoMID: env("BILIBILI_MID", "13536815"), DiaryDirectory: env("DIARY_PATH", "/sources/diaries"), ArticleSnapshot: env("ARTICLE_SNAPSHOT", "/snapshots/articles-index.json"), ArticleDirectory: env("ARTICLE_DIRECTORY", "/sources/notes"), PublicDirectory: env("PUBLIC_DIR", "/public"), JellyfinDB: env("JELLYFIN_DB", "/sources/jellyfin/jellyfin.db"), EventsSocket: env("QUARTZ_EVENTS_SOCKET", "/run/quartz-events/published.sock"), GitHubMirrorTokenFile: env("GITHUB_MIRROR_TOKEN_FILE", "/sources/github-secret/github-token")}
+	return Options{AuthDirectory: authDirectory, OpenListDB: env("OPENLIST_DB", "/sources/openlist/data.db"), BeszelDB: env("BESZEL_DB", "/sources/beszel/data.db"), RepoRoot: env("REPO_ROOT", "/sources/repositories/goblincwl"), RepoCatalog: env("REPO_CATALOG", "/sources/repo-catalog/repositories.json"), RepoOwner: env("REPO_OWNER", "GoblinCwl"), VideoMID: env("BILIBILI_MID", "13536815"), DiaryDirectory: env("DIARY_PATH", "/sources/diaries"), ArticleSnapshot: env("ARTICLE_SNAPSHOT", "/snapshots/articles-index.json"), ArticleDirectory: env("ARTICLE_DIRECTORY", "/sources/notes"), PublicDirectory: env("PUBLIC_DIR", "/public"), JellyfinDB: env("JELLYFIN_DB", "/sources/jellyfin/jellyfin.db"), EventsSocket: env("QUARTZ_EVENTS_SOCKET", "/run/quartz-events/published.sock"), GiteaMirrorTokenFile: env("GITEA_MIRROR_TOKEN_FILE", "/sources/github-secret/gitea-token"), GitHubMirrorTokenFile: env("GITHUB_MIRROR_TOKEN_FILE", "/sources/github-secret/github-token")}
 }
 
 type Runtime struct {
@@ -101,8 +101,24 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 		}
 	}
 	publishObserver()
+	if options.EventsSocket != "" {
+		app.TaskRuns.RegisterRetry("container-observer", func(context.Context) error {
+			return os.WriteFile(filepath.Join(filepath.Dir(options.EventsSocket), "observer-retry"), []byte(time.Now().UTC().Format(time.RFC3339Nano)), 0600)
+		})
+	}
 	app.Credentials, err = credentials.New(app.DB, filepath.Join(options.AuthDirectory, "totp.key"))
 	if err != nil {
+		return nil, err
+	}
+	app.Credentials.GiteaURL = func(ctx context.Context) (string, error) {
+		values, err := read(ctx)
+		if err != nil {
+			return "", err
+		}
+		value, _ := values["api.gitea.url"].(string)
+		return value, nil
+	}
+	if err = runtime.importGiteaToken(root); err != nil {
 		return nil, err
 	}
 	app.OpenList, err = openlist.Open(options.OpenListDB)
@@ -110,7 +126,7 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 		return nil, err
 	}
 	app.ShareSession = &openlist.Session{ReadSettings: read}
-	app.FriendAvatars = &openlist.Avatars{Session: app.ShareSession, Settings: read}
+	app.FriendAvatars = &openlist.Avatars{DB: app.DB, Session: app.ShareSession, Settings: read}
 	app.FriendJobsChanged = runtime.requestFriendJobs
 	app.ArticleDirectory = options.ArticleDirectory
 	app.Build = &buildcontrol.Client{Directory: filepath.Dir(options.ArticleSnapshot)}
@@ -198,7 +214,7 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 		runtime.commentPermissions.request()
 		return nil
 	})
-	runtime.mirrorCredential = newEventTask("gitea-mirror-credential", 10*time.Second, runtime.projectGitHubToken)
+	runtime.mirrorCredential = newEventTask("gitea-mirror-credential", 10*time.Second, runtime.projectMirrorTokens)
 	app.SettingsChanged = func(key string) {
 		app.Jellyfin.Danmaku.Invalidate()
 		app.Jellyfin.Catalog.Details.Invalidate()
@@ -219,6 +235,9 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	}
 	app.CredentialChanged = func(id string) {
 		app.Repo.Cache.Invalidate()
+		if id == "gitea" {
+			runtime.mirrorCredential.request()
+		}
 		if id == "github" {
 			runtime.mirrorCredential.request()
 			runtime.goTask(func(ctx context.Context) {
@@ -255,6 +274,7 @@ func (r *Runtime) goTask(work func(context.Context)) {
 	go func() { defer r.wg.Done(); work(r.ctx) }()
 }
 func (r *Runtime) periodic(name string, timeout time.Duration, work func(context.Context) error) {
+	retry := r.app.TaskRuns.RetrySignal(name)
 	r.goTask(func(root context.Context) {
 		run := func() {
 			ctx, cancel := context.WithTimeout(root, timeout)
@@ -271,6 +291,8 @@ func (r *Runtime) periodic(name string, timeout time.Duration, work func(context
 			select {
 			case <-root.Done():
 				return
+			case <-retry:
+				run()
 			case <-ticker.C:
 				run()
 			}
@@ -335,15 +357,26 @@ func (r *Runtime) start() {
 	r.dailyFriends()
 	r.goTask(func(ctx context.Context) {
 		for ctx.Err() == nil {
-			err := adapters.WatchAttendance(ctx, r.options.DiaryDirectory, time.Minute, r.app.Adapters.RefreshAttendance, func(err error) {
+			watchCtx, stopWatch := context.WithCancel(ctx)
+			retry := make(chan struct{}, 1)
+			r.app.TaskRuns.RegisterRetry("attendance-watch", func(context.Context) error {
+				stopWatch()
+				select {
+				case retry <- struct{}{}:
+				default:
+				}
+				return nil
+			})
+			err := adapters.WatchAttendance(watchCtx, r.options.DiaryDirectory, time.Minute, r.app.Adapters.RefreshAttendance, func(err error) {
 				_ = taskruns.Run(ctx, "attendance-watch", func(context.Context) error { return err })
 				r.app.Log.Warn("calendar refresh failed; retaining previous data")
 			})
+			stopWatch()
 			if err != nil && ctx.Err() == nil {
 				_ = taskruns.Run(ctx, "attendance-watch", func(context.Context) error { return err })
 				r.app.Log.Warn("calendar watcher unavailable; retrying")
 			}
-			if !taskconfig.Wait(ctx, "attendance-retry", nil) {
+			if !taskconfig.Wait(ctx, "attendance-retry", retry) {
 				return
 			}
 		}

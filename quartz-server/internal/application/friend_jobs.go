@@ -2,11 +2,13 @@ package application
 
 import (
 	"context"
+	"errors"
 	"goblincwl/quartz-server/internal/alerts"
 	"goblincwl/quartz-server/internal/community"
 	"goblincwl/quartz-server/internal/publicfetch"
 	"goblincwl/quartz-server/internal/taskconfig"
 	"goblincwl/quartz-server/internal/taskruns"
+	"strings"
 	"time"
 )
 
@@ -47,6 +49,27 @@ func (r *Runtime) runFriendJobs(root context.Context) {
 	store := community.Store{DB: r.app.DB, StoreAvatar: r.app.FriendAvatars.Save, CheckHomepage: func(ctx context.Context, address string) error { return publicfetch.Probe(ctx, address, nil) }, CheckBacklink: func(ctx context.Context, f community.Friend) (community.BacklinkResult, error) {
 		return community.CheckBacklink(ctx, f, r.app.Origin, nil)
 	}}
+	r.app.TaskRuns.RegisterRetry("friend-recovery", func(context.Context) error { r.requestFriendJobs(); return nil })
+	r.app.TaskRuns.RegisterRetry("friend-jobs", func(ctx context.Context) error {
+		var logs string
+		if err := r.app.DB.QueryRowContext(ctx, "SELECT logs FROM task_runs WHERE task_key='friend-jobs' ORDER BY id DESC LIMIT 1").Scan(&logs); err != nil {
+			return err
+		}
+		friends, err := store.Friends(ctx, false)
+		if err != nil {
+			return err
+		}
+		for _, friend := range friends {
+			if strings.Contains(logs, "（"+friend.ID+"）") {
+				if err := store.EnqueueFriend(ctx, friend.ID); err != nil {
+					return err
+				}
+				r.requestFriendJobs()
+				return nil
+			}
+		}
+		return errors.New("原友链已不存在，无法重试")
+	})
 	if !r.recoverFriendQueue(root, store) {
 		return
 	}
@@ -87,6 +110,27 @@ func (r *Runtime) runFriendJobs(root context.Context) {
 			if !r.waitFriendJobs(root, time.Now().Add(taskconfig.Duration(root, "friend-recovery"))) {
 				return
 			}
+			r.app.TaskRuns.RegisterRetry("friend-recovery", func(context.Context) error { r.requestFriendJobs(); return nil })
+			r.app.TaskRuns.RegisterRetry("friend-jobs", func(ctx context.Context) error {
+				var logs string
+				if err := r.app.DB.QueryRowContext(ctx, "SELECT logs FROM task_runs WHERE task_key='friend-jobs' ORDER BY id DESC LIMIT 1").Scan(&logs); err != nil {
+					return err
+				}
+				friends, err := store.Friends(ctx, false)
+				if err != nil {
+					return err
+				}
+				for _, friend := range friends {
+					if strings.Contains(logs, "（"+friend.ID+"）") {
+						if err := store.EnqueueFriend(ctx, friend.ID); err != nil {
+							return err
+						}
+						r.requestFriendJobs()
+						return nil
+					}
+				}
+				return errors.New("原友链已不存在，无法重试")
+			})
 			if !r.recoverFriendQueue(root, store) {
 				return
 			}

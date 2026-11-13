@@ -20,18 +20,26 @@ import (
 )
 
 const DefaultTargetKiB = 256
+const DefaultMemoryMiB = 512
 
 var compressionSlots = make(chan struct{}, 2)
 
 // Compress retains small originals; larger images become bounded WebP animations/stills.
 // The source download hash is not used: callers address the final uploaded bytes.
-func Compress(ctx context.Context, data []byte, targetKiB int) ([]byte, string, string, error) {
+func Compress(ctx context.Context, data []byte, targetKiB int, memoryLimit ...int) ([]byte, string, string, error) {
 	mime, ext, err := MIME(data)
 	if err != nil {
 		return nil, "", "", err
 	}
 	if targetKiB < 32 || targetKiB > 1024 {
 		return nil, "", "", errors.New("头像目标大小须为 32–1024 KiB")
+	}
+	memoryMiB := DefaultMemoryMiB
+	if len(memoryLimit) > 0 {
+		memoryMiB = memoryLimit[0]
+	}
+	if memoryMiB < 64 || memoryMiB > 2048 {
+		return nil, "", "", errors.New("头像压缩内存上限须为 64–2048 MiB")
 	}
 	target := targetKiB * 1024
 	if cfg, _, err := image.DecodeConfig(bytes.NewReader(data)); err == nil && cfg.Width <= 256 && cfg.Height <= 256 && len(data) <= target {
@@ -45,7 +53,13 @@ func Compress(ctx context.Context, data []byte, targetKiB int) ([]byte, string, 
 	case <-ctx.Done():
 		return nil, "", "", ctx.Err()
 	}
-	dir, err := os.MkdirTemp("", "friend-avatar-")
+	base := os.Getenv("FRIEND_AVATAR_TEMP_DIR")
+	if base != "" {
+		if err := os.MkdirAll(base, 0700); err != nil {
+			return nil, "", "", err
+		}
+	}
+	dir, err := os.MkdirTemp(base, "friend-avatar-")
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -59,15 +73,18 @@ func Compress(ctx context.Context, data []byte, targetKiB int) ([]byte, string, 
 		coder = "apng"
 	}
 	source := coder + ":" + input
-	limits := []string{"-limit", "thread", "1", "-limit", "memory", "128MiB", "-limit", "map", "256MiB", "-limit", "disk", "256MiB", "-limit", "width", "4096", "-limit", "height", "4096", "-limit", "list-length", "400"}
+	limits := []string{"-limit", "thread", "1", "-limit", "memory", strconv.Itoa(memoryMiB) + "MiB", "-limit", "map", "0", "-limit", "disk", "1GiB", "-define", "registry:temporary-path=" + dir, "-limit", "width", "4096", "-limit", "height", "4096", "-limit", "list-length", "400"}
 	probe := append([]string{"identify"}, limits...)
-	probe = append(probe, "-ping", "-format", "%n %w %h\n", source)
+	probe = append(probe, "-ping", "-format", "%n %w %h %T\n", source)
 	raw, err := avatarCommand(ctx, probe...).Output()
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, "", "", ctx.Err()
+		}
 		return nil, "", "", errors.New("头像解析失败，保留现有头像并等待重试")
 	}
 	fields := strings.Fields(string(raw))
-	if len(fields) < 3 {
+	if len(fields) < 4 || len(fields)%4 != 0 {
 		return nil, "", "", errors.New("头像尺寸无效")
 	}
 	frames, err := strconv.Atoi(fields[0])
@@ -76,6 +93,14 @@ func Compress(ctx context.Context, data []byte, targetKiB int) ([]byte, string, 
 	}
 	if expected := apngFrames(data); expected > 0 && frames != expected {
 		return nil, "", "", errors.New("动态 PNG 帧解析不完整")
+	}
+	var sourceDurationMs int
+	for i := 3; i < len(fields); i += 4 {
+		delay, parseErr := strconv.Atoi(fields[i])
+		if parseErr != nil || delay < 0 {
+			return nil, "", "", errors.New("头像动画时长无效")
+		}
+		sourceDurationMs += delay * 10
 	}
 	width, _ := strconv.Atoi(fields[1])
 	height, _ := strconv.Atoi(fields[2])
@@ -91,6 +116,9 @@ func Compress(ctx context.Context, data []byte, targetKiB int) ([]byte, string, 
 		args := append([]string{}, limits...)
 		args = append(args, source, "-coalesce", "-auto-orient", "-resize", fmt.Sprintf("%dx%d>", attempt.size, attempt.size), "-strip", "-quality", strconv.Itoa(attempt.quality), "-define", "webp:method=4", output)
 		if err = avatarCommand(ctx, args...).Run(); err != nil {
+			if ctx.Err() != nil {
+				return nil, "", "", ctx.Err()
+			}
 			return nil, "", "", errors.New("头像压缩失败，保留现有头像并等待重试")
 		}
 		info, err := os.Stat(output)
@@ -107,7 +135,7 @@ func Compress(ctx context.Context, data []byte, targetKiB int) ([]byte, string, 
 		if _, ext, err := MIME(result); err != nil || ext != "webp" {
 			return nil, "", "", errors.New("头像压缩结果无效")
 		}
-		if frames > 1 && webpFrames(result) != frames {
+		if frames > 1 && !animationPreserved(result, frames, sourceDurationMs) {
 			return nil, "", "", errors.New("头像压缩未完整保留动画")
 		}
 		if len(data) <= target && len(result) >= len(data) && width <= 256 && height <= 256 {
@@ -161,4 +189,30 @@ func avatarCommand(ctx context.Context, args ...string) *exec.Cmd {
 	}
 	cmd.WaitDelay = 2 * time.Second
 	return cmd
+}
+
+// WebP may merge identical consecutive frames while retaining their duration.
+// ImageMagick reports input delays in centiseconds; permit its sub-tick rounding.
+func animationPreserved(data []byte, sourceFrames, sourceDurationMs int) bool {
+	frames, durationMs := 0, 0
+	for pos := 12; pos+8 <= len(data); {
+		size := int(binary.LittleEndian.Uint32(data[pos+4 : pos+8]))
+		if size > len(data)-pos-8 {
+			return false
+		}
+		if string(data[pos:pos+4]) == "ANMF" {
+			if size < 16 {
+				return false
+			}
+			frames++
+			delay := data[pos+20 : pos+23]
+			durationMs += int(delay[0]) | int(delay[1])<<8 | int(delay[2])<<16
+		}
+		pos += 8 + size + (size % 2)
+	}
+	delta := durationMs - sourceDurationMs
+	if delta < 0 {
+		delta = -delta
+	}
+	return frames > 1 && frames <= sourceFrames && delta <= sourceFrames*10
 }

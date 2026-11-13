@@ -21,6 +21,8 @@ type Store struct {
 	DB       *sql.DB
 	Key      []byte
 	Client   *http.Client
+	GiteaURL func(context.Context) (string, error)
+	gitea    sync.Mutex
 	github   sync.Mutex
 	bilibili sync.Mutex
 }
@@ -36,7 +38,7 @@ func New(db *sql.DB, keyFile string) (*Store, error) {
 	}
 	return &Store{DB: db, Key: key}, nil
 }
-func valid(id string) bool { return id == "github" || id == "bilibili" }
+func valid(id string) bool { return id == "github" || id == "bilibili" || id == "gitea" }
 func (s *Store) Read(ctx context.Context, id string) (string, error) {
 	if !valid(id) {
 		return "", errors.New("不支持的平台")
@@ -60,10 +62,10 @@ func clean(id, input string) (string, error) {
 		return "", errors.New("请输入有效凭据，不能包含换行")
 	}
 	value := strings.TrimSpace(input)
-	if id == "github" {
+	if id == "github" || id == "gitea" {
 		value = regexp.MustCompile(`(?i)^Bearer\s+`).ReplaceAllString(value, "")
 		if !regexp.MustCompile(`^[A-Za-z0-9_]+$`).MatchString(value) {
-			return "", errors.New("GitHub Token 格式不正确")
+			return "", errors.New("Token 格式不正确")
 		}
 	} else {
 		value = regexp.MustCompile(`(?i)^Cookie:\s*`).ReplaceAllString(value, "")
@@ -110,13 +112,26 @@ func (s *Store) verify(ctx context.Context, id, value string) (string, string) {
 	if id == "bilibili" {
 		target = "https://api.bilibili.com/x/web-interface/nav"
 	}
+	if id == "gitea" {
+		if s.GiteaURL == nil {
+			return "unavailable", at
+		}
+		base, err := s.GiteaURL(ctx)
+		if err != nil || strings.TrimSpace(base) == "" {
+			return "unavailable", at
+		}
+		target = strings.TrimRight(base, "/") + "/api/v1/user"
+	}
 	ctx, cancel := context.WithTimeout(ctx, 12*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "GET", target, nil)
 	if err != nil {
 		return "unavailable", at
 	}
-	if id == "github" {
+	if id == "gitea" {
+		req.Header.Set("Authorization", "token "+value)
+		req.Header.Set("Accept", "application/json")
+	} else if id == "github" {
 		req.Header.Set("Authorization", "Bearer "+value)
 		req.Header.Set("Accept", "application/vnd.github+json")
 		req.Header.Set("User-Agent", "Quartz-Stellar")
@@ -136,6 +151,18 @@ func (s *Store) verify(ctx context.Context, id, value string) (string, string) {
 	defer response.Body.Close()
 	if response.StatusCode == 401 {
 		return "expired", at
+	}
+	if id == "gitea" {
+		if response.StatusCode == 403 {
+			return "expired", at
+		}
+		var user struct {
+			ID int64 `json:"id"`
+		}
+		if response.StatusCode == 200 && json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&user) == nil && user.ID > 0 {
+			return "valid", at
+		}
+		return "unavailable", at
 	}
 	if id == "github" {
 		if response.StatusCode >= 200 && response.StatusCode < 300 {
@@ -196,6 +223,8 @@ func (s *Store) Save(ctx context.Context, id, input string) (map[string]any, err
 	lock := &s.github
 	if id == "bilibili" {
 		lock = &s.bilibili
+	} else if id == "gitea" {
+		lock = &s.gitea
 	}
 	lock.Lock()
 	defer lock.Unlock()

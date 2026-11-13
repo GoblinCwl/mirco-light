@@ -317,6 +317,26 @@ html[data-theme="dark"] .artalk .atk-textarea-wrap .atk-textarea {
   display: none !important;
 }
 
+// All comment editors, including Share projects, use the same geometry.
+#artalk-comments .atk-main-editor {
+  // Includes the account/input header, whether or not it is visible yet.
+  display: flex;
+  flex-direction: column;
+  min-height: 224px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+  > .atk-textarea-wrap {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    > .atk-textarea {
+      flex: 1;
+      box-sizing: border-box;
+    }
+  }
+  > .atk-bottom { flex-shrink: 0; }
+}
+
 /* Reserve the editor, list heading and first comment before Artalk downloads. */
 // Match the server-rendered comment container before Artalk initializes too.
 body:not([data-slug="index"]):not([data-slug^="Share/"]) .center:is(.has-bottom-comments, :has(> .page-footer #artalk-comments:not([hidden]))) {
@@ -339,24 +359,7 @@ body:not([data-slug="index"]):not([data-slug^="Share/"]) .center:is(.has-bottom-
   #artalk-comments > .atk-list { margin-top: auto; }
   #artalk-comments .atk-list-body { min-height: 150px; overflow: visible; }
   #artalk-comments .atk-list-no-comment { min-height: 150px; height: auto; margin: 0; box-sizing: border-box; }
-  #artalk-comments .atk-main-editor {
-    // Includes the account/input header, whether or not it is visible yet.
-    display: flex;
-    flex-direction: column;
-    min-height: 224px;
-    margin-bottom: 10px;
-    box-sizing: border-box;
-    > .atk-textarea-wrap {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      > .atk-textarea {
-        flex: 1;
-        box-sizing: border-box;
-      }
-    }
-    > .atk-bottom { flex-shrink: 0; }
-  }
+
   #artalk-comments .atk-list-header { min-height: 48px; box-sizing: border-box; }
   @media (width < 1200px) {
     > .article-viewport > article {

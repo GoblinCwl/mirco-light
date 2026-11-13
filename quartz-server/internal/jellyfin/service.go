@@ -91,12 +91,18 @@ func NewService(ctx context.Context, backend *Backend, origin string) *Service {
 	}}
 	go func() {
 		defer close(s.done)
+		var retry <-chan struct{}
+		if tracker := taskruns.From(root); tracker != nil {
+			retry = tracker.RetrySignal("media-cleanup")
+		}
 		ticker := taskconfig.NewTicker(root, "media-cleanup")
 		defer ticker.Stop()
 		for {
 			select {
 			case <-root.Done():
 				return
+			case <-retry:
+				_ = taskruns.Run(root, "media-cleanup", func(context.Context) error { s.cleanup(); return nil })
 			case <-ticker.C:
 				_ = taskruns.Run(root, "media-cleanup", func(context.Context) error { s.cleanup(); return nil })
 			}

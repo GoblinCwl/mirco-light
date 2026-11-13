@@ -92,6 +92,9 @@ func run() error {
 				if !ok {
 					return errors.New("observer config watcher closed")
 				}
+				if filepath.Clean(event.Name) == filepath.Join(filepath.Dir(configFile), "observer-retry") && (event.Has(fsnotify.Write) || event.Has(fsnotify.Create)) {
+					break wait
+				}
 				if filepath.Clean(event.Name) == filepath.Clean(configFile) {
 					reload()
 				}

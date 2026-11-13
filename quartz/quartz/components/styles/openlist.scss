@@ -4,8 +4,8 @@
 @use "mediaOverview";
 
 body[data-slug^="Share/"] {
-  .center > hr, .center > .page-footer { display: none; }
-  .center.has-share-comments > .page-footer { display: block; padding-top: 1.5rem; border-top: 1px solid var(--lightgray); }
+  .center > hr, .center > .article-viewport > hr, .center > .page-footer { display: none; }
+  .center.has-share-comments > .page-footer { display: block; padding-top: 1.5rem; border-top: 0; }
   [data-drive-share-tags][hidden], [data-drive-share-comments][hidden] { display: none !important; }
   #quartz-body > .sidebar.right:not(:has(.drive-operations)) { display: none; }
 

@@ -128,18 +128,10 @@ document.addEventListener('nav', () => {
         continue
       }
       let settingsContent:HTMLElement=panel
+      let taskRoot:HTMLElement|undefined
       if(name==='任务管理'){
-        const taskTabs=document.createElement('div'),configuration=document.createElement('div'),instances=document.createElement('div')
-        taskTabs.className='data-admin-tabs';instances.className='task-instances';instances.hidden=true
-        panel.append(taskTabs,configuration,instances);settingsContent=configuration
-        let refresh:(()=>void)|undefined
-        const choices=[{title:'任务配置',content:configuration},{title:'任务实例',content:instances}]
-        const buttons=choices.map(choice=>{
-          const button=document.createElement('button');button.type='button';button.textContent=choice.title;button.setAttribute('aria-pressed',String(choice.content===configuration));taskTabs.append(button)
-          button.onclick=()=>{choices.forEach((other,i)=>{other.content.hidden=other!==choice;buttons[i].setAttribute('aria-pressed',String(other===choice))});if(choice.content===instances){if(!refresh)refresh=setupTaskInstances(instances,signal,request);else refresh()}}
-          return button
-        })
-        activators[index]=()=>{if(!instances.hidden)refresh?.()}
+        taskRoot=document.createElement('div');taskRoot.className='task-instances';panel.append(taskRoot)
+        settingsContent=document.createElement('div')
       }
       if(name==='服务接入'){
         const serviceTabs=document.createElement('div'),configuration=document.createElement('div'),services=document.createElement('div')
@@ -160,7 +152,7 @@ document.addEventListener('nav', () => {
         if(!card){card=document.createElement('section');card.className='stellar-setting-card';const heading=document.createElement('h3');heading.textContent=groupName;card.append(heading);settingsContent.append(card);cards.set(groupName,card)}
         if(field.type==='navigation'){setupNavigationManager(card,result.values[field.key],async value=>{await request(`/admin/settings/${encodeURIComponent(field.key)}`,{method:'PUT',body:JSON.stringify({value})});await refreshSiteSettings()},field.key==='icp.items'?'备案信息':'寻径链接');continue}
         const row=document.createElement('form'),copy=document.createElement('div'),label=document.createElement('label'),controls=document.createElement('div'),save=document.createElement('button'),status=document.createElement('span')
-        row.className='stellar-setting-row';row.dataset.fieldType=field.type;copy.className='stellar-setting-copy';label.textContent=field.label;controls.className='stellar-setting-control';status.className='stellar-setting-status';status.id=`stellar-status-${field.key.replaceAll('.','-')}`;status.setAttribute('role','status')
+        row.className='stellar-setting-row';row.dataset.fieldType=field.type;row.dataset.settingKey=field.key;copy.className='stellar-setting-copy';label.textContent=field.label;controls.className='stellar-setting-control';status.className='stellar-setting-status';status.id=`stellar-status-${field.key.replaceAll('.','-')}`;status.setAttribute('role','status')
         let input:HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement
         let passwordField:HTMLElement|undefined
         if(field.type==='password'){passwordField=document.createElement('div');passwordField.className='stellar-setting-password';input=adminPassword(passwordField,field.label,String(result.values[field.key]||''),true)}
@@ -196,7 +188,12 @@ document.addEventListener('nav', () => {
         }
         update()
       }
-      if(name==='服务接入')setupUpstreamManager(settingsContent,signal,request)
+      if(taskRoot){
+        const target=taskRoot,configuration=settingsContent
+        let refresh:(()=>void)|undefined
+        activators[index]=()=>{if(!refresh)refresh=setupTaskInstances(target,signal,request,configuration);else refresh()}
+      }
+      if(name==='服务接入')setupUpstreamManager(settingsContent,signal,request,cards)
       if(name==='内容发布')setupContentPublishing(panel,signal,request)
     }
     navigation.addEventListener('keydown',event=>{

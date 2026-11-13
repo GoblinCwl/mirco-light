@@ -540,28 +540,7 @@ func (s Store) RSS(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	items := []Record{}
-	for _, r := range records {
-		if !r.Encrypted {
-			items = append(items, r)
-			if len(items) == 50 {
-				break
-			}
-		}
-	}
-	sort.SliceStable(items, func(i, j int) bool {
-		a, b := "", ""
-		if items[i].Published != nil {
-			a = *items[i].Published
-		}
-		if items[j].Published != nil {
-			b = *items[j].Published
-		}
-		if a == b {
-			return items[i].ID < items[j].ID
-		}
-		return a > b
-	})
+	items := rssItems(records)
 	var b strings.Builder
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>微光集</title><link>` + escaped(s.Origin) + `</link><description>微光集的文章、分享、仓库与视频</description><language>zh-cn</language>`)
 	var latest string
@@ -634,4 +613,31 @@ func NormalizeManagedRow(row map[string]any) error {
 	row["search_text"] = normalize(strings.Join([]string{text("title"), body, tagText}, "\n"))
 	row["revision"] = recordRevision(kind, text("title"), text("content"), text("description"), tags, links, encrypted, text("event_revision"))
 	return nil
+}
+
+// Select the feed by publication time before applying its size limit.
+func rssItems(records []Record) []Record {
+	items := []Record{}
+	for _, r := range records {
+		if !r.Encrypted {
+			items = append(items, r)
+		}
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		a, b := "", ""
+		if items[i].Published != nil {
+			a = *items[i].Published
+		}
+		if items[j].Published != nil {
+			b = *items[j].Published
+		}
+		if a == b {
+			return items[i].ID < items[j].ID
+		}
+		return a > b
+	})
+	if len(items) > 20 {
+		items = items[:20]
+	}
+	return items
 }
