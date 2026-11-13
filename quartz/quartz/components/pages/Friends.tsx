@@ -28,11 +28,11 @@ export const FriendsApply: QuartzComponent = ({ cfg }) => {
     <section class="friends-sidebar-group" aria-label="申请友链">
       <form class="friends-form-fields" data-friends-apply-form noValidate>
         <label class="friends-form-field"><span>网站名称</span><input name="name" placeholder="你的站点名称" maxLength={80}/></label>
-        <label class="friends-form-field"><span>网站地址</span><input name="url" type="url" inputMode="url" placeholder="https://" spellcheck={false}/></label>
-        <label class="friends-form-field"><span>包含本站友链的页面地址</span><input name="backlinkUrl" type="url" inputMode="url" placeholder="https://example.com/friends" required maxLength={1500} spellcheck={false}/></label>
-        <label class="friends-form-field"><span>RSS 地址（排序依据）</span><input name="rssUrl" type="url" inputMode="url" placeholder="https://example.com/feed.xml" maxLength={1500} spellcheck={false}/></label>
-        <label class="friends-form-field"><span>头像地址</span><input name="avatar" type="url" inputMode="url" placeholder="https://…（头像图片链接）" spellcheck={false}/></label>
         <label class="friends-form-field"><span>网站简介<output data-friends-description-count aria-live="polite">0 / 40</output></span><textarea name="description" rows={3} placeholder="简单介绍一下你的网站（最多40字）" maxLength={80} data-friends-description aria-label="网站简介，最多40个字符"/></label>
+        <label class="friends-form-field"><span>网站地址</span><input name="url" type="url" inputMode="url" placeholder="https://" spellcheck={false}/></label>
+        <label class="friends-form-field"><span>头像地址</span><input name="avatar" type="url" inputMode="url" placeholder="https://…（头像图片链接）" spellcheck={false}/></label>
+        <label class="friends-form-field"><span>RSS 地址（排序依据）</span><input name="rssUrl" type="url" inputMode="url" placeholder="https://example.com/feed.xml" maxLength={1500} spellcheck={false}/></label>
+        <label class="friends-form-field"><span>包含本站友链的页面</span><input name="backlinkUrl" type="url" inputMode="url" placeholder="https://example.com/friends" required maxLength={1500} spellcheck={false}/></label>
         <button class="friends-form-submit" type="submit" data-friends-apply disabled title="生成申请卡片预览"><span>申请友链</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 3-7 18-4-7-7-4 18-7ZM10 14 21 3"/></svg></button>
       </form>
     </section>

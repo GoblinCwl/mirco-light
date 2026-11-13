@@ -211,6 +211,7 @@
     border-radius: 8px; background: var(--stellar-accent); border: 1px solid var(--lightgray); color: var(--secondary);
     > img { position: absolute; display: block; inset: 0; width: 100%; height: 100%; margin: 0; border-radius: 0; object-fit: cover; }
   }
+  .friend-admin-number {color:var(--gray);font-size:.78rem;font-weight:400;font-variant-numeric:tabular-nums;margin-right:.25rem;}
   .friend-admin-copy { flex: 1; min-width: 0; > strong { display: block; color: var(--dark); font-weight: 600; font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; } }
   .friend-admin-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem .5rem; margin-top: .2rem; > small { font-size: .68rem; line-height: 1.5; color: var(--stellar-muted); overflow-wrap: anywhere; } }
   .stellar-admin-badge { display: inline-flex; align-items: center; width: fit-content; gap: .3rem; padding: .12rem .4rem; border-radius: 4px; font-size: .65rem; line-height: 1.5; white-space: nowrap; color: var(--stellar-success); background: color-mix(in srgb, var(--stellar-success) 9%, var(--light));

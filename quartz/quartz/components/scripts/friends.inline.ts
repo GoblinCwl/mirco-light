@@ -150,7 +150,7 @@ document.addEventListener('nav', () => {
   const website=field('url'),avatarField=field('avatar'),backlinkField=field('backlinkUrl')
   const address=(input:HTMLInputElement)=>{const value=input.value.trim();if(!/^https:\/\//i.test(value))throw new Error();const url=new URL(value);if(url.protocol!=='https:'||!url.hostname||url.username||url.password)throw new Error();return url.href}
   const validated:string[]=[]
-  for(const [input,label] of [[website,'网站地址'],[avatarField,'头像地址'],[backlinkField,'包含本站友链的页面地址']] as const){
+  for(const [input,label] of [[website,'网站地址'],[avatarField,'头像地址'],[backlinkField,'包含本站友链的页面']] as const){
    try{validated.push(address(input))}
    catch{
     input.setAttribute('aria-invalid','true')
