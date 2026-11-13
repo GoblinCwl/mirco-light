@@ -1,3 +1,4 @@
+import {isDirectoryListed} from "../../util/directoryVisibility"
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "../types"
 
 import style from "../styles/listPage.scss"
@@ -31,9 +32,10 @@ export default ((opts?: Partial<FolderContentOptions>) => {
   const options: FolderContentOptions = { ...defaultOptions, ...opts }
 
   const FolderContent: QuartzComponent = (props: QuartzComponentProps) => {
-    const { tree, fileData, allFiles, cfg } = props
+    const { tree, fileData, cfg } = props
+    const allFiles=props.allFiles.filter(file=>isDirectoryListed(String(file.relativePath??file.slug),cfg.directoryHiddenPatterns))
 
-    const trie = (props.ctx.trie ??= trieFromAllFiles(allFiles))
+    const trie = cfg.directoryHiddenPatterns?.length?trieFromAllFiles(allFiles):(props.ctx.trie ??= trieFromAllFiles(allFiles))
     const folder = trie.findNode(fileData.slug!.split("/"))
     if (!folder) {
       return null
@@ -44,7 +46,7 @@ export default ((opts?: Partial<FolderContentOptions>) => {
       props.ctx.directoryDates.sync(allFiles)
     }
     const directoryDates = props.ctx.directoryDates
-    const allPagesInFolder = folder.children.flatMap<QuartzPluginData>(node => {
+    const allPagesInFolder = folder.children.filter(node=>isDirectoryListed(node.slug,cfg.directoryHiddenPatterns)).flatMap<QuartzPluginData>(node => {
       if (node.isFolder && options.showSubfolders) {
         return [{
           ...node.data,

@@ -76,6 +76,8 @@ export interface GlobalConfiguration {
   ignorePatterns: string[]
   /** Built and directly accessible, but omitted from public discovery. */
   unlistedPatterns?: string[]
+  /** Hidden only in directory navigation, retained in the content index and graphs. */
+  directoryHiddenPatterns?: string[]
   /** Whether to use created, modified, or published as the default type of date */
   defaultDateType: ValidDateType
   /** Base URL to use for CNAME files, sitemaps, and RSS feeds that require an absolute URL.

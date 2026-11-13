@@ -1,3 +1,4 @@
+import {isDirectoryListed} from "../../util/directoryVisibility"
 import {createDirectoryDetailsMotion} from './directoryDetailsMotion'
 import {readArticleIndex} from './contentCatalog'
 import {setupMobileHeader} from './mobileHeader'
@@ -18,6 +19,7 @@ import { setupRepoDirectories } from "./repoNavigation"
 type MaybeHTMLElement = HTMLElement | undefined
 
 interface ParsedOptions {
+  directoryHiddenPatterns:string[]
   folderClickBehavior: "collapse" | "link"
   folderDefaultState: "collapsed" | "open"
   useSavedState: boolean
@@ -82,7 +84,7 @@ function updateCurrentEntry(explorer: HTMLElement, slug: FullSlug, followRoute =
 
 function explorerTrie(data: Record<FullSlug, ContentDetails>, opts: ParsedOptions) {
   // Use index keys as canonical identities for both cached and live snapshots.
-  const entries = Object.entries(data).filter(([slug]) => !slug.startsWith("Share/")).map(([slug, item]) => [slug, { ...item, slug }] as [FullSlug, ContentDetails])
+  const entries = Object.entries(data).filter(([slug,item]) => !slug.startsWith("Share/")&&isDirectoryListed(String(item.filePath||slug),opts.directoryHiddenPatterns)).map(([slug, item]) => [slug, { ...item, slug }] as [FullSlug, ContentDetails])
   const trie = FileTrieNode.fromEntries(entries)
   for (const operation of opts.order) {
     if (operation === "filter" && opts.filterFn) trie.filter(opts.filterFn)
@@ -440,6 +442,7 @@ async function setupExplorer(currentSlug: FullSlug) {
 
     const dataFns = JSON.parse(explorer.dataset.dataFns || "{}")
     const opts: ParsedOptions = {
+      directoryHiddenPatterns: dataFns.directoryHiddenPatterns||[],
       folderClickBehavior: (explorer.dataset.behavior || "collapse") as "collapse" | "link",
       folderDefaultState: (explorer.dataset.collapsed || "collapsed") as "collapsed" | "open",
       useSavedState: explorer.dataset.savestate === "true",

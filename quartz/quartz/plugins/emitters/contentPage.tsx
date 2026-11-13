@@ -1,3 +1,4 @@
+import {aliasSlugs,aliasPageHTML} from "./aliases"
 import path from "path"
 import { QuartzEmitterPlugin } from "../types"
 import { QuartzComponentProps } from "../../components/types"
@@ -47,6 +48,11 @@ async function processContent(
     slug,
     ext: ".html",
   }))
+  const aliases=aliasSlugs(slug,fileData.aliases)
+  if(aliases.length){
+    const aliasHTML=aliasPageHTML(content,slug)
+    for(const alias of aliases)outputs.push(await write({ctx,slug:alias,ext:".html",content:aliasHTML}))
+  }
   return outputs
 }
 

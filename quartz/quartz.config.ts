@@ -20,6 +20,7 @@ const config: QuartzConfig = {
     baseUrl: "goblincwl.site",
     ignorePatterns: contentPolicy.ignorePatterns,
     unlistedPatterns: contentPolicy.unlistedPatterns,
+    directoryHiddenPatterns: contentPolicy.directoryHiddenPatterns,
     defaultDateType: "modified",
     passProtected: {
       enabled: true,
@@ -93,7 +94,6 @@ const config: QuartzConfig = {
     ],
     filters: [Plugin.RemoveDrafts(),Plugin.ExplicitPublish()],
     emitters: [
-      Plugin.AliasRedirects(),
       Plugin.ComponentResources(),
       Plugin.ContentPage(),
       Plugin.HomePage(),

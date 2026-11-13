@@ -9,5 +9,5 @@ export function parsePatterns(value) {
   return patterns
 }
 export function normalizePolicy(value) {
-  return {ignorePatterns:parsePatterns(value.ignorePatterns),unlistedPatterns:parsePatterns(value.unlistedPatterns)}
+  return {ignorePatterns:parsePatterns(value.ignorePatterns),unlistedPatterns:parsePatterns(value.unlistedPatterns),directoryHiddenPatterns:parsePatterns(value.directoryHiddenPatterns??'')}
 }

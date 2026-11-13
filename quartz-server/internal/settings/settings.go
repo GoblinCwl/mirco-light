@@ -184,7 +184,7 @@ func validate(key string, value any) (any, error) {
 				}
 			}
 		}
-		if key == "content.ignorePatterns" || key == "content.unlistedPatterns" {
+		if key == "content.ignorePatterns" || key == "content.unlistedPatterns" || key == "content.directoryHiddenPatterns" {
 			seen := map[string]bool{}
 			patterns := []string{}
 			for _, line := range strings.Split(v, "\n") {

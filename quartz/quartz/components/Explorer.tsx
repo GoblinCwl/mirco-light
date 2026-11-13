@@ -1,3 +1,4 @@
+import {isDirectoryListed} from "../util/directoryVisibility"
 import { createHash } from "node:crypto"
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 import style from "./styles/explorer.scss"
@@ -82,9 +83,9 @@ export default ((userOpts?: Partial<Options>) => {
     const directoryVersion = createHash("sha256").update(JSON.stringify([
       "directory-layout-v21-horizon-realm",
       opts.title, opts.folderClickBehavior, opts.folderDefaultState, opts.useSavedState,
-      opts.order, opts.sortFn.toString(), opts.filterFn.toString(), opts.mapFn.toString(), toolPages, cfg.locale,
+      cfg.directoryHiddenPatterns, opts.order, opts.sortFn.toString(), opts.filterFn.toString(), opts.mapFn.toString(), toolPages, cfg.locale,
     ])).digest("hex").slice(0, 16)
-    const articleRoots = new Set(props.allFiles.filter(file => file.slug && file.slug !== "index" && isListed(file, cfg) && !/^(tags|Share|Repo|Video)(?:\/|$)/.test(file.slug)).map(file => file.slug!.split("/")[0]))
+    const articleRoots = new Set(props.allFiles.filter(file => file.slug && file.slug !== "index" && isListed(file, cfg) && isDirectoryListed(String(file.relativePath??file.slug),cfg.directoryHiddenPatterns) && !/^(tags|Share|Repo|Video)(?:\/|$)/.test(file.slug)).map(file => file.slug!.split("/")[0]))
     const driveDirectory = () => (
       toolPages.map(tool => (
           <li class="directory-tools directory-drive"><details class="drive-nav" open={props.fileData.slug === tool.slug}>
@@ -109,6 +110,7 @@ export default ((userOpts?: Partial<Options>) => {
         data-collapsed={opts.folderDefaultState}
         data-savestate={opts.useSavedState}
         data-data-fns={JSON.stringify({
+          directoryHiddenPatterns: cfg.directoryHiddenPatterns??[],
           order: opts.order,
           sortFn: opts.sortFn.toString(),
           filterFn: opts.filterFn.toString(),

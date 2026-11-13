@@ -9,3 +9,9 @@ test('reject invalid policy paths and overlarge input',()=>{
  for(const value of ['/etc/**','../**','notes/../**','!Work/**','Work\\**','Work/\0','x'.repeat(16001)])assert.throws(()=>parsePatterns(value))
  assert.throws(()=>normalizePolicy({ignorePatterns:[],unlistedPatterns:''}))
 })
+
+test('directory-only hiding is optional for old policies and preserved for new policies',()=>{
+ assert.deepEqual(normalizePolicy({ignorePatterns:'',unlistedPatterns:''}).directoryHiddenPatterns,[])
+ assert.deepEqual(normalizePolicy({ignorePatterns:'',unlistedPatterns:'',directoryHiddenPatterns:'Private/about.md\nMemo/**'}).directoryHiddenPatterns,['Private/about.md','Memo/**'])
+ assert.throws(()=>normalizePolicy({ignorePatterns:'',unlistedPatterns:'',directoryHiddenPatterns:'../secret'}))
+})

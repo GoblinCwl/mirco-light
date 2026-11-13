@@ -1,3 +1,4 @@
+import {normalizeRelativeURLs} from '../../util/path'
 import {rememberReadingUnlock} from './readingUnlock'
 import { unlockedIcon } from "../../util/encryptedIcon"
 import { showPasswordToast } from "./passwordFeedback"
@@ -307,7 +308,8 @@ async function decrypt() {
     }
 
     article.innerHTML = contentHtml
-    rememberReadingUnlock(location.pathname,article.textContent||"")
+    if(document.body.dataset.contentBase)normalizeRelativeURLs(article,new URL(document.body.dataset.contentBase,location.origin))
+    rememberReadingUnlock(document.body.dataset.contentBase||location.pathname,article.textContent||"")
     // Decryption can be retried or completed by more than one pending callback.
     // Content is replaced above, so give the separately inserted TOC the same
     // idempotent behaviour instead of appending duplicate navigation blocks.

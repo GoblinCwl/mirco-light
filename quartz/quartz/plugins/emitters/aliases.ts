@@ -1,55 +1,26 @@
-import { FullSlug, isRelativeURL, resolveRelative, simplifySlug } from "../../util/path"
-import { QuartzEmitterPlugin } from "../types"
-import { write } from "./helpers"
-import { BuildCtx } from "../../util/ctx"
-import { VFile } from "vfile"
-import path from "path"
+import path from 'node:path'
+import {fromHtml} from 'hast-util-from-html'
+import {toHtml} from 'hast-util-to-html'
+import {visit} from 'unist-util-visit'
+import {FullSlug,isRelativeURL,simplifySlug} from '../../util/path'
 
-async function* processFile(ctx: BuildCtx, file: VFile) {
-  const ogSlug = simplifySlug(file.data.slug!)
-
-  for (const aliasTarget of file.data.aliases ?? []) {
-    const aliasTargetSlug = (
-      isRelativeURL(aliasTarget)
-        ? path.normalize(path.join(ogSlug, "..", aliasTarget))
-        : aliasTarget
-    ) as FullSlug
-
-    const redirUrl = resolveRelative(aliasTargetSlug, ogSlug)
-    yield write({
-      ctx,
-      content: `
-        <!DOCTYPE html>
-        <html lang="en-us">
-        <head>
-        <title>${ogSlug}</title>
-        <link rel="canonical" href="${redirUrl}">
-        <meta name="robots" content="noindex">
-        <meta charset="utf-8">
-        <meta http-equiv="refresh" content="0; url=${redirUrl}">
-        </head>
-        </html>
-        `,
-      slug: aliasTargetSlug,
-      ext: ".html",
-    })
-  }
+export function aliasSlugs(slug:FullSlug,aliases:FullSlug[]=[]):FullSlug[]{
+ const original=simplifySlug(slug)
+ return [...new Set(aliases.map(alias=>(isRelativeURL(alias)?path.posix.normalize(path.posix.join(original,'..',alias)):alias).replace(/^\/+/,'')))].filter(alias=>alias!==slug&&alias!==original) as FullSlug[]
 }
 
-export const AliasRedirects: QuartzEmitterPlugin = () => ({
-  name: "AliasRedirects",
-  async *emit(ctx, content) {
-    for (const [_tree, file] of content) {
-      yield* processFile(ctx, file)
-    }
-  },
-  async *partialEmit(ctx, _content, _resources, changeEvents) {
-    for (const changeEvent of changeEvents) {
-      if (!changeEvent.file) continue
-      if (changeEvent.type === "add" || changeEvent.type === "change") {
-        // add new ones if this file still exists
-        yield* processFile(ctx, changeEvent.file)
-      }
-    }
-  },
-})
+/** Retain canonical article identity while making its URLs independent of alias depth. */
+export function aliasPageHTML(html:string,slug:FullSlug):string {
+ const tree=fromHtml(html),base=new URL('/'+slug,'https://alias.invalid')
+ visit(tree,'element',node=>{
+  for(const key of ['href','src','poster','action','dataPayloadUrl','dataUrl','dataSrc']){
+   const value=node.properties[key]
+   if(typeof value!=='string'||!value||/^(?:#|\/|[a-z][a-z\d+.-]*:)/i.test(value))continue
+   const url=new URL(value,base)
+   node.properties[key]=url.pathname+url.search+url.hash
+  }
+  if(node.tagName==='body')node.properties.dataContentBase=base.pathname
+  if(node.tagName==='head')node.children.push({type:'element',tagName:'link',properties:{rel:['canonical'],href:base.pathname},children:[]})
+ })
+ return toHtml(tree,{allowDangerousHtml:true})
+}

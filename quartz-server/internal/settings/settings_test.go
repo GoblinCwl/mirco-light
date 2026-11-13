@@ -76,3 +76,15 @@ func TestFoundedDateValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestDirectoryHiddenPatterns(t *testing.T) {
+	got, err := validate("content.directoryHiddenPatterns", " Memo/**\nPrivate/about.md\nMemo/** ")
+	if err != nil || got != "Memo/**\nPrivate/about.md" {
+		t.Fatal(got, err)
+	}
+	for _, value := range []string{"../secret", "/Private", "!Memo/**"} {
+		if _, err := validate("content.directoryHiddenPatterns", value); err == nil {
+			t.Fatal("accepted invalid pattern", value)
+		}
+	}
+}

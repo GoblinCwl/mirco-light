@@ -27,7 +27,7 @@ export async function startBuildControl(rebuild,{directory=policyDirectory,filen
       let text='';for await(const chunk of req){text+=chunk;if(text.length>100000)throw new Error('配置过大')}
       const policy=normalizePolicy(JSON.parse(text))
       // Persist the active rules, independently of the backend's saved draft.
-      const snapshot={ignorePatterns:policy.ignorePatterns.join('\n'),unlistedPatterns:policy.unlistedPatterns.join('\n')}
+      const snapshot={ignorePatterns:policy.ignorePatterns.join('\n'),unlistedPatterns:policy.unlistedPatterns.join('\n'),directoryHiddenPatterns:policy.directoryHiddenPatterns.join('\n')}
       await writeFile(filename+'.tmp',JSON.stringify(snapshot,null,2),{mode:0o600})
       const owner=await stat(directory)
       if(process.getuid?.()===0)await chown(filename+'.tmp',owner.uid,owner.gid)

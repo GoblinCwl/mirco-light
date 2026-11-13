@@ -35,7 +35,7 @@ func (c Client) Status() (map[string]any, error) {
 	return value, nil
 }
 func (c Client) Reload(ctx context.Context, settings map[string]any) (map[string]any, error) {
-	raw, err := json.Marshal(map[string]any{"ignorePatterns": settings["content.ignorePatterns"], "unlistedPatterns": settings["content.unlistedPatterns"]})
+	raw, err := json.Marshal(map[string]any{"ignorePatterns": settings["content.ignorePatterns"], "unlistedPatterns": settings["content.unlistedPatterns"], "directoryHiddenPatterns": settings["content.directoryHiddenPatterns"]})
 	if err != nil {
 		return nil, err
 	}

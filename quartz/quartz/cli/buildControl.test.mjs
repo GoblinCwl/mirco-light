@@ -13,7 +13,7 @@ test('local reload serializes requests, persists valid rules and reports success
  try{
   assert.equal((await call('GET','/status')).phase,'idle')
   assert.equal((await call('POST','/reload',{ignorePatterns:'../**',unlistedPatterns:''})).code,400)
-  const rules={ignorePatterns:'Resources/**',unlistedPatterns:'Work/**'}
+  const rules={ignorePatterns:'Resources/**',unlistedPatterns:'Work/**',directoryHiddenPatterns:'Private/about.md'}
   assert.equal((await call('POST','/reload',rules)).code,202)
   assert.equal((await call('GET','/status')).phase,'running')
   assert.equal(JSON.parse(await readFile(join(directory,'build-status.json'),'utf8')).phase,'running')

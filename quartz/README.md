@@ -31,3 +31,5 @@ node quartz/bootstrap-cli.mjs build
 实际部署使用父目录 Compose，配置、数据库、权限、备份和服务重启规则统一见 [服务规则](../architecture/service-rules.md)。不在本工程启动第二套业务后端。
 
 `docs/` 中的框架参考资料与本站维护规范分开，阅读入口见 [文档分类](docs/README.md)。
+
+文章 `alias` / `aliases` 由 ContentPage 同步输出完整页面，访问别名保留地址栏，原文 slug、评论及解密身份不变。相对资源和正文链接转换为根路径，canonical 指向原文；不再输出刷新跳转页。裸别名位于站点根目录，显式 `./` 别名相对文章目录。

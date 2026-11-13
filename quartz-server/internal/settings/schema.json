@@ -268,6 +268,16 @@
     "help": "每行一条 glob，例如 Work/**。保留原链接，从首页、目录、搜索、标签及 RSS 隐藏。隐藏不等于访问权限。"
   },
   {
+    "key": "content.directoryHiddenPatterns",
+    "public": false,
+    "group": "内容发布",
+    "label": "仅隐藏目录",
+    "type": "textarea",
+    "default": "",
+    "max": 16000,
+    "help": "每行一个目录、文件或 glob，例如 Private/关于本站：微光集.md。仅从目录树及目录列表隐藏，保留索引、星轨图、搜索和流光。保存后重载生效；不改变访问权限。"
+  },
+  {
     "key": "profile.avatar",
     "group": "首页展示",
     "label": "首页头像",
