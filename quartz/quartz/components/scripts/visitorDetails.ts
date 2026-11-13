@@ -120,7 +120,7 @@ export function setupVisitorDetails() {
         const dates = node("div", "", "visitor-record-dates")
         const lastTime = node("time", visitTime(visit.lastSeenAt, visit.lastSeenOn))
         if (visit.lastSeenAt) lastTime.setAttribute("datetime", visit.lastSeenAt)
-        dates.append(node("span", visit.browser || "未知浏览器", "visitor-record-browser"), lastTime)
+        dates.append(node("span", visit.browser || "深空", "visitor-record-browser"), lastTime)
         item.append(mark, info, dates)
         list.append(item)
       }
