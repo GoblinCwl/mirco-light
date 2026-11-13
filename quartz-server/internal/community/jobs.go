@@ -6,12 +6,14 @@ import (
 	"errors"
 	"goblincwl/quartz-server/internal/friendavatar"
 	"goblincwl/quartz-server/internal/taskconfig"
+	"goblincwl/quartz-server/internal/taskruns"
 	"strings"
 	"time"
 )
 
 type FriendJob struct {
 	FriendID    string
+	FriendName  string
 	Generation  int64
 	Attempts    int
 	InspectOnly bool
@@ -55,7 +57,7 @@ func (s Store) ClaimFriendJob(ctx context.Context, now time.Time) (*FriendJob, e
 	}
 	defer tx.Rollback()
 	var job FriendJob
-	err = tx.QueryRowContext(ctx, "SELECT j.friend_id,j.generation,j.attempts,(f.status='展示中' AND f.review_result='人工审核：展示中') FROM friend_jobs j JOIN friends f ON f.id=j.friend_id WHERE j.state='pending' AND j.available_at<=? ORDER BY j.available_at,j.enqueued_at,j.friend_id LIMIT 1 FOR UPDATE SKIP LOCKED", now.UnixMilli()).Scan(&job.FriendID, &job.Generation, &job.Attempts, &job.InspectOnly)
+	err = tx.QueryRowContext(ctx, "SELECT j.friend_id,f.name,j.generation,j.attempts,(f.status='展示中' AND f.review_result='人工审核：展示中') FROM friend_jobs j JOIN friends f ON f.id=j.friend_id WHERE j.state='pending' AND j.available_at<=? ORDER BY j.available_at,j.enqueued_at,j.friend_id LIMIT 1 FOR UPDATE SKIP LOCKED", now.UnixMilli()).Scan(&job.FriendID, &job.FriendName, &job.Generation, &job.Attempts, &job.InspectOnly)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -131,6 +133,7 @@ func (s Store) ProcessFriendJob(ctx context.Context, id string) error {
 		if s.StoreAvatar == nil {
 			failures = append(failures, errors.New("头像存储尚未配置"))
 		} else {
+			taskruns.Note(ctx, "存储头像："+friend.Name)
 			address, err := s.StoreAvatar(ctx, source)
 			if err == nil {
 				_, err = s.DB.ExecContext(ctx, "UPDATE friends SET avatar=? WHERE id=? AND avatar=? AND avatar_source=?", address, friend.ID, friend.Avatar, friend.AvatarSource)
@@ -140,10 +143,16 @@ func (s Store) ProcessFriendJob(ctx context.Context, id string) error {
 			}
 		}
 	}
+	if friend.RSSURL != "" {
+		taskruns.Note(ctx, "初始化 RSS："+friend.Name)
+	}
 	if err := s.InitializeFeed(ctx, id); err != nil {
 		failures = append(failures, err)
 	}
 	if s.CheckBacklink != nil {
+		if friend.Status == "待审核" {
+			taskruns.Note(ctx, "执行回链自动审核："+friend.Name)
+		}
 		if _, err := s.AutoReviewFriend(ctx, id); err != nil && !errors.Is(err, ErrFriendNotFound) {
 			failures = append(failures, err)
 		}

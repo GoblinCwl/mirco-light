@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"goblincwl/quartz-server/internal/taskconfig"
+	"goblincwl/quartz-server/internal/taskruns"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -38,6 +40,7 @@ func WatchAttendance(ctx context.Context, root string, quiet time.Duration, refr
 	if err = addTree(root); err != nil {
 		return err
 	}
+	_ = taskruns.Run(ctx, "attendance-watch", func(ctx context.Context) error { taskruns.Note(ctx, "日历目录监听已就绪"); return nil })
 	if quiet <= 0 {
 		quiet = time.Minute
 	}
@@ -58,12 +61,26 @@ func WatchAttendance(ctx context.Context, root string, quiet time.Duration, refr
 			<-done
 		}
 	}()
+	var pendingFlag atomic.Bool
+	state := taskruns.NewQueueState("日历变更刷新")
+	if tracker := taskruns.From(ctx); tracker != nil {
+		tracker.RegisterQueue("attendance-refresh", func() []taskruns.QueueItem {
+			pending := 0
+			if pendingFlag.Load() {
+				pending = 1
+			}
+			return state.Snapshot(pending)
+		})
+	}
+	pendingFlag.Store(true)
 	pending := true
 	start := func() {
 		result := make(chan error, 1)
 		done = result
 		pending = false
-		go func() { result <- refresh(ctx) }()
+		pendingFlag.Store(false)
+		state.Start()
+		go func() { result <- taskruns.Run(ctx, "attendance-refresh", refresh) }()
 	}
 	for {
 		select {
@@ -94,6 +111,7 @@ func WatchAttendance(ctx context.Context, root string, quiet time.Duration, refr
 			// Directory renames/removals can remove many dates in one event.
 			if directory || event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) || strings.HasSuffix(event.Name, ".md") {
 				pending = true
+				pendingFlag.Store(true)
 				timer.Reset(delay())
 			}
 		case <-timer.C:
@@ -102,6 +120,7 @@ func WatchAttendance(ctx context.Context, root string, quiet time.Duration, refr
 			}
 		case err := <-done:
 			done = nil
+			state.Done()
 			if err != nil {
 				report(err)
 			}

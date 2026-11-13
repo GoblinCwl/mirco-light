@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"goblincwl/quartz-server/internal/taskruns"
 	"net/http"
 	"net/url"
 )
@@ -18,6 +19,14 @@ type transport struct {
 func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	res, err := t.base.RoundTrip(req)
 	target := SafeTarget(req.URL.String())
+	if taskruns.Active(req.Context()) {
+		if err != nil {
+			taskruns.Note(req.Context(), t.source+" 请求失败："+target)
+		} else if res != nil && res.StatusCode >= 400 {
+			taskruns.Note(req.Context(), fmt.Sprintf("%s 返回 HTTP %d：%s", t.source, res.StatusCode, target))
+		}
+		return res, err
+	}
 	if err != nil {
 		if !errors.Is(req.Context().Err(), context.Canceled) {
 			Emit(Event{Kind: "api", Level: APILevel(t.source, target), Source: t.source, Title: "外部 API 连接失败", Message: "请求连接失败或等待响应超时", Target: target})
@@ -32,7 +41,7 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 func Do(client *http.Client, source string, req *http.Request) (*http.Response, error) {
-	if current.Load() == nil {
+	if current.Load() == nil && !taskruns.Active(req.Context()) {
 		return client.Do(req)
 	}
 	copy := *client

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"goblincwl/quartz-server/internal/alerts"
 	"goblincwl/quartz-server/internal/taskconfig"
+	"goblincwl/quartz-server/internal/taskruns"
 	"io"
 	_ "modernc.org/sqlite"
 	"net/http"
@@ -76,13 +77,16 @@ func Open(ctx context.Context, path string, settings func(context.Context) (map[
 			case <-root.Done():
 				return
 			case now := <-tick.C:
-				m.mu.Lock()
-				for _, s := range m.live {
-					if s.cancel != nil && now.Sub(s.used) > 20*time.Second {
-						s.cancel()
+				_ = taskruns.Run(root, "monitor-cleanup", func(context.Context) error {
+					m.mu.Lock()
+					for _, s := range m.live {
+						if s.cancel != nil && now.Sub(s.used) > 20*time.Second {
+							s.cancel()
+						}
 					}
-				}
-				m.mu.Unlock()
+					m.mu.Unlock()
+					return nil
+				})
 			}
 		}
 	}()

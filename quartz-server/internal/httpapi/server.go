@@ -14,6 +14,7 @@ import (
 	"goblincwl/quartz-server/internal/monitoring"
 	"goblincwl/quartz-server/internal/openlist"
 	"goblincwl/quartz-server/internal/repo"
+	"goblincwl/quartz-server/internal/taskruns"
 	"goblincwl/quartz-server/internal/video"
 	"goblincwl/quartz-server/internal/visitors"
 	"log/slog"
@@ -22,6 +23,7 @@ import (
 )
 
 type Server struct {
+	TaskRuns          *taskruns.Tracker
 	ArticleDirectory  string
 	Build             *buildcontrol.Client
 	Jellyfin          *jellyfin.Service

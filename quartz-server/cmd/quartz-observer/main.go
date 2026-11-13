@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"goblincwl/quartz-server/internal/observer"
 	"goblincwl/quartz-server/internal/taskconfig"
+	"goblincwl/quartz-server/internal/taskruns"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -59,15 +61,27 @@ func run() error {
 	ticker := taskconfig.NewTicker(ctx, "container-observer")
 	defer ticker.Stop()
 	for {
+		started := time.Now()
 		containers, err := observer.Inspect(ctx)
 		if err == nil {
 			observer.Update(&snapshot, containers, baseline, func(container observer.Container) bool { return observer.Ready(ctx, container, directory) }, time.Now())
-			if err = observer.Save(filename, snapshot); err != nil {
-				return err
-			}
 			baseline = false
 		} else if ctx.Err() == nil {
 			slog.Warn("container observation unavailable; preserving state")
+		}
+		runKey := started.UTC().Format(time.RFC3339Nano)
+		record := taskruns.RunRecord{Key: "container-observer", RunKey: &runKey, StartedAt: runKey, FinishedAt: time.Now().UTC().Format(time.RFC3339Nano), Status: "success", Duration: time.Since(started).Milliseconds(), Logs: fmt.Sprintf("完成容器状态观察，共 %d 个容器", len(containers))}
+		if err != nil {
+			record.Status = "failed"
+			record.Error = taskruns.Clean(err.Error(), 4000)
+			record.Logs = record.Error
+		}
+		snapshot.TaskRuns = append(snapshot.TaskRuns, record)
+		if len(snapshot.TaskRuns) > 10 {
+			snapshot.TaskRuns = snapshot.TaskRuns[len(snapshot.TaskRuns)-10:]
+		}
+		if err = observer.Save(filename, snapshot); err != nil {
+			return err
 		}
 	wait:
 		for {

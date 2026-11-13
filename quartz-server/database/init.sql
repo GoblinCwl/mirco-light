@@ -122,26 +122,12 @@ CREATE TABLE `friends` (
   `health_error` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '最近首页检查失败原因',
   `url_hash` binary(32) GENERATED ALWAYS AS (unhex(sha2(`url`,256))) STORED COMMENT 'URL 的 SHA-256 二进制生成列，用于唯一约束',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `friends_url_hash` (`url_hash`),
   UNIQUE KEY `friends_number` (`number`),
+  UNIQUE KEY `friends_url_hash` (`url_hash`),
   KEY `friends_updated` (`latest_update`,`number`),
   CONSTRAINT `friends_example` CHECK ((`example` in (0,1))),
   CONSTRAINT `friends_status` CHECK ((`status` in (_utf8mb4'展示中',_utf8mb4'待审核',_utf8mb4'已失效')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='友链资料、固定编号及审核状态';
-
-CREATE TABLE `friend_jobs` (
-  `friend_id` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '待处理友链标识',
-  `generation` bigint unsigned NOT NULL DEFAULT '1' COMMENT '任务版本，重复提交递增以保护新任务',
-  `state` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending' COMMENT 'pending / running',
-  `attempts` int unsigned NOT NULL DEFAULT '0' COMMENT '后台处理失败次数',
-  `available_at` bigint NOT NULL DEFAULT '0' COMMENT '下次可处理的 Unix 毫秒时间，0 表示立即',
-  `last_error` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '最近处理失败原因',
-  `enqueued_at` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '任务提交时间，UTC ISO 8601',
-  PRIMARY KEY (`friend_id`),
-  KEY `friend_jobs_ready` (`state`,`available_at`,`enqueued_at`),
-  CONSTRAINT `friend_jobs_friend` FOREIGN KEY (`friend_id`) REFERENCES `friends` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `friend_jobs_state` CHECK (`state` IN ('pending','running'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='友链头像、RSS 和自动审核持久化队列';
 
 CREATE TABLE `geoip_datasets` (
   `ip_version` tinyint unsigned NOT NULL COMMENT 'IP åè®®ç‰ˆæœ¬ï¼Œ4 æˆ– 6',
@@ -227,6 +213,22 @@ CREATE TABLE `share_identities` (
   UNIQUE KEY `uid` (`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='OpenList分享来源与本站稳定内容标识的映射';
 
+CREATE TABLE `task_runs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '执行记录编号',
+  `task_key` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '固定任务标识',
+  `run_key` varchar(96) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '外部观察器执行去重标识，本地执行为空',
+  `started_at` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '开始时间，UTC ISO 8601',
+  `finished_at` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '结束时间，运行中为空',
+  `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'running / success / failed / interrupted',
+  `duration_ms` bigint unsigned NOT NULL DEFAULT '0' COMMENT '执行耗时，毫秒',
+  `error` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '经过凭据过滤的错误，最多4000字',
+  `logs` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '经过凭据过滤的执行日志，最多12000字',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `task_run_external` (`task_key`,`run_key`),
+  KEY `task_run_history` (`task_key`,`id` DESC),
+  CONSTRAINT `task_run_status` CHECK ((`status` in (_utf8mb4'running',_utf8mb4'success',_utf8mb4'failed',_utf8mb4'interrupted')))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='后台任务最近十次真实执行记录';
+
 CREATE TABLE `video_assets` (
   `name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '图片缓存名称',
   `source` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin COMMENT '上游图片地址',
@@ -282,11 +284,25 @@ CREATE TABLE `daily_visitors` (
   CONSTRAINT `daily_visitors_parent` FOREIGN KEY (`identity`) REFERENCES `visitors` (`identity`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='按日期和访客身份去重的每日来访明细';
 
+CREATE TABLE `friend_jobs` (
+  `friend_id` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '待处理友链标识',
+  `generation` bigint unsigned NOT NULL DEFAULT '1' COMMENT '任务版本，重复提交递增以保护新任务',
+  `state` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending' COMMENT 'pending / running',
+  `attempts` int unsigned NOT NULL DEFAULT '0' COMMENT '后台处理失败次数',
+  `available_at` bigint NOT NULL DEFAULT '0' COMMENT '下次可处理的 Unix 毫秒时间，0 表示立即',
+  `last_error` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '最近处理失败原因',
+  `enqueued_at` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '任务提交时间，UTC ISO 8601',
+  PRIMARY KEY (`friend_id`),
+  KEY `friend_jobs_ready` (`state`,`available_at`,`enqueued_at`),
+  CONSTRAINT `friend_jobs_friend` FOREIGN KEY (`friend_id`) REFERENCES `friends` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `friend_jobs_state` CHECK ((`state` in (_utf8mb4'pending',_utf8mb4'running')))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='友链头像、RSS 和自动审核持久化队列';
+
 CREATE TABLE `monitored_services` (
   `id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '服务列表条目标识',
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '公开显示名称',
   `integration` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '已集成服务类型，空字符串表示其他服务',
-  `icon_svg` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT ('') COMMENT '自定义 SVG 图标源码，留空使用服务来源图标',
+  `icon_svg` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT (_utf8mb4'') COMMENT '自定义 SVG 图标源码，留空使用服务来源图标',
   `container_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT 'Beszel 容器匹配名称，留空仅使用 HTTP',
   `http_url` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT 'HTTP 检测地址，集成服务留空则引用原接入配置',
   `strict_status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否仅将 HTTP 2xx 判定为正常',

@@ -126,7 +126,7 @@ func (s Store) List(ctx context.Context, page int, kind, query string) (map[stri
 	if page > 100000 {
 		page = 100000
 	}
-	where := " WHERE 1=1"
+	where := " WHERE kind<>'task'"
 	args := []any{}
 	if kind != "" {
 		if kind != "api" && kind != "service" && kind != "task" && kind != "runtime" {

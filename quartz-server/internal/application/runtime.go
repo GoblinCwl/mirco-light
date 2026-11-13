@@ -18,6 +18,7 @@ import (
 	"goblincwl/quartz-server/internal/repo"
 	"goblincwl/quartz-server/internal/settings"
 	"goblincwl/quartz-server/internal/taskconfig"
+	"goblincwl/quartz-server/internal/taskruns"
 	"goblincwl/quartz-server/internal/video"
 	"log/slog"
 	"net/http"
@@ -85,6 +86,12 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	}
 	config := taskconfig.New(values)
 	root = taskconfig.With(root, config)
+	app.TaskRuns = taskruns.New(app.DB)
+	app.TaskRuns.Config = config
+	if err = app.TaskRuns.Recover(root); err != nil {
+		return nil, err
+	}
+	root = taskruns.With(root, app.TaskRuns)
 	runtime.ctx = root
 	publishObserver := func() {
 		if options.EventsSocket != "" {
@@ -215,7 +222,7 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 		if id == "github" {
 			runtime.mirrorCredential.request()
 			runtime.goTask(func(ctx context.Context) {
-				if err := runtime.repoSocial.Refresh(ctx); err != nil && ctx.Err() == nil {
+				if err := taskruns.Run(ctx, "github-social", runtime.repoSocial.Refresh); err != nil && ctx.Err() == nil {
 					app.Log.Warn("GitHub refresh deferred")
 				}
 			})
@@ -252,7 +259,7 @@ func (r *Runtime) periodic(name string, timeout time.Duration, work func(context
 		run := func() {
 			ctx, cancel := context.WithTimeout(root, timeout)
 			defer cancel()
-			if err := work(ctx); err != nil && root.Err() == nil {
+			if err := taskruns.Run(ctx, name, work); err != nil && root.Err() == nil {
 				alerts.Emit(alerts.Event{Kind: "task", Source: alerts.TaskName(name), Title: "后台任务执行失败", Message: "保留已有数据；请检查对应服务与接入配置"})
 				r.app.Log.Warn("background refresh failed; retaining existing data", "task", name)
 			}
@@ -328,8 +335,12 @@ func (r *Runtime) start() {
 	r.dailyFriends()
 	r.goTask(func(ctx context.Context) {
 		for ctx.Err() == nil {
-			err := adapters.WatchAttendance(ctx, r.options.DiaryDirectory, time.Minute, r.app.Adapters.RefreshAttendance, func(error) { r.app.Log.Warn("calendar refresh failed; retaining previous data") })
+			err := adapters.WatchAttendance(ctx, r.options.DiaryDirectory, time.Minute, r.app.Adapters.RefreshAttendance, func(err error) {
+				_ = taskruns.Run(ctx, "attendance-watch", func(context.Context) error { return err })
+				r.app.Log.Warn("calendar refresh failed; retaining previous data")
+			})
 			if err != nil && ctx.Err() == nil {
+				_ = taskruns.Run(ctx, "attendance-watch", func(context.Context) error { return err })
 				r.app.Log.Warn("calendar watcher unavailable; retrying")
 			}
 			if !taskconfig.Wait(ctx, "attendance-retry", nil) {

@@ -1,6 +1,6 @@
 # 本站库表设计
 
-数据库：`quartz`；MySQL 8.4；共 28 张表。
+数据库：`quartz`；MySQL 8.4；共 29 张表。
 
 本文描述本站 MySQL，不包含 OpenList、Jellyfin、Beszel、Gitea、Artalk 自有库。字段、默认值、索引和约束从已应用结构生成；不读取或导出业务行、账号密码、Token、Cookie 或密钥。完整建表语句见 [初始化 SQL](../quartz-server/database/init.sql)。
 
@@ -12,7 +12,7 @@
 - 四源索引只收录各类项目入口；分享子目录及管理员空间不单独入索引。最终标签统一查询 content.tags；文章只从 Markdown 热更新快照同步，编辑标签写回原始文件，不使用 extra.tagsManaged。非文章的 extra.tagsManaged 表示人工维护，extra.sourceTags 用于恢复来源标签。
 - 文章的 `content.extra.filePath` 保存原始相对路径，用于恢复含空格等字符的目录名，也是管理员标签操作写回 Markdown 的唯一文件定位；公开 API 的 `slug`/`href` 继续作为规范路由，不能用原始文件名替换跳转地址。
 - 索引和内容纪事在同一个 MySQL 事务提交，journal 只保留最近十条；不再维护待消费事件表。构建、服务恢复的去重检查点另存 runtime_state。
-- alerts 只供管理员查询；连续同类异常按十分钟静默间隔合并，新增事件时裁剪最近1000条，不设清理周期任务。告警写入由既有请求、任务及观察器异常触发，队列或数据库故障回退进程日志。
+- alerts 只供管理员查询；连续同类异常按十分钟静默间隔合并，新增事件时裁剪最近1000条，不设清理周期任务。告警中心只展示交互接口、服务及运行异常，任务类型历史记录不再展示；周期任务和队列的真实执行结果统一保存在 task_runs，每个任务最多十条，写入或数据库故障回退进程日志。
 - 平台凭据以加密信封保存，TOTP 密钥也以加密形式保存；相关加密密钥和访客身份密钥位于私有文件。`settings` 仍可能包含内部服务地址或私密配置，不能公开整表。
 - geoip_datasets 保存压缩的 IPv4/IPv6 XDB 参考库，启动校验并载入内存；星历按月拆分 adapter_snapshots，公开 API 只读取指定月份。
 - 数据库备份必须同时保留 `runtime/server/auth/` 和部署密钥；只备份库不足以恢复加密凭据及原有身份。
@@ -61,6 +61,7 @@ flowchart LR
 | 认证与配置 | [`service_credentials`](#service_credentials) | 服务状态检测专用认证，与平台接入凭据独立 |
 | 运行状态 | [`monitored_services`](#monitored_services) | 可增删、启停和排序的公开服务状态列表 |
 | 运行状态 | [`alerts`](#alerts) | 本站告警记录；连续同类异常合并，事件写入时保留最近1000条 |
+| 运行状态 | [`task_runs`](#task_runs) | 后台任务最近十次真实执行记录 |
 | 运行状态 | [`journal`](#journal) | 运行纪事，保留最近十条内容更新、站点更新及服务恢复事件 |
 | 运行状态 | [`runtime_state`](#runtime_state) | 私有运行检查点，包括构建基线、容器事件及评论权限同步状态 |
 | 运行状态 | [`resource_locks`](#resource_locks) | 业务资源事务锁标记，用于串行化排序与索引等并发写入 |
@@ -169,7 +170,7 @@ OpenList分享来源与本站稳定内容标识的映射。
 | 字段 | 类型 | 可空 | 默认值 / 自动值 | 含义 |
 | --- | --- | --- | --- | --- |
 | `id` | `varchar(80)` | 否 | — | 友链唯一标识 |
-| `number` | `int unsigned` | 否 | auto_increment | 友链固定编号，用于卡片编号，不随 RSS 排序变化 |
+| `number` | `int unsigned` | 否 | —；auto_increment | 友链固定编号，用于卡片编号，不随 RSS 排序变化 |
 | `name` | `text` | 否 | — | 网站名称 |
 | `url` | `varchar(1500)` | 否 | — | 网站 HTTPS 地址 |
 | `backlink_url` | `varchar(1500)` | 否 | `` | 包含本站友链的页面 HTTPS 地址 |
@@ -588,7 +589,7 @@ GitHub用户资料、活动及仓库相关公开快照缓存。
 | `id` | `varchar(64)` | 否 | — | 服务列表条目标识 |
 | `name` | `varchar(100)` | 否 | — | 公开显示名称 |
 | `integration` | `varchar(32)` | 否 | `` | 已集成服务类型，空字符串表示其他服务 |
-| `icon_svg` | `text` | 否 | 空字符串 | 自定义 SVG 图标源码，留空使用服务来源默认图标 |
+| `icon_svg` | `text` | 否 | 空字符串 | 自定义 SVG 图标源码，留空使用服务来源图标 |
 | `container_name` | `varchar(128)` | 否 | `` | Beszel 容器匹配名称，留空仅使用 HTTP |
 | `http_url` | `varchar(2000)` | 否 | `` | HTTP 检测地址，集成服务留空则引用原接入配置 |
 | `strict_status` | `tinyint(1)` | 否 | `1` | 是否仅将 HTTP 2xx 判定为正常 |
@@ -633,6 +634,33 @@ GitHub用户资料、活动及仓库相关公开快照缓存。
 - 主键 `PRIMARY`：`id`。
 - CHECK `alerts_kind`：``((`kind` in (_utf8mb4'service',_utf8mb4'api',_utf8mb4'task',_utf8mb4'runtime')))``。
 - CHECK `alerts_level`：``((`level` in (_utf8mb4'warning',_utf8mb4'error')))``。
+
+<a id="task_runs"></a>
+
+### task_runs
+
+后台任务最近十次真实执行记录。
+
+引擎：`InnoDB`；排序规则：`utf8mb4_bin`。
+
+| 字段 | 类型 | 可空 | 默认值 / 自动值 | 含义 |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint unsigned` | 否 | —；auto_increment | 执行记录编号 |
+| `task_key` | `varchar(80)` | 否 | — | 固定任务标识 |
+| `run_key` | `varchar(96)` | 是 | NULL | 外部观察器执行去重标识，本地执行为空 |
+| `started_at` | `varchar(40)` | 否 | — | 开始时间，UTC ISO 8601 |
+| `finished_at` | `varchar(40)` | 否 | `` | 结束时间，运行中为空 |
+| `status` | `varchar(16)` | 否 | — | running / success / failed / interrupted |
+| `duration_ms` | `bigint unsigned` | 否 | `0` | 执行耗时，毫秒 |
+| `error` | `text` | 否 | — | 经过凭据过滤的错误，最多4000字 |
+| `logs` | `text` | 否 | — | 经过凭据过滤的执行日志，最多12000字 |
+
+索引与约束：
+
+- 主键 `PRIMARY`：`id`。
+- 唯一索引 `task_run_external`：`task_key`, `run_key`。
+- 普通索引 `task_run_history`：`task_key`, `id` DESC。
+- CHECK `task_run_status`：``((`status` in (_utf8mb4'running',_utf8mb4'success',_utf8mb4'failed',_utf8mb4'interrupted')))``。
 
 <a id="journal"></a>
 

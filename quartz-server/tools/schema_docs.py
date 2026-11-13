@@ -13,7 +13,7 @@ GROUPS = {
  '访客统计': ['visitors','daily_visitors','visitor_fixtures','geoip_datasets'],
  '视频与仓库缓存': ['videos','video_meta','video_assets','repo_snapshots','repo_avatar','adapter_snapshots'],
  '认证与配置': ['settings','auth_state','auth_sessions','auth_attempts','provider_credentials','service_credentials'],
- '运行状态': ['monitored_services','alerts','journal','runtime_state','resource_locks'],
+ '运行状态': ['monitored_services','alerts','task_runs','journal','runtime_state','resource_locks'],
 }
 
 
@@ -59,7 +59,7 @@ def main():
  '- 四源索引只收录各类项目入口；分享子目录及管理员空间不单独入索引。最终标签统一查询 content.tags；文章只从 Markdown 热更新快照同步，编辑标签写回原始文件，不使用 extra.tagsManaged。非文章的 extra.tagsManaged 表示人工维护，extra.sourceTags 用于恢复来源标签。',
  '- 文章的 `content.extra.filePath` 保存原始相对路径，用于恢复含空格等字符的目录名，也是管理员标签操作写回 Markdown 的唯一文件定位；公开 API 的 `slug`/`href` 继续作为规范路由，不能用原始文件名替换跳转地址。',
  '- 索引和内容纪事在同一个 MySQL 事务提交，journal 只保留最近十条；不再维护待消费事件表。构建、服务恢复的去重检查点另存 runtime_state。',
- '- alerts 只供管理员查询；连续同类异常按十分钟静默间隔合并，新增事件时裁剪最近1000条，不设清理周期任务。告警写入由既有请求、任务及观察器异常触发，队列或数据库故障回退进程日志。',
+ '- alerts 只供管理员查询；连续同类异常按十分钟静默间隔合并，新增事件时裁剪最近1000条，不设清理周期任务。告警中心只展示交互接口、服务及运行异常，任务类型历史记录不再展示；周期任务和队列的真实执行结果统一保存在 task_runs，每个任务最多十条，写入或数据库故障回退进程日志。',
  '- 平台凭据以加密信封保存，TOTP 密钥也以加密形式保存；相关加密密钥和访客身份密钥位于私有文件。`settings` 仍可能包含内部服务地址或私密配置，不能公开整表。',
  '- geoip_datasets 保存压缩的 IPv4/IPv6 XDB 参考库，启动校验并载入内存；星历按月拆分 adapter_snapshots，公开 API 只读取指定月份。',
  '- 数据库备份必须同时保留 `runtime/server/auth/` 和部署密钥；只备份库不足以恢复加密凭据及原有身份。','',
@@ -85,10 +85,12 @@ def main():
   lines+=['',f'## {group}']
   for name in names:
    table=lookup[name]
-   lines+=['',f'<a id="{name}"></a>','',f'### {name}','',table['comment']+'。', '',f"引擎：`{table['engine']}`；排序规则：`{table['collation']}`。",'', '| 字段 | 类型 | 可空 | 默认值 / 自动值 | 含义 |','| --- | --- | --- | --- | --- |']
+   notes=['备案信息使用 `icp.items` 保存有序列表，每项包含 `label`（名称）、`href`（地址）、`icon`（SVG）、`order`（排序），与寻径外链采用相同的校验和编辑方式。',''] if name=='settings' else []
+   lines+=['',f'<a id="{name}"></a>','',f'### {name}','',*notes,table['comment']+'。', '',f"引擎：`{table['engine']}`；排序规则：`{table['collation']}`。",'', '| 字段 | 类型 | 可空 | 默认值 / 自动值 | 含义 |','| --- | --- | --- | --- | --- |']
    for c in (x for x in columns if x['table']==name):
     default='—' if c['default'] is None else '`'+cell(c['default'])+'`'
     if c['nullable']=='YES' and c['default'] is None:default='NULL'
+    if str(c['default']).replace("\\'","'") in ["_utf8mb4''","(_utf8mb4'')","('')"]:default='空字符串'
     if c['generation']:default='生成列：'+code(c['generation'])
     elif c['extra'] and c['extra']!='DEFAULT_GENERATED':default+=('；'+cell(c['extra']))
     lines.append(f"| `{c['name']}` | `{c['type']}` | {'是' if c['nullable']=='YES' else '否'} | {default} | {cell(c['comment'])} |")

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"goblincwl/quartz-server/internal/alerts"
 	"goblincwl/quartz-server/internal/taskconfig"
+	"goblincwl/quartz-server/internal/taskruns"
 	"io"
 	"math"
 	"net/http"
@@ -97,7 +98,7 @@ func NewService(ctx context.Context, backend *Backend, origin string) *Service {
 			case <-root.Done():
 				return
 			case <-ticker.C:
-				s.cleanup()
+				_ = taskruns.Run(root, "media-cleanup", func(context.Context) error { s.cleanup(); return nil })
 			}
 		}
 	}()

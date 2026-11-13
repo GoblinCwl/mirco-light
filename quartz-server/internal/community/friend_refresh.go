@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"goblincwl/quartz-server/internal/taskruns"
 	"time"
 )
 
@@ -58,6 +59,7 @@ func (s Store) refreshFriends(ctx context.Context, friends []Friend) (RefreshRes
 			continue
 		}
 		if friend.Status == "展示中" && s.CheckHomepage != nil {
+			taskruns.Note(ctx, "检查首页："+friend.Name)
 			checked, available, err := s.checkHomepageSnapshot(ctx, friend, time.Now())
 			if err != nil {
 				failures = append(failures, fmt.Errorf("%s 首页检查失败: %w", friend.Name, err))
@@ -68,6 +70,7 @@ func (s Store) refreshFriends(ctx context.Context, friends []Friend) (RefreshRes
 			}
 		}
 		if friend.AvatarSource != "" {
+			taskruns.Note(ctx, "刷新头像："+friend.Name)
 			own, cancel := context.WithTimeout(ctx, 60*time.Second)
 			var address string
 			var err error
@@ -91,6 +94,7 @@ func (s Store) refreshFriends(ctx context.Context, friends []Friend) (RefreshRes
 			}
 		}
 		if friend.RSSURL != "" {
+			taskruns.Note(ctx, "刷新 RSS："+friend.Name)
 			own, cancel := context.WithTimeout(ctx, 30*time.Second)
 			read := s.ReadFeed
 			if read == nil {

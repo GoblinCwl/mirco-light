@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"goblincwl/quartz-server/internal/alerts"
 	"goblincwl/quartz-server/internal/taskconfig"
+	"goblincwl/quartz-server/internal/taskruns"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ type Controller struct {
 	Social    func(context.Context, bool) error
 	mu        sync.Mutex
 	wg        sync.WaitGroup
+	queue     []taskruns.QueueItem
 	retrying  bool
 	running   bool
 	closed    bool
@@ -40,6 +42,13 @@ func NewController(ctx context.Context, store Store, client *Client) (*Controlle
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	c := &Controller{Store: store, Client: client, interval: interval, ctx: ctx, cancel: cancel}
+	if tracker := taskruns.From(ctx); tracker != nil {
+		tracker.RegisterQueue("video-sync", func() []taskruns.QueueItem {
+			c.mu.Lock()
+			defer c.mu.Unlock()
+			return append([]taskruns.QueueItem{}, c.queue...)
+		})
+	}
 	if taskconfig.From(ctx) != nil {
 		c.interval = taskconfig.Duration(ctx, "video-sync")
 		changed, stop := taskconfig.Watch(ctx, taskconfig.Key("video-sync"), taskconfig.Key("video-retry"))
@@ -87,13 +96,24 @@ func (c *Controller) Start() {
 		c.timer.Stop()
 	}
 	c.running = true
+	if len(c.queue) == 0 {
+		c.queue = []taskruns.QueueItem{{ID: "catalog", Label: "获取视频列表和合集", State: "running"}}
+	}
 	c.wg.Add(1)
 	c.mu.Unlock()
 	go func() {
 		defer c.wg.Done()
 		runContext, cancel := context.WithTimeout(c.ctx, 20*time.Minute)
 		defer cancel()
-		complete, err := c.safeRun(runContext)
+		complete := false
+		err := taskruns.Run(runContext, "video-sync", func(ctx context.Context) error {
+			var err error
+			complete, err = c.safeRun(ctx)
+			if err == nil && !complete {
+				err = errors.New("视频列表、合集或详情尚未全部同步完成")
+			}
+			return err
+		})
 		if err != nil {
 			c.Store.PutText(c.ctx, "last_attempt", stamp())
 			c.Store.PutText(c.ctx, "last_error", "视频同步失败，保留已有数据")
@@ -106,6 +126,20 @@ func (c *Controller) Start() {
 		if err != nil || !complete {
 			alerts.Emit(alerts.Event{Kind: "task", Level: "warning", Source: "视频同步", Title: "Bilibili 视频同步未完成", Message: "保留已有数据，将按原有机制重试"})
 			delay = taskconfig.Duration(c.ctx, "video-retry")
+		}
+		if err != nil || !complete {
+			if len(c.queue) == 0 {
+				c.queue = []taskruns.QueueItem{{ID: "catalog", Label: "视频列表 / 合集信息"}}
+			}
+			for i := range c.queue {
+				c.queue[i].State = "retry"
+				c.queue[i].AvailableAt = time.Now().Add(delay).UTC().Format(time.RFC3339)
+				if c.queue[i].Error == "" && err != nil {
+					c.queue[i].Error = taskruns.Clean(err.Error(), 1000)
+				}
+			}
+		} else {
+			c.queue = nil
 		}
 		c.schedule(delay)
 	}()
@@ -156,11 +190,24 @@ func (c *Controller) run(ctx context.Context) (bool, error) {
 	}
 	targets := []map[string]any{}
 	for _, v := range videos {
-		targets = append(targets, map[string]any{"bvid": v.BVID, "ownerMid": c.Client.MID})
+		targets = append(targets, map[string]any{"bvid": v.BVID, "title": v.Title, "ownerMid": c.Client.MID})
 	}
 	for _, test := range list(parse(meta["test_videos"], []any{})) {
 		targets = append(targets, object(test))
 	}
+	c.mu.Lock()
+	c.queue = nil
+	for _, target := range targets {
+		if target["availability"] != "unavailable" {
+			label := text(target["title"])
+			if label == "" {
+				label = text(target["bvid"])
+			}
+			c.queue = append(c.queue, taskruns.QueueItem{ID: text(target["bvid"]), Label: label, State: "pending"})
+		}
+	}
+	c.mu.Unlock()
+	taskruns.Note(ctx, fmt.Sprintf("待同步视频详情 %d 个", len(targets)))
 	for _, v := range targets {
 		if v["availability"] == "unavailable" {
 			continue
@@ -169,11 +216,17 @@ func (c *Controller) run(ctx context.Context) (bool, error) {
 		if owner == "" {
 			owner = c.Client.MID
 		}
+		c.updateQueueItem(text(v["bvid"]), "running", nil)
 		detail, err := c.Client.Detail(ctx, text(v["bvid"]), owner, cookie)
 		if err != nil {
 			failures++
+			c.updateQueueItem(text(v["bvid"]), "retry", err)
+			taskruns.Note(ctx, "视频 "+text(v["bvid"])+"："+err.Error())
 		} else if err = c.Store.Put(ctx, "detail:"+text(v["bvid"]), detail); err != nil {
 			return false, err
+		}
+		if err == nil {
+			c.updateQueueItem(text(v["bvid"]), "done", nil)
 		}
 		if err = wait(ctx, 400*time.Millisecond); err != nil {
 			return false, err
@@ -315,4 +368,24 @@ func (c *Controller) safeRun(ctx context.Context) (complete bool, err error) {
 		}
 	}()
 	return c.run(ctx)
+}
+
+func (c *Controller) updateQueueItem(id, state string, workErr error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for i := range c.queue {
+		if c.queue[i].ID != id {
+			continue
+		}
+		if state == "done" {
+			c.queue = append(c.queue[:i], c.queue[i+1:]...)
+		} else {
+			c.queue[i].State = state
+			if workErr != nil {
+				c.queue[i].Attempts++
+				c.queue[i].Error = taskruns.Clean(workErr.Error(), 1000)
+			}
+		}
+		return
+	}
 }

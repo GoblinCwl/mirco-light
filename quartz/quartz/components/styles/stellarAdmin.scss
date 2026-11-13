@@ -457,3 +457,27 @@
   >button {flex:0 0 auto;}
 }
 .stellar-admin .data-admin-table-tabs {margin-top:-.35rem; >button {font-size:.75rem;}}
+
+.stellar-admin .task-instances {
+ min-width:0;
+ .task-instance-toolbar {display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:1rem 0;color:var(--gray);font:.76rem/1.6 var(--bodyFont);}
+ .task-instance-state {color:var(--gray);font-size:.8rem;}
+ .task-instance-group {min-width:0;padding:1rem;margin-bottom:1rem;>h3 {margin:0 0 .8rem;}}
+ .task-table-wrap {width:100%;overflow-x:auto;border:1px solid var(--lightgray);border-radius:8px;}
+ .task-table {width:100%;margin:0;border-collapse:collapse;font:.74rem/1.6 var(--bodyFont);th,td {padding:.7rem .65rem;border-bottom:1px solid var(--lightgray);text-align:left;vertical-align:top;}th {color:var(--secondary);background:var(--stellar-surface);font-weight:600;white-space:nowrap;}tbody>tr:last-child>td {border-bottom:0;}tr[data-selected=true] {background:var(--stellar-accent);}}
+ .task-name {min-width:7rem;font-weight:500;color:var(--dark);overflow-wrap:anywhere;}
+ .task-time {min-width:8.4rem;font-variant-numeric:tabular-nums;}
+ .task-schedule {min-width:6rem;color:var(--gray);}
+ .task-error {max-width:22rem;min-width:6rem;overflow-wrap:anywhere;white-space:pre-wrap;color:var(--darkgray);}
+ .task-remaining {font-variant-numeric:tabular-nums;text-align:center;}
+ .task-detail-button { @include adminButton;min-height:1.9rem;padding:.25rem .5rem;font-size:.72rem;}
+ .task-run-status {display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;font-size:.72rem;color:var(--gray);&::before {content:'';width:5px;height:5px;border-radius:50%;background:currentColor;}&[data-status=success] {color:#76998d;}&[data-status=failed] {color:#b87878;}&[data-status=running] {color:var(--secondary);}&[data-status=retry] {color:#b49670;}}
+ .task-instance-detail {margin:1.2rem 0;padding:1rem;border:1px solid var(--lightgray);border-radius:10px;background:var(--stellar-surface);>section {margin-top:1rem;}h4 {font:.82rem/1.6 var(--headerFont);color:var(--secondary);margin:.8rem 0;}}
+ .task-detail-heading {display:flex;justify-content:space-between;align-items:center;gap:1rem;>h3 {margin:0;font-size:1rem;}}
+ .task-run-record {margin:.5rem 0;border:1px solid var(--lightgray);border-radius:7px;overflow:hidden;>summary {display:flex;align-items:center;gap:1rem;padding:.7rem .8rem;cursor:pointer;font:.76rem/1.5 var(--bodyFont);list-style:none;&::before {content:'›';color:var(--secondary);font-size:1.1rem;}}&[open]>summary::before {transform:rotate(90deg);}p {margin:.65rem .8rem;font-size:.75rem;}}
+ .task-run-duration {margin-left:auto;color:var(--gray);font-variant-numeric:tabular-nums;}
+ .task-run-meta {color:var(--gray);}
+ .task-run-log {margin:.7rem .8rem;padding:.8rem;white-space:pre-wrap;overflow-wrap:anywhere;max-height:24rem;overflow:auto;background:var(--light);border:1px solid var(--lightgray);border-radius:6px;font:.73rem/1.8 var(--codeFont);}
+ .task-pagination {display:flex;justify-content:center;align-items:center;gap:.6rem;margin:.8rem 0;font-size:.75rem;>button {@include adminButton;}}
+ @media(max-width:800px){.task-instance-group,.task-instance-detail {padding:.7rem;}.task-instance-toolbar {align-items:flex-start;}.task-run-record>summary {gap:.65rem;flex-wrap:wrap;}}
+}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"goblincwl/quartz-server/internal/alerts"
 	"goblincwl/quartz-server/internal/observer"
+	"goblincwl/quartz-server/internal/taskruns"
 	"os"
 	"time"
 )
@@ -24,6 +25,25 @@ func (s Store) ServiceFile(ctx context.Context, path string) error {
 	}
 	if snapshot.Events == nil || len(snapshot.Events) > 10 {
 		return errors.New("invalid observer events")
+	}
+	if len(snapshot.TaskRuns) > 10 {
+		return errors.New("invalid observer task history")
+	}
+	for _, run := range snapshot.TaskRuns {
+		if run.Key != "container-observer" || run.RunKey == nil || len(*run.RunKey) > 96 || run.Status != "success" && run.Status != "failed" {
+			return errors.New("invalid observer task run")
+		}
+		if _, err = time.Parse(time.RFC3339Nano, run.StartedAt); err != nil {
+			return err
+		}
+		if _, err = time.Parse(time.RFC3339Nano, run.FinishedAt); err != nil {
+			return err
+		}
+	}
+	if tracker := taskruns.From(ctx); tracker != nil {
+		if err = tracker.ImportBatch(ctx, "container-observer", snapshot.TaskRuns); err != nil {
+			return err
+		}
 	}
 	names := map[string]bool{}
 	for _, definition := range observer.Services {

@@ -73,7 +73,7 @@ func TestAlertsRetentionKeepsRecentlyRepeatedOldRecord(t *testing.T) {
 	if _, err := db.Exec("UPDATE alerts SET last_seen='2099-01-01T00:00:00.000Z' WHERE id=1"); err != nil {
 		t.Fatal(err)
 	}
-	if err := (alerts.Store{DB: db}).Record(ctx, alerts.Event{Kind: "task", Source: "fixture", Title: "New alert"}); err != nil {
+	if err := (alerts.Store{DB: db}).Record(ctx, alerts.Event{Kind: "runtime", Source: "fixture", Title: "New alert"}); err != nil {
 		t.Fatal(err)
 	}
 	var total, kept, removed int
@@ -126,7 +126,7 @@ func TestAlertRecorderFlushesAndAPIRequiresAdministrator(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
 	recorder := alerts.NewRecorder(db, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	recorder.Emit(alerts.Event{Kind: "task", Source: "fixture", Title: "Queued alert"})
+	recorder.Emit(alerts.Event{Kind: "runtime", Source: "fixture", Title: "Queued alert"})
 	recorder.Close()
 	result, err := (alerts.Store{DB: db}).List(ctx, 1, "", "")
 	if err != nil || result["total"] != 1 {
@@ -168,7 +168,7 @@ func TestAuthenticatedAlertListAndClear(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = (alerts.Store{DB: db}).Record(ctx, alerts.Event{Kind: "task", Source: "fixture", Title: "Queued alert"}); err != nil {
+	if err = (alerts.Store{DB: db}).Record(ctx, alerts.Event{Kind: "runtime", Source: "fixture", Title: "Queued alert"}); err != nil {
 		t.Fatal(err)
 	}
 	app := &httpapi.Server{DB: db, Auth: service, Origin: "https://site.test", Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
@@ -176,7 +176,7 @@ func TestAuthenticatedAlertListAndClear(t *testing.T) {
 	for _, fixture := range []struct {
 		method, path, origin string
 		status               int
-	}{{"GET", "/api/site/admin/alerts?kind=task&query=Queued", "", 200}, {"GET", "/api/site/admin/alerts?kind=invalid", "", 400}, {"POST", "/api/site/admin/alerts", "https://site.test", 405}, {"POST", "/api/site/admin/alerts", "https://evil.test", 403}} {
+	}{{"GET", "/api/site/admin/alerts?kind=runtime&query=Queued", "", 200}, {"GET", "/api/site/admin/alerts?kind=invalid", "", 400}, {"POST", "/api/site/admin/alerts", "https://site.test", 405}, {"POST", "/api/site/admin/alerts", "https://evil.test", 403}} {
 		req := httptest.NewRequest(fixture.method, fixture.path, nil)
 		req.AddCookie(&http.Cookie{Name: "quartz_stellar_session", Value: logged["token"].(string)})
 		if fixture.origin != "" {
@@ -226,7 +226,7 @@ func TestAuthenticatedAlertListAndClear(t *testing.T) {
 			t.Fatal("clear changed unexpected records", result)
 		}
 	}
-	if err := (alerts.Store{DB: db}).Record(ctx, alerts.Event{Kind: "task", Source: "fixture", Title: "New failure"}); err != nil {
+	if err := (alerts.Store{DB: db}).Record(ctx, alerts.Event{Kind: "runtime", Source: "fixture", Title: "New failure"}); err != nil {
 		t.Fatal(err)
 	}
 	result, err := (alerts.Store{DB: db}).List(ctx, 1, "", "")

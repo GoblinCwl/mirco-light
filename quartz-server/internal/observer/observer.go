@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"goblincwl/quartz-server/internal/taskruns"
 	"io"
 	"net/http"
 	"os"
@@ -47,9 +48,10 @@ type Failure struct {
 	ObservedAt string `json:"observedAt"`
 }
 type Snapshot struct {
-	Failures []Failure        `json:"failures,omitempty"`
-	States   map[string]State `json:"states"`
-	Events   []Event          `json:"events"`
+	TaskRuns []taskruns.RunRecord `json:"taskRuns,omitempty"`
+	Failures []Failure            `json:"failures,omitempty"`
+	States   map[string]State     `json:"states"`
+	Events   []Event              `json:"events"`
 }
 type Container struct {
 	ID    string `json:"Id"`

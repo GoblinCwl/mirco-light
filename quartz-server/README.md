@@ -30,3 +30,5 @@ go build ./cmd/quartz-server ./cmd/quartz-admin ./cmd/quartz-observer
 集成测试使用显式 `TEST_*` 环境变量和自动创建的隔离数据库，不能将清库逻辑指向生产库。验证结果不能替代浏览器体验检查。
 
 部署、宿主观察器、管理员维护和 GeoIP 导入命令统一见 [服务规则](../architecture/service-rules.md)。服务启动不执行数据库结构检查或升级。
+
+任务实例记录由 `internal/taskruns/` 维护；任务执行处使用上下文记录真实结果与最多十次历史，队列提供只读快照。新增结构先显式应用 `database/migrations/20261113_task_runs.sql`，然后部署服务及宿主观察器；服务启动只恢复执行状态，不执行 DDL。接口与保留规则见[服务规则](../architecture/service-rules.md)。

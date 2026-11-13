@@ -20,7 +20,6 @@ type Result = { records: AlertRecord[]; page: number; pages: number; total: numb
 const kinds: Record<string, string> = {
   service: "服务异常",
   api: "外部 API",
-  task: "后台任务",
   runtime: "运行异常",
 }
 const paths: Record<string, string> = {

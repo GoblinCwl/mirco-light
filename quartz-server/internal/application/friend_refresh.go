@@ -3,10 +3,12 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 	"goblincwl/quartz-server/internal/alerts"
 	"goblincwl/quartz-server/internal/community"
 	"goblincwl/quartz-server/internal/publicfetch"
 	"goblincwl/quartz-server/internal/taskconfig"
+	"goblincwl/quartz-server/internal/taskruns"
 	"time"
 )
 
@@ -52,19 +54,25 @@ func (r *Runtime) dailyFriends() {
 			case <-timer.C:
 			}
 			ctx, cancel := context.WithTimeout(root, 30*time.Minute)
-			pending, queueErr := (community.Store{DB: r.app.DB}).Friends(ctx, false)
-			if queueErr == nil {
-				for _, friend := range pending {
-					if friend.Status == "待审核" {
-						if err := (community.Store{DB: r.app.DB}).EnqueueFriend(ctx, friend.ID); err != nil {
-							queueErr = err
+			var result community.RefreshResult
+			err := taskruns.Run(ctx, "friends-refresh", func(ctx context.Context) error {
+				pending, queueErr := (community.Store{DB: r.app.DB}).Friends(ctx, false)
+				if queueErr == nil {
+					for _, friend := range pending {
+						if friend.Status == "待审核" {
+							if err := (community.Store{DB: r.app.DB}).EnqueueFriend(ctx, friend.ID); err != nil {
+								queueErr = err
+							}
 						}
 					}
 				}
-			}
-			r.requestFriendJobs()
-			result, err := (community.Store{DB: r.app.DB, StoreAvatar: r.app.FriendAvatars.Save, CheckHomepage: func(ctx context.Context, address string) error { return publicfetch.Probe(ctx, address, nil) }}).RefreshLinks(ctx)
-			err = errors.Join(queueErr, err)
+				r.requestFriendJobs()
+				var refreshErr error
+				result, refreshErr = (community.Store{DB: r.app.DB, StoreAvatar: r.app.FriendAvatars.Save, CheckHomepage: func(ctx context.Context, address string) error { return publicfetch.Probe(ctx, address, nil) }}).RefreshLinks(ctx)
+				taskruns.Note(ctx, fmt.Sprintf("头像更新 %d，RSS 更新 %d", result.Avatars, result.Feeds))
+				return errors.Join(queueErr, refreshErr)
+
+			})
 			cancel()
 			if root.Err() != nil {
 				return

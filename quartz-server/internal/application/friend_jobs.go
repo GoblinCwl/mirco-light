@@ -6,6 +6,7 @@ import (
 	"goblincwl/quartz-server/internal/community"
 	"goblincwl/quartz-server/internal/publicfetch"
 	"goblincwl/quartz-server/internal/taskconfig"
+	"goblincwl/quartz-server/internal/taskruns"
 	"time"
 )
 
@@ -70,7 +71,13 @@ func (r *Runtime) runFriendJobs(root context.Context) {
 			continue
 		}
 		ctx, cancel := context.WithTimeout(root, 3*time.Minute)
-		workErr := store.ProcessClaimedFriendJob(ctx, *job)
+		workErr := taskruns.Run(ctx, "friend-jobs", func(ctx context.Context) error {
+			taskruns.Note(ctx, "友链："+job.FriendName+"（"+job.FriendID+"）")
+			if job.InspectOnly {
+				taskruns.Note(ctx, "人工通过后巡检，跳过自动审核")
+			}
+			return store.ProcessClaimedFriendJob(ctx, *job)
+		})
 		cancel()
 		if root.Err() != nil {
 			return
@@ -99,7 +106,7 @@ func (r *Runtime) runFriendJobs(root context.Context) {
 
 func (r *Runtime) recoverFriendQueue(root context.Context, store community.Store) bool {
 	for root.Err() == nil {
-		if err := store.RecoverFriendJobs(root); err == nil {
+		if err := taskruns.Run(root, "friend-recovery", store.RecoverFriendJobs); err == nil {
 			return true
 		}
 		r.app.Log.Warn("friend queue recovery failed; retrying")

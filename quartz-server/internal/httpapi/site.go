@@ -135,6 +135,8 @@ func (s *Server) site(mux *http.ServeMux) {
 			s.siteCommunity(w, r, path, feedbackLimits)
 		case strings.HasPrefix(path, "/admin/services"), strings.HasPrefix(path, "/admin/service-credentials"):
 			s.siteServices(w, r, path)
+		case path == "/admin/tasks" || strings.HasPrefix(path, "/admin/tasks/"):
+			s.siteTasks(w, r, path)
 		case path == "/admin/alerts":
 			s.siteAlerts(w, r)
 		case strings.HasPrefix(path, "/admin/data/"):
