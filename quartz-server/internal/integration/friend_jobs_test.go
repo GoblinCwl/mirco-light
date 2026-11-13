@@ -173,3 +173,143 @@ func TestGenericFriendMaintenanceAlsoQueuesRemoteWork(t *testing.T) {
 		t.Fatal("generic edit lost new work version", next, err)
 	}
 }
+
+func TestManualApprovalRunsInspectionOnceAndRemovesFailedQueueItem(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	store := community.Store{DB: db}
+	f, _, err := store.CreateFriend(ctx, community.Friend{Name: "manual", Description: "fixture", URL: "https://manual.example/", BacklinkURL: "https://manual.example/friends", Avatar: "https://manual.example/avatar.png", RSSURL: "https://manual.example/feed"}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old, err := store.ClaimFriendJob(ctx, time.Now())
+	if err != nil || old == nil {
+		t.Fatal(old, err)
+	}
+	if err = store.FinishFriendJob(ctx, *old, errors.New("old failed review task")); err != nil {
+		t.Fatal(err)
+	}
+	homepage, avatar, feed, review := 0, 0, 0, 0
+	store.CheckHomepage = func(context.Context, string) error { homepage++; return nil }
+	store.StoreAvatar = func(context.Context, string) (string, error) {
+		avatar++
+		return "", errors.New("invalid avatar content")
+	}
+	expected := time.Date(2026, 11, 14, 3, 0, 0, 0, time.UTC)
+	store.ReadFeed = func(context.Context, string) (time.Time, error) { feed++; return expected, nil }
+	store.CheckBacklink = func(context.Context, community.Friend) (community.BacklinkResult, error) {
+		review++
+		return community.BacklinkResult{}, errors.New("must not review")
+	}
+	if _, err = store.UpdateFriend(ctx, f.ID, community.Friend{Status: "展示中"}, "review", 0); err != nil {
+		t.Fatal(err)
+	}
+	if homepage+avatar+feed+review != 0 {
+		t.Fatal("manual approval blocked on remote inspection")
+	}
+	// RSS must be refreshed, not just initialized when it is missing.
+	if _, err = db.Exec("UPDATE friends SET latest_update='2020-01-01T00:00:00.000Z' WHERE id=?", f.ID); err != nil {
+		t.Fatal(err)
+	}
+	job, err := store.ClaimFriendJob(ctx, time.Now())
+	if err != nil || job == nil || !job.InspectOnly || job.Attempts != 0 || job.Generation <= old.Generation {
+		t.Fatal("manual approval did not replace failed work", job, err)
+	}
+	// A service restart retains this explicit one-off task until it is performed.
+	if err = store.RecoverFriendJobs(ctx); err != nil {
+		t.Fatal(err)
+	}
+	job, err = store.ClaimFriendJob(ctx, time.Now())
+	if err != nil || job == nil || !job.InspectOnly {
+		t.Fatal("lost manual inspection on recovery", job, err)
+	}
+	workErr := store.ProcessClaimedFriendJob(ctx, *job)
+	if workErr == nil || homepage != 1 || avatar != 1 || feed != 1 || review != 0 {
+		t.Fatal("inspection steps incorrect", homepage, avatar, feed, review, workErr)
+	}
+	if err = store.FinishFriendJob(ctx, *job, workErr); err != nil {
+		t.Fatal(err)
+	}
+	var status, result, latest string
+	if err = db.QueryRow("SELECT status,review_result,latest_update FROM friends WHERE id=?", f.ID).Scan(&status, &result, &latest); err != nil {
+		t.Fatal(err)
+	}
+	if status != "展示中" || result != "人工审核：展示中" || latest != expected.Format("2006-01-02T15:04:05.000Z") {
+		t.Fatal(status, result, latest)
+	}
+	var count int
+	if err = store.RecoverFriendJobs(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.QueryRow("SELECT count(*) FROM friend_jobs WHERE friend_id=?", f.ID).Scan(&count); err != nil || count != 0 {
+		t.Fatal("manual friend was repeatedly recovered into review queue", count, err)
+	}
+	// Subsequent regular inspection still retries a failed avatar independently.
+	store.StoreAvatar = func(context.Context, string) (string, error) {
+		avatar++
+		return "/api/site/friends/avatar/" + strings.Repeat("b", 64) + ".webp", nil
+	}
+	if _, err = store.RefreshLinks(ctx); err != nil {
+		t.Fatal("daily inspection failed", err)
+	}
+	if avatar != 2 || review != 0 {
+		t.Fatal("daily retry did not stay independent of review", avatar, review)
+	}
+}
+
+func TestManualInspectionFailureUsesDailyHomepageHealthAndCannotDeleteNewerWork(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	store := community.Store{DB: db}
+	f, _, err := store.CreateFriend(ctx, community.Friend{Name: "manual-health", Description: "fixture", Avatar: "https://health.example/avatar.png", URL: "https://health.example/", BacklinkURL: "https://health.example/friends", RSSURL: "https://health.example/feed"}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old, err := store.ClaimFriendJob(ctx, time.Now())
+	if err != nil || old == nil {
+		t.Fatal(old, err)
+	}
+	if _, err = store.UpdateFriend(ctx, f.ID, community.Friend{Status: "展示中"}, "review", 0); err != nil {
+		t.Fatal(err)
+	}
+	if err = store.FinishFriendJob(ctx, *old, errors.New("stale automatic task")); err != nil {
+		t.Fatal(err)
+	}
+	job, err := store.ClaimFriendJob(ctx, time.Now())
+	if err != nil || job == nil || !job.InspectOnly {
+		t.Fatal(job, err)
+	}
+	checks := 0
+	store.CheckHomepage = func(context.Context, string) error { checks++; return errors.New("homepage offline") }
+	store.CheckBacklink = func(context.Context, community.Friend) (community.BacklinkResult, error) {
+		t.Fatal("manual approval triggered auto review")
+		return community.BacklinkResult{}, nil
+	}
+	store.ReadFeed = func(context.Context, string) (time.Time, error) {
+		t.Fatal("unhealthy site fetched RSS")
+		return time.Time{}, nil
+	}
+	failure := store.ProcessClaimedFriendJob(ctx, *job)
+	if failure == nil || checks != 1 {
+		t.Fatal(checks, failure)
+	}
+	var health int
+	var status string
+	if err = db.QueryRow("SELECT status,health_failures FROM friends WHERE id=?", f.ID).Scan(&status, &health); err != nil || health != 1 || status != "展示中" {
+		t.Fatal(status, health, err)
+	}
+	// Administrator changes their decision while the one-off task is in flight.
+	if _, err = store.UpdateFriend(ctx, f.ID, community.Friend{Status: "待审核"}, "review", 0); err != nil {
+		t.Fatal(err)
+	}
+	if err = store.FinishFriendJob(ctx, *job, failure); err != nil {
+		t.Fatal(err)
+	}
+	next, err := store.ClaimFriendJob(ctx, time.Now())
+	if err != nil || next == nil || next.InspectOnly || next.Generation <= job.Generation {
+		t.Fatal("old inspection removed newer automatic work", next, err)
+	}
+	if err = store.ProcessClaimedFriendJob(ctx, *job); err != nil {
+		t.Fatal("stale inspection should skip a newly pending friend", err)
+	}
+}

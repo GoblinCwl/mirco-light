@@ -4,6 +4,7 @@ import (
 	"context"
 	"goblincwl/quartz-server/internal/alerts"
 	"goblincwl/quartz-server/internal/community"
+	"goblincwl/quartz-server/internal/publicfetch"
 	"goblincwl/quartz-server/internal/taskconfig"
 	"time"
 )
@@ -42,7 +43,7 @@ func (r *Runtime) waitFriendJobs(ctx context.Context, due time.Time) bool {
 	}
 }
 func (r *Runtime) runFriendJobs(root context.Context) {
-	store := community.Store{DB: r.app.DB, StoreAvatar: r.app.FriendAvatars.Save, CheckBacklink: func(ctx context.Context, f community.Friend) (community.BacklinkResult, error) {
+	store := community.Store{DB: r.app.DB, StoreAvatar: r.app.FriendAvatars.Save, CheckHomepage: func(ctx context.Context, address string) error { return publicfetch.Probe(ctx, address, nil) }, CheckBacklink: func(ctx context.Context, f community.Friend) (community.BacklinkResult, error) {
 		return community.CheckBacklink(ctx, f, r.app.Origin, nil)
 	}}
 	if !r.recoverFriendQueue(root, store) {
@@ -69,7 +70,7 @@ func (r *Runtime) runFriendJobs(root context.Context) {
 			continue
 		}
 		ctx, cancel := context.WithTimeout(root, 3*time.Minute)
-		workErr := store.ProcessFriendJob(ctx, job.FriendID)
+		workErr := store.ProcessClaimedFriendJob(ctx, *job)
 		cancel()
 		if root.Err() != nil {
 			return
@@ -84,7 +85,10 @@ func (r *Runtime) runFriendJobs(root context.Context) {
 			}
 			continue
 		}
-		if workErr != nil {
+		if workErr != nil && job.InspectOnly {
+			r.app.Log.Warn("friend inspection completed with issues; removed from review queue", "friend", job.FriendID, "error", workErr)
+			alerts.Emit(alerts.Event{Kind: "task", Level: "warning", Source: "友链巡检", Title: "人工审核后的友链巡检部分失败", Message: "已保留人工审核结果并移除本次队列任务；失败项由日常巡检跟进，请检查头像、RSS、首页及 OpenList 接入"})
+		} else if workErr != nil {
 			r.app.Log.Warn("friend background job failed; retry scheduled", "friend", job.FriendID, "attempt", job.Attempts+1, "error", workErr)
 			alerts.Emit(alerts.Event{Kind: "task", Level: "warning", Source: "友链队列", Title: "友链后台处理失败", Message: "申请已保存，任务保留并将自动重试；请检查头像、RSS、友链页面及 OpenList 接入"})
 		} else {

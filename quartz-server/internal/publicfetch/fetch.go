@@ -65,7 +65,7 @@ func Fetch(ctx context.Context, address string, client *http.Client, maxSize int
 	}
 	return response.Data, nil
 }
-func request(ctx context.Context, address string, client *http.Client, accept string) (*http.Response, error) {
+func request(ctx context.Context, address string, client *http.Client, accept string, cookies ...*http.Cookie) (*http.Response, error) {
 	u, err := validURL(address)
 	if err != nil {
 		return nil, err
@@ -85,9 +85,29 @@ func request(ctx context.Context, address string, client *http.Client, accept st
 			return nil
 		}}
 	}
+	if len(cookies) > 0 {
+		copy := *client
+		previous := client.CheckRedirect
+		copy.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 5 {
+				return errors.New("远程资源重定向过多")
+			}
+			if req.URL.Hostname() != u.Hostname() {
+				req.Header.Del("Cookie")
+			}
+			if previous != nil {
+				return previous(req, via)
+			}
+			return nil
+		}
+		client = &copy
+	}
 	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
 	if err != nil {
 		return nil, err
+	}
+	for _, cookie := range cookies {
+		req.AddCookie(cookie)
 	}
 	req.Header.Set("Referer", u.Scheme+"://"+u.Host+"/")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; MicroLight/1.0)")
@@ -100,7 +120,12 @@ func request(ctx context.Context, address string, client *http.Client, accept st
 }
 
 func FetchResponse(ctx context.Context, address string, client *http.Client, maxSize int64, accept string) (*Response, error) {
-	res, err := request(ctx, address, client, accept)
+	return FetchResponseWithCookies(ctx, address, client, maxSize, accept, nil)
+}
+
+// FetchResponseWithCookies preserves public-address validation and strips cookies on cross-host redirects.
+func FetchResponseWithCookies(ctx context.Context, address string, client *http.Client, maxSize int64, accept string, cookies []*http.Cookie) (*Response, error) {
+	res, err := request(ctx, address, client, accept, cookies...)
 	if err != nil {
 		return nil, err
 	}

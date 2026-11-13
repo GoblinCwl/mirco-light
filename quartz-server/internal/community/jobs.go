@@ -11,9 +11,10 @@ import (
 )
 
 type FriendJob struct {
-	FriendID   string
-	Generation int64
-	Attempts   int
+	FriendID    string
+	Generation  int64
+	Attempts    int
+	InspectOnly bool
 }
 
 // EnqueueFriendTx commits the work item together with its friend record.
@@ -44,7 +45,7 @@ func (s Store) RecoverFriendJobs(ctx context.Context) error {
 	if _, err := s.DB.ExecContext(ctx, "UPDATE friend_jobs SET state='pending',available_at=0"); err != nil {
 		return err
 	}
-	_, err := s.DB.ExecContext(ctx, "INSERT INTO friend_jobs(friend_id,generation,state,attempts,available_at,last_error,enqueued_at) SELECT id,1,'pending',0,0,'',? FROM friends WHERE status<>'已失效' AND (status='待审核' OR avatar LIKE 'https://%' OR avatar LIKE 'http://%' OR (rss_url<>'' AND latest_update='' AND health_failures=0)) ON DUPLICATE KEY UPDATE friend_id=friend_jobs.friend_id", time.Now().UTC().Format("2006-01-02T15:04:05.000Z"))
+	_, err := s.DB.ExecContext(ctx, "INSERT INTO friend_jobs(friend_id,generation,state,attempts,available_at,last_error,enqueued_at) SELECT id,1,'pending',0,0,'',? FROM friends WHERE status<>'已失效' AND NOT(status='展示中' AND review_result='人工审核：展示中') AND (status='待审核' OR avatar LIKE 'https://%' OR avatar LIKE 'http://%' OR (rss_url<>'' AND latest_update='' AND health_failures=0)) ON DUPLICATE KEY UPDATE friend_id=friend_jobs.friend_id", time.Now().UTC().Format("2006-01-02T15:04:05.000Z"))
 	return err
 }
 func (s Store) ClaimFriendJob(ctx context.Context, now time.Time) (*FriendJob, error) {
@@ -54,7 +55,7 @@ func (s Store) ClaimFriendJob(ctx context.Context, now time.Time) (*FriendJob, e
 	}
 	defer tx.Rollback()
 	var job FriendJob
-	err = tx.QueryRowContext(ctx, "SELECT friend_id,generation,attempts FROM friend_jobs WHERE state='pending' AND available_at<=? ORDER BY available_at,enqueued_at,friend_id LIMIT 1 FOR UPDATE SKIP LOCKED", now.UnixMilli()).Scan(&job.FriendID, &job.Generation, &job.Attempts)
+	err = tx.QueryRowContext(ctx, "SELECT j.friend_id,j.generation,j.attempts,(f.status='展示中' AND f.review_result='人工审核：展示中') FROM friend_jobs j JOIN friends f ON f.id=j.friend_id WHERE j.state='pending' AND j.available_at<=? ORDER BY j.available_at,j.enqueued_at,j.friend_id LIMIT 1 FOR UPDATE SKIP LOCKED", now.UnixMilli()).Scan(&job.FriendID, &job.Generation, &job.Attempts, &job.InspectOnly)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -83,7 +84,7 @@ func FriendJobBackoff(attempt int) time.Duration {
 	return min(time.Minute*time.Duration(1<<min(max(attempt-1, 0), 6)), time.Hour)
 }
 func (s Store) FinishFriendJob(ctx context.Context, job FriendJob, workErr error) error {
-	if workErr == nil {
+	if workErr == nil || job.InspectOnly {
 		_, err := s.DB.ExecContext(ctx, "DELETE FROM friend_jobs WHERE friend_id=? AND generation=?", job.FriendID, job.Generation)
 		return err
 	}
@@ -98,6 +99,14 @@ func (s Store) FinishFriendJob(ctx context.Context, job FriendJob, workErr error
 	return err
 }
 
+// ProcessClaimedFriendJob retains the claimed task mode across concurrent admin edits.
+func (s Store) ProcessClaimedFriendJob(ctx context.Context, job FriendJob) error {
+	if job.InspectOnly {
+		return s.InspectFriend(ctx, job.FriendID)
+	}
+	return s.ProcessFriendJob(ctx, job.FriendID)
+}
+
 // ProcessFriendJob performs remote work only in the background worker.
 func (s Store) ProcessFriendJob(ctx context.Context, id string) error {
 	friend, err := s.friendByID(ctx, id)
@@ -109,6 +118,9 @@ func (s Store) ProcessFriendJob(ctx context.Context, id string) error {
 	}
 	if friend.Status == "已失效" {
 		return nil
+	}
+	if friend.Status == "展示中" && friend.ReviewResult == "人工审核：展示中" {
+		return s.InspectFriend(ctx, id)
 	}
 	var failures []error
 	source := friend.Avatar

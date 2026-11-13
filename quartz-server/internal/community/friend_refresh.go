@@ -11,11 +11,32 @@ type RefreshResult struct{ Avatars, Feeds, Approved int }
 
 // RefreshLinks checks the two resources independently, retaining prior data on error.
 func (s Store) RefreshLinks(ctx context.Context) (RefreshResult, error) {
-	var result RefreshResult
 	friends, err := s.Friends(ctx, false)
 	if err != nil {
-		return result, err
+		return RefreshResult{}, err
 	}
+	return s.refreshFriends(ctx, friends)
+}
+
+// InspectFriend runs the regular health/avatar/RSS inspection once, never backlink review.
+func (s Store) InspectFriend(ctx context.Context, id string) error {
+	friend, err := s.friendByID(ctx, id)
+	if errors.Is(err, ErrFriendNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if friend.Status != "展示中" {
+		return nil
+	}
+	s.CheckBacklink = nil
+	_, err = s.refreshFriends(ctx, []Friend{friend})
+	return err
+}
+
+func (s Store) refreshFriends(ctx context.Context, friends []Friend) (RefreshResult, error) {
+	var result RefreshResult
 	var failures []error
 	for _, friend := range friends {
 		if ctx.Err() != nil {

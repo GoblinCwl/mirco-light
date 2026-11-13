@@ -33,10 +33,25 @@ func MIME(data []byte) (string, string, error) {
 	return mime, ext, nil
 }
 func Fetch(ctx context.Context, address string, client *http.Client) ([]byte, string, string, error) {
-	data, err := publicfetch.Fetch(ctx, address, client, MaxSize, "image/avif,image/webp,image/apng,image/*;q=0.8")
+	const accept = "image/avif,image/webp,image/apng,image/*;q=0.8"
+	response, err := publicfetch.FetchResponse(ctx, address, client, MaxSize, accept)
 	if err != nil {
 		return nil, "", "", err
 	}
+	if cookies := edgeOneCookies(response.Data); len(cookies) > 0 {
+		response, err = publicfetch.FetchResponseWithCookies(ctx, response.URL.String(), client, MaxSize, accept, cookies)
+		if err != nil {
+			return nil, "", "", err
+		}
+	}
+	data := response.Data
 	mime, ext, err := MIME(data)
+	if err != nil && strings.HasPrefix(http.DetectContentType(data), "text/html") {
+		if len(edgeOneCookies(data)) > 0 {
+			err = errors.New("头像站点返回访问验证页，未能取得图片，请稍后重试")
+		} else {
+			err = errors.New("头像地址返回了网页而非图片，请检查地址或站点访问限制")
+		}
+	}
 	return data, mime, ext, err
 }
