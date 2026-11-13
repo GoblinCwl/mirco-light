@@ -9,13 +9,6 @@ type Cluster = ClusterBounds & {
  spark:HTMLCanvasElement;scale:number;hover:number;screenX:number;screenY:number
 }
 const color=(rgb:number[],alpha:number)=>`rgba(${rgb.join(',')},${alpha})`
-function meteorTexture(light:boolean) {
- const canvas=document.createElement('canvas');canvas.width=96;canvas.height=8
- const ctx=canvas.getContext('2d')!,rgb=light?[74,104,149]:[178,202,238],tail=ctx.createLinearGradient(0,0,96,0)
- tail.addColorStop(0,color(rgb,0));tail.addColorStop(.7,color(rgb,.35));tail.addColorStop(1,color(rgb,1))
- ctx.fillStyle=tail;ctx.beginPath();ctx.moveTo(0,4);ctx.lineTo(92,3.2);ctx.lineTo(96,4);ctx.lineTo(92,4.8);ctx.closePath();ctx.fill()
- return canvas
-}
 function starTexture(rgb:number[],light:boolean) {
  const canvas=document.createElement('canvas');canvas.width=canvas.height=48
  const ctx=canvas.getContext('2d')!,core=light?color(rgb,1):'rgba(255,255,255,1)'
@@ -82,21 +75,43 @@ function riverTexture(light:boolean,galaxy:GalaxyWindow,layer:number,flows?:Rive
  const canvas=document.createElement('canvas');canvas.width=canvas.height=GALAXY_TEXTURE_SIZE
  const ctx=canvas.getContext('2d')!,random=tagRandom(73129+layer*1973),outer=GALAXY_TEXTURE_RADIUS,inner=outer*galaxy.innerRadius/galaxy.outerRadius,band=outer-inner
  const flowRandom=tagRandom(95617+layer*1249)
- const palette=light?[[67,107,183],[128,76,181],[173,72,135],[30,129,151],[167,115,49]]:[[106,161,255],[185,127,250],[237,133,196],[83,211,228],[238,185,105]]
+ const palette=light?[[67,107,183],[128,76,181],[173,72,135],[30,129,151],[167,115,49]]:[[106,161,235],[180,127,230],[222,133,185],[83,191,208],[225,178,105]]
  ctx.translate(GALAXY_TEXTURE_SIZE/2,GALAXY_TEXTURE_SIZE/2)
- // Crisp, open filaments define the galaxy; project stars remain the focal points.
- // Related filaments share a spine, then gather and peel away from it.
- // More material follows the inner spines; loose outer strands keep the crop open.
- for(let strand=0;strand<54;strand++){
-  const radial=.12+Math.pow(random(),1.35)*.81,bundle=Math.min(4,Math.floor(radial*5)),core=1-radial,feather=strand%7===0
-  const spread=(random()-.5)*(feather ? .15 : .075),phase=bundle*1.36+.5+layer*.18
-  const tone=palette[(bundle+layer+(feather?2:0))%palette.length]
+ // A broad, softly lit spine unifies the fine strands without a solid backdrop.
+ const trace=(path:Pick<RiverFlow,'base'|'band'|'phase'|'spread'>,start:number,length:number,steps=180)=>{
+  ctx.beginPath()
+  for(let i=0;i<=steps;i++){
+   const angle=start+i/steps*length,r=riverRadius(angle,path)
+   if(i)ctx.lineTo(Math.cos(angle)*r,Math.sin(angle)*r);else ctx.moveTo(Math.cos(angle)*r,Math.sin(angle)*r)
+  }
+ }
+ for(let spine=0;spine<3;spine++){
+  const path={base:inner+band*(.23+spine*.22),band,phase:spine*1.36+.5+layer*.18,spread:0}
+  const tone=palette[(spine+layer)%palette.length]
+  const start=.5+spine*1.9+layer*.4,length=4.7
+  const glow=ctx.createConicGradient(start,0,0)
+  glow.addColorStop(0,color(tone,0));glow.addColorStop(.18,color(tone,light?.055:.085))
+  glow.addColorStop(.43,color(tone,light?.09:.14));glow.addColorStop(.69,color(tone,0));glow.addColorStop(1,color(tone,0))
+  ctx.strokeStyle=glow
+  for(const [width,alpha] of [[48,.3],[24,.45],[10,.7]]){
+   ctx.globalAlpha=alpha;ctx.lineWidth=width;trace(path,start,length);ctx.stroke()
+  }
+  ctx.globalAlpha=1
+ }
+ const outerCoverage=new Float32Array(48)
+ for(let strand=0;strand<150;strand++){
+  const radial=.12+Math.pow(random(),1.65)*.81,bundle=Math.min(4,Math.floor(radial*5)),core=1-radial,outerFade=Math.max(0,Math.min(1,(radial-.79)/.14)),feather=strand%7===0
+  const spread=(random()-.5)*(feather ? .12 : .045),phase=bundle*1.36+.5+layer*.18
+  const toneIndex=(bundle+layer+(feather?2:0))%palette.length
+  const mix=random()*.3,neighbor=palette[(toneIndex+1)%palette.length]
+  const tone=palette[toneIndex].map((channel,i)=>Math.round(channel*(1-mix)+neighbor[i]*mix))
   const pale=strand%13===3,rgb=pale?(light?[121,143,170]:[184,209,236]):tone,base=inner+band*radial
-  const start=random()*Math.PI*2,length=feather ? .28+random()*.85 : strand%11===0?3.2+random()*1.3:1.35+random()*2
+  const start=random()*Math.PI*2,fullLength=feather ? .28+random()*.85 : strand%4===0?4.2+random()*1.5:1.35+random()*2.5
+  const length=fullLength*(1-outerFade*.8)
   // Keep the strand bright; short local fades soften irregular missing pieces.
   const gradient=ctx.createConicGradient(start,0,0),end=length/(Math.PI*2)
-  const opacity=((pale?(light ? .34 : .48):(light ? .28 : .4))+random()*.07)*(feather ? .65 : 1)
-  gradient.addColorStop(0,color(rgb,0));gradient.addColorStop(end*.035,color(rgb,opacity))
+  const opacity=((pale?(light ? .34 : .48):(light ? .28 : .4))+random()*.07)*(feather ? .65 : 1)*(1-outerFade*.75)
+  gradient.addColorStop(0,color(rgb,0));gradient.addColorStop(end*(.035+outerFade*.07),color(rgb,opacity))
   if(strand%4===0&&!feather){
    const gap=.25+random()*.5,half=.025+random()*.035
    gradient.addColorStop(end*(gap-half-.018),color(rgb,opacity))
@@ -104,11 +119,18 @@ function riverTexture(light:boolean,galaxy:GalaxyWindow,layer:number,flows?:Rive
    gradient.addColorStop(end*(gap+half),color(rgb,0))
    gradient.addColorStop(end*(gap+half+.018),color(rgb,opacity))
   }
-  gradient.addColorStop(end*.965,color(rgb,opacity));gradient.addColorStop(end,color(rgb,0));gradient.addColorStop(1,color(rgb,0))
+  gradient.addColorStop(end*(.965-outerFade*.07),color(rgb,opacity));gradient.addColorStop(end,color(rgb,0));gradient.addColorStop(1,color(rgb,0))
+  if(radial>.64){
+   for(let sector=0;sector<outerCoverage.length;sector++){
+    const angle=(sector+.5)/outerCoverage.length*Math.PI*2
+    const progress=((angle-start+Math.PI*2)%(Math.PI*2))/length
+    if(progress>0&&progress<1)outerCoverage[sector]+=opacity*Math.min(1,progress*8,(1-progress)*8)
+   }
+  }
   const lineWidth=pale ? .6+random()*.35 : (.35+random()*(strand%11===0?1.65:.8))*(.65+core*.65)
   ctx.strokeStyle=gradient;ctx.lineWidth=lineWidth
   const path:RiverFlow={start,length,base,band,phase,spread,rgb,lineWidth,kind:strand%12===0?'fork':strand%9===0?'ribbon':'thread',speed:.12+flowRandom()*.09,offset:flowRandom()*length,span:.05+flowRandom()*.05}
-  if(strand%3===0&&!feather)flows?.push(path)
+  if(strand%7===0&&!feather)flows?.push({...path,speed:.035+flowRandom()*.025,span:.09+flowRandom()*.09})
   ctx.beginPath()
   for(let i=0;i<=180;i++){
    const angle=start+i/180*length
@@ -116,7 +138,44 @@ function riverTexture(light:boolean,galaxy:GalaxyWindow,layer:number,flows?:Rive
    const x=Math.cos(angle)*radius,y=Math.sin(angle)*radius
    if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y)
   }
-  ctx.stroke()
+  if(random()<.2){
+   // A long irregular sequence avoids visibly repeating four-dash patterns.
+   const dashes=Array.from({length:160},(_,i)=>i%2?8+Math.pow(random(),.7)*130:1+Math.pow(random(),2)*72)
+   ctx.setLineDash(dashes);ctx.lineDashOffset=random()*1200
+  }
+  ctx.stroke();ctx.setLineDash([])
+ }
+ // Fill angular gaps locally; do not move the galaxy or reshuffle existing strands.
+ const fillRandom=tagRandom(62039+layer*877)
+ const minimum=outerCoverage.reduce((sum,value)=>sum+value,0)/outerCoverage.length*.7
+ for(let sector=0;sector<outerCoverage.length;sector++){
+  if(outerCoverage[sector]>=minimum)continue
+  const deficit=1-outerCoverage[sector]/Math.max(.01,minimum)
+  for(let strand=0;strand<3;strand++){
+   const start=(sector+fillRandom()*.5)/outerCoverage.length*Math.PI*2-.14
+   const length=.22+fillRandom()*.35,radial=.72+fillRandom()*.13
+   const path={base:inner+band*radial,band,phase:4*1.36+.5+layer*.18,spread:(fillRandom()-.5)*.065}
+   const rgb=palette[(sector+layer+strand)%palette.length],alpha=(light?.19:.28)*deficit
+   const gradient=ctx.createConicGradient(start,0,0),end=length/(Math.PI*2)
+   gradient.addColorStop(0,color(rgb,0));gradient.addColorStop(end*.3,color(rgb,alpha))
+   gradient.addColorStop(end*.65,color(rgb,alpha*.8));gradient.addColorStop(end,color(rgb,0));gradient.addColorStop(1,color(rgb,0))
+   ctx.strokeStyle=gradient;ctx.lineWidth=.4+fillRandom()*.5;trace(path,start,length,48);ctx.stroke()
+   for(let dust=0;dust<18;dust++){
+    const angle=start+fillRandom()*length,r=riverRadius(angle,path)+(fillRandom()-.5)*18
+    ctx.fillStyle=color(rgb,alpha*(.3+fillRandom()*.6));ctx.beginPath()
+    ctx.arc(Math.cos(angle)*r,Math.sin(angle)*r,.3+fillRandom()*.5,0,Math.PI*2);ctx.fill()
+   }
+  }
+ }
+ // Fine particulate follows the same curved spines rather than filling the scene uniformly.
+ for(let i=0;i<1800;i++){
+  const lane=i%5,radial=.16+lane*.145+(random()-.5)*.095
+  const path={base:inner+band*radial,band,phase:lane*1.36+.5+layer*.18,spread:0}
+  const angle=random()*Math.PI*2,r=riverRadius(angle,path)+(random()-.5)*9
+  const gathering=.35+.65*Math.pow(.5+.5*Math.sin(angle*2+lane),2)
+  const rgb=palette[(lane+layer)%palette.length]
+  ctx.fillStyle=color(rgb,(light?.14:.22)*gathering+random()*.17)
+  ctx.beginPath();ctx.arc(Math.cos(angle)*r,Math.sin(angle)*r,.25+random()*.65,0,Math.PI*2);ctx.fill()
  }
  return canvas
 }
@@ -130,7 +189,7 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
  const angularSpeed=.021
  let galaxy:GalaxyWindow={centerX:0,centerY:0,innerRadius:1,outerRadius:1}
  let flowTime=0,lastFlow=0,stageVisible=false,rotationOffset=0,wheelAngle=0,inertiaVelocity=0,resizeTimer:ReturnType<typeof setTimeout>|undefined
- let pointer:{x:number;y:number}|undefined,space:HTMLCanvasElement|undefined,meteor:HTMLCanvasElement|undefined
+ let pointer:{x:number;y:number}|undefined,space:HTMLCanvasElement|undefined
  let rivers:RiverLayer[]=[]
  let focusMotion:{from:number;target:number;elapsed:number;duration:number;arrived?:()=>void}|undefined
  let camera=tagCameraOverview(),inspecting:string|undefined
@@ -141,7 +200,7 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
   requestPaint()
  }
  let drag:{id:number;x:number;y:number;lastX:number;lastY:number;lastTime:number;velocity:number;active:boolean}|undefined,suppressClick=false
- const freeTextures=()=>{for(const river of rivers)river.texture.width=0;rivers=[];space&&(space.width=0);meteor&&(meteor.width=0);for(const cluster of clusters){cluster.spark.width=0}}
+ const freeTextures=()=>{for(const river of rivers)river.texture.width=0;rivers=[];space&&(space.width=0);for(const cluster of clusters){cluster.spark.width=0}}
  const positionClusters=()=>{
   const travel=flowTime*angularSpeed+rotationOffset
   clusters.forEach(cluster=>{
@@ -158,7 +217,7 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
   const ratio=Math.min(devicePixelRatio||1,1.5)
   canvas.width=Math.ceil(width*ratio);canvas.height=Math.ceil(height*ratio);ctx.setTransform(ratio,0,0,ratio,0,0)
   light=document.documentElement.getAttribute('saved-theme')!=='dark'
-  freeTextures();rivers=[0,1,2].map(layer=>{const flows:RiverFlow[]=[];return {texture:riverTexture(light,galaxy,layer,flows),flows}});space=deepSpaceTexture(width,height,light);meteor=meteorTexture(light)
+  freeTextures();rivers=[0,1,2].map(layer=>{const flows:RiverFlow[]=[];return {texture:riverTexture(light,galaxy,layer,flows),flows}});space=deepSpaceTexture(width,height,light,true)
   clusters=layout.clusters.map(bounds=>{
    const rgb=tagClusterColors(bounds.tag)[light?'light':'dark'],entry=entries.get(bounds.tag)!
    const members=stats.counts.find(item=>item.tag===bounds.tag)?.members??[]
@@ -207,15 +266,7 @@ export function setupTagNebula(root:HTMLElement,stats:TagStats) {
   const box=pointer?stage.getBoundingClientRect():undefined,focused=document.activeElement
   const elapsed=(now-start)/1000,travel=flowTime*angularSpeed+rotationOffset
   positionClusters();ctx.clearRect(0,0,width,height)
-  if(space)ctx.drawImage(space,0,0,width,height)
-  // Sparse distant motion shares the scene clock and its visibility lifecycle.
-  const meteorPhase=(flowTime+19)%23,meteorCycle=Math.floor((flowTime+19)/23)
-  if(meteor&&!reduced.matches&&meteorPhase<1.8){
-   const progress=meteorPhase/1.8,side=meteorCycle%2
-   ctx.save();ctx.globalAlpha=Math.sin(progress*Math.PI)*.45
-   ctx.translate(width*(side ? .12 : .72)+progress*width*.2,height*(side ? .22 : .68)+progress*height*.1)
-   ctx.rotate(.55);ctx.drawImage(meteor,-64,-3,64,6);ctx.restore()
-  }
+  if(space){ctx.save();ctx.globalAlpha=.65;ctx.drawImage(space,0,0,width,height);ctx.restore()}
   ctx.save();ctx.translate(width/2+camera.x,height/2+camera.y);ctx.scale(camera.scale,camera.scale);ctx.translate(-width/2,-height/2)
   for(const [layer,river] of rivers.entries()){
    const phase=layer*Math.PI*2/3
