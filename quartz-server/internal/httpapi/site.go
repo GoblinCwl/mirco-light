@@ -131,6 +131,8 @@ func (s *Server) site(mux *http.ServeMux) {
 		}
 
 		switch {
+		case strings.HasPrefix(path, "/admin/comments/"):
+			s.siteCommentsAdmin(w, r, path)
 		case path == "/admin/comments-session" && r.Method == "POST":
 			w.Header().Set("Cache-Control", "no-store")
 			if s.Comments == nil || s.Comments.Client == nil {

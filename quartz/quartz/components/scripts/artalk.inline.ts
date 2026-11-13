@@ -272,6 +272,8 @@ const tryLoadArtalk = async () => {
       releaseInitialization()
 
       const currentArtalkInstance = artalkInstance
+      const refreshManagedComments = () => currentArtalkInstance.reload()
+      document.addEventListener('comments-admin-changed', refreshManagedComments)
       const stopAdminVerifier = useSiteArtalkAdminVerifier(currentArtalkInstance)
       const stopAdminLogout = observeArtalkAdminLogout(currentArtalkInstance)
       // Artalk initializes asynchronously; its plugins may reset the user until created.
@@ -316,6 +318,7 @@ const tryLoadArtalk = async () => {
         ;(window as any).addCleanup(() => {
           stopNotificationTheme()
           stopAdminLogout()
+          document.removeEventListener('comments-admin-changed', refreshManagedComments)
           stopAdminVerifier()
           stopIdenticons()
           stopLabels()

@@ -3,6 +3,7 @@ import { setupSecurityManager } from "./stellarSecurity"
 import {setupServiceManager} from './serviceManager'
 import {setupAlertCenter} from './alertCenter'
 import {setupDataManager} from './dataManager'
+import {setupCommentManager} from './commentManager'
 import {showPasswordToast} from './passwordFeedback'
 import {adminPassword} from './driveAdminFields'
 import { setupUpstreamManager } from './upstreamManager'
@@ -40,6 +41,7 @@ document.addEventListener('nav', () => {
     result.schema.push({key:'data.maintenance',group:'数据管理',label:'数据维护',type:'data'})
     result.schema.push({key:'friends.manage',group:'友链管理',label:'友链',type:'friends'})
     result.schema.push({key:'feedback.manage',group:'反馈管理',label:'反馈',type:'feedback'})
+    result.schema.push({key:'comments.manage',group:'评论管理',label:'评论与用户',type:'comments'})
     result.schema.push({key:'upstreams.credentials',group:'服务接入',label:'平台凭据',type:'credentials'})
     fields.replaceChildren()
     const navigation = root.querySelector<HTMLElement>('[data-stellar-modules]')!; navigation.replaceChildren()
@@ -52,6 +54,7 @@ document.addEventListener('nav', () => {
       '数据管理': {id:'data',title:'数据',description:'维护本站数据记录，支持查询、新增、编辑与删除。',icon:'<circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="m8 8 8 8M15 5h5v5M9 19H4v-5"/>'},
       '友链管理': {id:'friends',title:'友链',description:'管理友链资料与申请审核，卡片按最近更新时间排列。',icon:'<path d="m9 15 6-6m-5-3 2-2a5 5 0 0 1 7 7l-2 2M7 11l-2 2a5 5 0 0 0 7 7l2-2"/>'},
       '反馈管理': {id:'feedback',title:'反馈',description:'查看访客反馈并管理处理状态。',icon:'<path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 9h10M7 13h6"/>'},
+      '评论管理': {id:'comments',title:'评论',description:'管理 Artalk 评论与用户，支持审核、编辑及账号维护。',icon:'<path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 9h10M7 13h6"/>'},
       '告警中心': {id:'alerts',title:'告警',description:'查看服务异常、交互请求的外部接口失败及运行异常。',icon:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/><path d="M12 6v4m0 3h.01"/>'},
       '内容发布': {id:'publishing',title:'内容',description:'控制构建排除与隐藏展示，保存后手动重载生效。',icon:'<path d="M4 4h16v16H4zM8 9h8M8 13h5"/><path d="m16 16 2 2 3-3"/>'},
       '账户安全':{id:'security',title:'账户',description:'管理管理员验证器与恢复码。',icon:'<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/>'},
@@ -94,6 +97,12 @@ document.addEventListener('nav', () => {
       const moduleIcon=document.createElement('span'),introCopy=document.createElement('div');moduleIcon.className='stellar-admin-module-icon';moduleIcon.innerHTML=tab.querySelector('svg')!.outerHTML;moduleIcon.setAttribute('aria-hidden','true');introCopy.append(title,description);intro.append(moduleIcon,introCopy);panel.append(intro)
       const index=tabs.length;tabs.push(tab);panels.push(panel);navigation.append(tab);fields.append(panel);tab.onclick=()=>selectModule(index)
       if(name==='账户安全'){setupSecurityManager(panel,signal,request);continue}
+      if(name==='评论管理'){
+        const content=document.createElement('div');content.className='comment-admin';panel.append(content)
+        let started=false
+        activators[index]=()=>{if(!started){started=true;setupCommentManager(content,signal,request)}}
+        continue
+      }
       if(name==='告警中心'){
         let refresh:(()=>void)|undefined
         activators[index]=()=>{if(!refresh)refresh=setupAlertCenter(panel,signal,request);else refresh()}
