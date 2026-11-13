@@ -672,7 +672,7 @@ li:has(> .folder-outer:not(.open)) > .folder-container > svg {
 }
 
 @media all and ($mobile) {
-  .explorer[data-motion-ready] .mobile-directory-explore {
+  .explorer[data-motion-ready] .mobile-directory-explore:not([data-disclosure-motion]) {
     &::details-content {
       @include directory-expansion;
       transition-property: grid-template-rows, visibility, content-visibility;
@@ -754,7 +754,17 @@ li:has(> .folder-outer[data-route-updating]) > .folder-container > svg { transit
 }
 
 @media all and ($mobile) {
- .explorer[data-motion-ready] .mobile-directory-explore[data-disclosure-motion]::details-content {display:block;transition:none;}
+ // The list owns disclosure motion; the native wrapper must not retain a collapsed grid track.
+ .explorer[data-motion-ready] .mobile-directory-explore[data-disclosure-motion]::details-content {display:block;grid-template-rows:none;transition:none;}
+ .explorer[data-motion-ready] .mobile-directory-explore[data-disclosure-motion][open]::details-content {content-visibility:visible;}
+ .explorer .mobile-directory-explore[data-disclosure-motion] > .directory-root-list {min-height:0;height:auto;overflow:visible;}
  .explorer .mobile-directory-explore[data-disclosure-motion] > summary[aria-expanded="false"] > .fold {transform:rotate(-90deg);}
  .explorer .mobile-directory-explore[data-disclosure-motion] > summary[aria-expanded="true"] > .fold {transform:rotate(0deg);}
+}
+
+@media all and ($mobile){
+ // The top-layer drawer keeps its existing geometry and slide transition.
+ // Reset only the user-agent popover box, so filtered page art cannot clip it.
+ .explorer > .explorer-content[popover] {inset:auto;margin:0;border:0;top:0;left:0;color:inherit;}
+ .explorer > .explorer-content::backdrop {background:transparent;pointer-events:none;}
 }

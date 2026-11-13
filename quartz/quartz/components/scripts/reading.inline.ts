@@ -1,4 +1,4 @@
-import {setupReadingSpace} from './readingSpace'
+import {setupReadingSpace,setupReadingHorizon} from './readingSpace'
 import {readingTimelineTarget,readingTimelineMotion} from './readingTimelinePan'
 import {createReadingPrefetch} from './readingPrefetch'
 import {readingMonth,readingYears} from './readingTimeline'
@@ -17,6 +17,7 @@ document.addEventListener('nav',()=>{
  const root=document.querySelector<HTMLElement>('[data-reading-page]');if(!root)return
  const lifecycle=new AbortController(),signal=lifecycle.signal;window.addCleanup(()=>lifecycle.abort())
  setupReadingSpace(root,signal)
+ setupReadingHorizon(root,signal)
  const list=root.querySelector<HTMLElement>('[data-reading-list]')!,status=root.querySelector<HTMLElement>('[data-reading-status]')!,sentinel=root.querySelector<HTMLElement>('[data-reading-sentinel]')!
  let page=0,pages=1,busy=false,lastSuccess=true,jumpingMonth='',jumpVersion=0,activeMonth='',pinnedMonth=''
  let pendingLoad:Promise<void>=Promise.resolve()

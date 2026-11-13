@@ -1,4 +1,4 @@
-import {horizonFilaments,horizonStars,horizonShadowPath} from '../scripts/readingHorizonArt'
+import {horizonFilaments,horizonShadowPath} from '../scripts/readingHorizonArt'
 /** Native animated filaments: broad hot ribbon, continuous fine strands and drifting broken light. */
 export default function ReadingBlackHole(){
  const lines=horizonFilaments()
@@ -10,6 +10,7 @@ export default function ReadingBlackHole(){
  }
  return <header class="reading-horizon">
   <div class="reading-horizon-scene">
+   <div class="reading-horizon-entrance">
    <svg class="reading-horizon-art" viewBox="-70 0 1140 400" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
     <defs>
      <linearGradient id="horizon-density" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1000" y2="0"><stop stop-color="#626262"/><stop offset=".4" stop-color="#999"/><stop offset=".78" stop-color="white"/></linearGradient>
@@ -27,7 +28,6 @@ export default function ReadingBlackHole(){
      <filter id="horizon-bloom" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
      <filter id="horizon-halo" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="2"/></filter>
     </defs>
-    <g fill="var(--horizon-star)">{horizonStars().map(star=><circle cx={star.x} cy={star.y} r={star.radius} opacity={star.opacity}/>)}</g>
     <g class="reading-horizon-lens" transform="translate(0 24)">
     <path class="reading-horizon-core" d={shadow} transform="translate(0 -10)" fill="url(#horizon-interior)"/>
     <g clip-path="url(#horizon-interior-clip)">
@@ -57,15 +57,11 @@ export default function ReadingBlackHole(){
     <g mask="url(#horizon-right-light-mask)"><path d={lines[8].path} fill="none" stroke="url(#horizon-hot)" stroke-width="42" opacity=".7" filter="url(#horizon-bloom)"/></g>
     <path mask="url(#horizon-density-mask)" d={lines[10].path} fill="none" stroke="url(#horizon-hot)" stroke-width="2.4" opacity=".95"/>
     <path d="M170 326C315 364 700 350 900 248" fill="none" stroke="url(#horizon-gas)" stroke-width=".45" opacity=".18"/>
-    {[[203,64,1],[205,331,.85],[499,338,.7],[749,107,.4],[943,305,.35]].map(([x,y,scale])=><g transform={`translate(${x} ${y}) scale(${scale})`}>
-     <circle r="4.5" fill="#f4cba5" opacity=".45" filter="url(#horizon-halo)"/>
-     <path d="M0-8 .65-1 8 0 .65 1 0 8-.65 1-8 0-.65-1Z" fill="var(--horizon-star-core)" opacity=".65"/>
-     <circle r="1.15" fill="var(--horizon-star-core)"/>
-    </g>)}
     </g>
     </g>
    </svg>
    <div class="reading-horizon-copy"><h1>视界</h1><p>万象于此交汇</p></div>
+   </div>
   </div>
   <dl class="reading-horizon-census" aria-label="四类内容总量">
    {([{type:'article',label:'文章'},{type:'repo',label:'仓库'},{type:'share',label:'分享'},{type:'video',label:'视频'}] as const).map(item=><div class="reading-census-item" data-type={item.type}><dt>{item.label}</dt><dd data-reading-count={item.type} aria-label={`${item.label}总量正在读取`}>—</dd></div>)}

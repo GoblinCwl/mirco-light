@@ -185,6 +185,7 @@ function directoryIndex(explorer: HTMLElement) {
 function toggleExplorer(this: HTMLElement) {
   const nearestExplorer = this.closest(".explorer") as HTMLElement
   if (!nearestExplorer) return
+  const apply=()=>{
   const explorerCollapsed = nearestExplorer.classList.toggle("collapsed")
   nearestExplorer.setAttribute("aria-expanded", String(!explorerCollapsed))
   this.setAttribute("aria-expanded", String(!explorerCollapsed))
@@ -196,6 +197,13 @@ function toggleExplorer(this: HTMLElement) {
   } else {
     document.documentElement.classList.remove("mobile-no-scroll")
   }
+  }
+  if(nearestExplorer.classList.contains('collapsed')&&window.matchMedia('(max-width: 800px)').matches){
+    // Let the shared drawer commit its closed layer before starting the existing CSS transition.
+    const preparation=new CustomEvent('directory-before-open',{cancelable:true,detail:{open:apply}})
+    if(!nearestExplorer.dispatchEvent(preparation))return
+  }
+  apply()
 }
 
 function toggleFolder(evt: MouseEvent) {

@@ -110,8 +110,12 @@ body:has(.reading-page) .center>.page-header,body:has(.reading-page) .center>hr 
 
 @media(prefers-reduced-motion:reduce){.reading-page .reading-timeline button,.reading-page .reading-timeline button::before {transition:none;}}
 
+.reading-page .reading-space-host {
+ position:absolute;z-index:-1;top:0;bottom:0;left:0;width:100%;overflow:clip;pointer-events:none;
+}
+.reading-page .reading-space-layer {position:sticky;top:0;width:100%;height:100vh;height:100lvh;}
 .reading-page .reading-space {
- position:fixed;z-index:-1;top:0;left:0;width:0;height:100dvh;pointer-events:none;
+ position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none;
  mask-image:linear-gradient(transparent,#000 7%,#000 93%,transparent),linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
  mask-composite:intersect;
  -webkit-mask-image:linear-gradient(transparent,#000 7%,#000 93%,transparent),linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
@@ -140,6 +144,7 @@ body:has(.reading-page) .center>.page-header,body:has(.reading-page) .center>hr 
 .reading-page {
  .reading-horizon {--horizon-star:#73869e;--horizon-star-core:#aa8a60;--horizon-contour:#8c7c68;width:100%;margin:0 0 1.5rem;}
  .reading-horizon-scene {position:relative;isolation:isolate;width:100%;max-width:100%;min-width:0;box-sizing:border-box;aspect-ratio:3;min-height:14rem;max-height:23rem;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent),linear-gradient(#000 86%,transparent);mask-composite:intersect;}
+ .reading-horizon-entrance {position:absolute;inset:0;}
  .reading-horizon-art {position:absolute;inset:0;display:block;width:100%;height:100%;}
  .reading-horizon-copy {
   --title-light:#b9ceca;
@@ -173,14 +178,13 @@ body:has(.reading-page) .center>.page-header,body:has(.reading-page) .center>hr 
 
 .reading-page .reading-timeline::-webkit-scrollbar {display:none;}
 
-@media(max-width:800px){html:has(.reading-page):not(.mobile-no-scroll) {overflow-x:clip;}}
 
 @media(max-width:800px){
  body:has(.reading-page) .page>#quartz-body {
   padding-top:0;
   .sidebar.left:has(.explorer) {position:relative;top:auto;left:auto;right:auto;margin-inline:-1rem;}
-  .explorer .mobile-explorer {position:static;}
-  .explorer:not(.collapsed) .mobile-explorer {position:fixed;}
+  // Only the button in the flowing page header differs; the drawer uses shared styles.
+  .explorer > .mobile-explorer {position:static;}
  }
  .reading-page .reading-timeline {top:0;}
  .reading-page .reading-sheet {scroll-margin-top:4rem;}
@@ -248,3 +252,23 @@ body:has(.reading-page) .center>.page-header,body:has(.reading-page) .center>hr 
 :root[saved-theme=dark] .reading-page .reading-space-twinkles {color:#aec1e4;}
 @keyframes reading-star-twinkle {0%,100% {opacity:.12;}50% {opacity:.75;}}
 @media(prefers-reduced-motion:reduce){.reading-page .reading-space-twinkles>i {animation:none;opacity:.35;}}
+
+@keyframes reading-horizon-emerge {
+ from {transform:translate3d(0,-100%,0);}
+ to {transform:translate3d(0,0,0);}
+}
+@media(max-width:800px) and (prefers-reduced-motion:no-preference){
+ .reading-page .reading-horizon-entrance {transform:translate3d(0,-100%,0);}
+ .reading-page .reading-horizon-scene[data-horizon-ready]:not([data-horizon-outside]) .reading-horizon-entrance {
+  animation:reading-horizon-emerge 480ms cubic-bezier(.16,1,.3,1) both;
+ }
+}
+
+@media(max-width:800px){
+ body:has(.reading-page) .explorer > .explorer-content {will-change:transform;}
+ body:has(.explorer[data-drawer-active]) .reading-page {
+  .reading-horizon-spin {animation-play-state:paused;}
+  .reading-horizon-scene[data-horizon-ready]:not([data-horizon-outside]) .reading-horizon-entrance {animation-play-state:paused;}
+  .reading-sheet,.reading-space-twinkles > i {animation-play-state:paused;}
+ }
+}
