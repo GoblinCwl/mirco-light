@@ -44,7 +44,10 @@ let liveCheckedAt = Date.now(), liveRequest: Promise<void> | undefined
 const directoryHref = (slug: FullSlug) => new URL(resolveRelative("index" as FullSlug, slug), `${location.origin}/`).href
 let currentExplorerState: Array<FolderState> = []
 
+const directoryRouteHidden=()=>document.body.dataset.directoryHidden==='true'
+
 function updateCurrentEntry(explorer: HTMLElement, slug: FullSlug, followRoute = true) {
+  followRoute=followRoute&&!directoryRouteHidden()
   if (followRoute && slug !== "index" && !slug.startsWith("Share/")) activateDirectoryGroup({ domain: "explore", root: slug.split("/")[0], path: simplifySlug(slug).replace(/\/$/, "") })
   if (followRoute && slug === "index") {
     setAllFolders(explorer, true)
@@ -294,7 +297,7 @@ function createFolderNode(
 
   const folderPath = node.slug
   folderContainer.dataset.folderpath = folderPath
-  const isCurrentFolder = simplifySlug(currentSlug).replace(/\/$/, "") === simplifySlug(folderPath).replace(/\/$/, "")
+  const isCurrentFolder = !directoryRouteHidden() && simplifySlug(currentSlug).replace(/\/$/, "") === simplifySlug(folderPath).replace(/\/$/, "")
 
   if (isCurrentFolder) {
     folderContainer.classList.add("active")
@@ -325,7 +328,7 @@ function createFolderNode(
   // want to open it anyways
   const simpleFolderPath = simplifySlug(folderPath)
   const folderIsPrefixOfCurrentSlug =
-    simpleFolderPath === currentSlug.slice(0, simpleFolderPath.length)
+    !directoryRouteHidden() && simpleFolderPath === currentSlug.slice(0, simpleFolderPath.length)
 
   if (!isCollapsed || folderIsPrefixOfCurrentSlug) {
     folderOuter.classList.add("open")
@@ -393,7 +396,7 @@ function setupRealmDirectory() {
 
 async function setupExplorer(currentSlug: FullSlug) {
   setupRealmDirectory()
-  activateDirectoryGroup(currentSlug === "index" ? undefined : currentSlug.startsWith("Share/")
+  if(!directoryRouteHidden())activateDirectoryGroup(currentSlug === "index" ? undefined : currentSlug.startsWith("Share/")
     ? { domain: "drive", root: "Share" }
     : { domain: "explore", root: currentSlug.split("/")[0], path: simplifySlug(currentSlug).replace(/\/$/, "") })
   setupRepoDirectories(currentSlug === "index")

@@ -1,3 +1,4 @@
+import {isDirectoryListed} from "../util/directoryVisibility"
 import { listedFiles, listedTrie, matchesContentPath } from "../util/contentVisibility"
 import {render} from "preact-render-to-string"
 import {QuartzComponent, QuartzComponentProps} from "./types"
@@ -334,7 +335,7 @@ export async function renderPage(
     const doc = (
         <html lang={lang} dir={direction}>
         <Head {...componentData} />
-        <body data-slug={slug}>
+        <body data-slug={slug} data-directory-hidden={!isDirectoryListed(String(componentData.fileData.relativePath??slug),cfg.directoryHiddenPatterns)?"true":undefined}>
         <div id="quartz-root" class="page">
             <Body {...componentData}>
                 {LeftComponent}

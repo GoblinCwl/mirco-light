@@ -1,3 +1,4 @@
+import {isDirectoryListed} from "../util/directoryVisibility"
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 import breadcrumbsStyle from "./styles/breadcrumbs.scss"
 // @ts-ignore
@@ -52,8 +53,10 @@ export default ((opts?: Partial<BreadcrumbOptions>) => {
     fileData,
     allFiles,
     displayClass,
+    cfg,
     ctx,
   }: QuartzComponentProps) => {
+    if(!isDirectoryListed(String(fileData.relativePath??fileData.slug),cfg.directoryHiddenPatterns))return null
     let crumbs: CrumbData[]
     if (options.crumbs) {
       crumbs = options.crumbs.map(crumb => ({ ...crumb }))
