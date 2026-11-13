@@ -5,6 +5,7 @@ import (
 	"errors"
 	"goblincwl/quartz-server/internal/video"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -36,6 +37,23 @@ func (s *Server) video(mux *http.ServeMux) {
 				fail(w, err)
 				return
 			}
+			JSON(w, 200, value)
+		case "comments":
+			page := 1
+			if raw := r.URL.Query().Get("page"); raw != "" {
+				parsed, err := strconv.Atoi(raw)
+				if err != nil {
+					JSON(w, 400, map[string]string{"error": "页码无效"})
+					return
+				}
+				page = parsed
+			}
+			value, err := s.Video.Comments(r.Context(), r.URL.Query().Get("bvid"), r.URL.Query().Get("root"), page, r.URL.Query().Get("cursor"))
+			if err != nil {
+				fail(w, err)
+				return
+			}
+			w.Header().Set("Cache-Control", "public, max-age=60")
 			JSON(w, 200, value)
 		case "detail":
 			value, err := s.Video.Detail(r.Context(), r.URL.Query().Get("bvid"))

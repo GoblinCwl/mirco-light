@@ -1,3 +1,4 @@
+import {setupBilibiliComments} from './bilibiliComments'
 import {PageNotFoundError,showSiteNotFound} from "./siteError"
 import {readContentCatalog,peekContentCatalog} from './contentCatalog'
 import { sidebarModule } from "./sidebarModule"
@@ -230,9 +231,10 @@ document.addEventListener("nav", () => {
           detailRequest?.abort()
           playerLoad?.abort()
           const playback = playbackDetail(video)
-          root.innerHTML = `<p class="video-playback-detail" data-video-playback-detail${playback ? "" : " hidden"}>${playback}</p><div class="video-player-stage is-loading" aria-busy="true"><span class="video-player-loading" role="status" aria-label="正在加载播放器"><span class="drive-loading" aria-hidden="true"><i /></span></span><iframe title="${e(video.title)}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><section class="video-engagement" aria-label="视频统计"><dl class="video-statistics" data-video-statistics>${videoStats(video)}</dl></section><section class="video-description" data-video-description></section><div data-video-inline-parts></div>`
+          root.innerHTML = `<p class="video-playback-detail" data-video-playback-detail${playback ? "" : " hidden"}>${playback}</p><div class="video-player-stage is-loading" aria-busy="true"><span class="video-player-loading" role="status" aria-label="正在加载播放器"><span class="drive-loading" aria-hidden="true"><i /></span></span><iframe title="${e(video.title)}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><section class="video-engagement" aria-label="视频统计"><dl class="video-statistics" data-video-statistics>${videoStats(video)}</dl></section><section class="video-description" data-video-description></section><div data-video-inline-parts></div><section data-bilibili-comments></section>`
           root.dataset.playerKey = playerKey
           playerLoad = new AbortController()
+          setupBilibiliComments(root.querySelector<HTMLElement>("[data-bilibili-comments]")!,video.bvid,playerLoad.signal)
           const stage = root.querySelector<HTMLElement>(".video-player-stage")!
           const startPlayer = () => {
             if (stage.querySelector("iframe")?.hasAttribute("src")) return

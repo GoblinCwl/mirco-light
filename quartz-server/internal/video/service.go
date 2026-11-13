@@ -14,12 +14,13 @@ type Problem struct {
 func (e *Problem) Error() string { return e.Message }
 
 type Service struct {
-	Store      Store
-	Client     *Client
-	Controller *Controller
-	Social     *Social
-	Details    cache.Cache
-	Changed    func()
+	Store         Store
+	Client        *Client
+	Controller    *Controller
+	Social        *Social
+	Details       cache.Cache
+	CommentsCache cache.Cache
+	Changed       func()
 }
 
 func fresh(detail map[string]any) bool {
