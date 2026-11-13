@@ -136,6 +136,16 @@ func (a *Adapter) Catalog(ctx context.Context) (map[string]any, error) {
 			for _, key := range []string{"id", "name", "description", "language", "topics", "fork", "archived", "default_branch", "created_at", "pushed_at", "stargazers_count", "forks_count", "license"} {
 				row[key] = item[key]
 			}
+			directory, err := confined(a.Root, name)
+			if err != nil {
+				return nil, err
+			}
+			_, committedAt, err := latestCommit(ctx, directory, stringValue(row["default_branch"]))
+			if err != nil {
+				return nil, err
+			}
+			// Mirror push/sync metadata is not the repository's content update time.
+			row["pushed_at"] = committedAt
 			rows = append(rows, row)
 		}
 		return map[string]any{"owner": a.Owner, "updatedAt": snapshot["updatedAt"], "repositories": rows}, nil
@@ -190,15 +200,7 @@ func (a *Adapter) Content(ctx context.Context) ([]content.Item, error) {
 		if err != nil {
 			return nil, err
 		}
-		branch := stringValue(row["default_branch"])
-		if branch == "" {
-			branch = "main"
-		}
-		sha, err := Resolve(ctx, directory, "refs/heads/"+branch)
-		if err != nil {
-			return nil, err
-		}
-		raw, _, err := Git(ctx, directory, MaxText, nil, "show", "-s", "--format=%cI", sha)
+		sha, committedAt, err := latestCommit(ctx, directory, stringValue(row["default_branch"]))
 		if err != nil {
 			return nil, err
 		}
@@ -230,7 +232,7 @@ func (a *Adapter) Content(ctx context.Context) ([]content.Item, error) {
 		if err != nil {
 			return nil, err
 		}
-		items = append(items, content.Item{SourceID: id, Slug: "Repo/" + name, Title: name, Content: stringValue(readme["content"]), Description: stringValue(row["description"]), Tags: tags, PublishedAt: published, UpdatedAt: strings.TrimSpace(string(raw)), EventRevision: sha, Extra: map[string]any{"language": language, "name": name, "hasReadme": stringValue(readme["path"]) != "" && strings.TrimSpace(stringValue(readme["content"])) != "" && readme["binary"] != true}})
+		items = append(items, content.Item{SourceID: id, Slug: "Repo/" + name, Title: name, Content: stringValue(readme["content"]), Description: stringValue(row["description"]), Tags: tags, PublishedAt: published, UpdatedAt: committedAt, EventRevision: sha, Extra: map[string]any{"language": language, "name": name, "hasReadme": stringValue(readme["path"]) != "" && strings.TrimSpace(stringValue(readme["content"])) != "" && readme["binary"] != true}})
 	}
 	return items, nil
 }
@@ -248,4 +250,24 @@ func numberString(v any) string {
 
 func (a *Adapter) request(ctx context.Context, target string) (json.RawMessage, error) {
 	return a.requestWith(ctx, target, nil)
+}
+
+// Resolve the default branch, never filesystem or mirror synchronization timestamps.
+func latestCommit(ctx context.Context, directory, branch string) (string, string, error) {
+	if branch == "" {
+		branch = "main"
+	}
+	sha, err := Resolve(ctx, directory, "refs/heads/"+branch)
+	if err != nil {
+		return "", "", err
+	}
+	raw, _, err := Git(ctx, directory, MaxText, nil, "show", "-s", "--format=%cI", sha)
+	if err != nil {
+		return "", "", err
+	}
+	at, err := time.Parse(time.RFC3339, strings.TrimSpace(string(raw)))
+	if err != nil {
+		return "", "", err
+	}
+	return sha, at.UTC().Format(time.RFC3339), nil
 }
