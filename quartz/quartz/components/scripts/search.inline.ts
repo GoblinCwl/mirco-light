@@ -452,13 +452,22 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
   document.addEventListener("keydown", shortcutHandler)
   // @ts-ignore
   window.addCleanup(() => document.removeEventListener("keydown", shortcutHandler))
-  searchButton.addEventListener("click", () => showSearch("basic"))
+  const openSearch=()=>showSearch("basic")
+  searchButton.addEventListener("click", openSearch)
   // @ts-ignore
-  window.addCleanup(() => searchButton.removeEventListener("click", () => showSearch("basic")))
+  window.addCleanup(() => searchButton.removeEventListener("click", openSearch))
   searchBar.addEventListener("input", onType)
   // @ts-ignore
   window.addCleanup(() => searchBar.removeEventListener("input", onType))
 
+  const dismissEmptyArea=(event:MouseEvent)=>{
+    if(!container.classList.contains('active'))return
+    const target=event.target as Element|null
+    if(!target||target===container||target.closest('.search-bar,.result-card,.preview-container'))return
+    event.preventDefault();hideSearch()
+  }
+  container.addEventListener('click',dismissEmptyArea)
+  window.addCleanup(()=>container.removeEventListener('click',dismissEmptyArea))
   registerEscapeHandler(container, hideSearch)
 }
 

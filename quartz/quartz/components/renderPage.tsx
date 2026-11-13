@@ -319,7 +319,7 @@ export async function renderPage(
     const lang = componentData.fileData.frontmatter?.lang ?? cfg.locale?.split("-")[0] ?? "en"
     const direction = i18n(cfg.locale).direction ?? "ltr"
     const articleViewport = <>
-        {slug !== "observatory/index" && slug !== "friends/index" && <div class="page-header">
+        {slug !== "observatory/index" && slug !== "friends/index" && slug !== "reading/index" && <div class="page-header">
             <Header {...componentData}>
                 {header.map((HeaderComponent) => <HeaderComponent {...componentData} />)}
             </Header>
@@ -328,7 +328,7 @@ export async function renderPage(
             </div>
         </div>}
         {content}
-        {slug !== "comments/index" && slug !== "friends/index" && !slug.startsWith("observatory/") && <hr/>}
+        {slug !== "comments/index" && slug !== "friends/index" && slug !== "reading/index" && !slug.startsWith("observatory/") && <hr/>}
         {ArticleGraph && <ArticleGraph {...componentData} displayClass="mobile-only" articleMobileGraph />}
     </>
     const doc = (

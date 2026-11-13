@@ -1,3 +1,4 @@
+import {createDirectoryDetailsMotion} from './directoryDetailsMotion'
 import {readArticleIndex} from './contentCatalog'
 import {setupMobileHeader} from './mobileHeader'
 import './shareAdminSession'
@@ -410,6 +411,16 @@ async function setupExplorer(currentSlug: FullSlug) {
     explorer.removeAttribute("data-motion-ready")
     const directorySection = explorer.querySelector<HTMLDetailsElement>(".mobile-directory-explore")
     const desktopDirectory = window.matchMedia("(min-width: 801px)")
+    if(directorySection){
+      const disclose=createDirectoryDetailsMotion(lifecycle.signal,':scope > .directory-root-list')
+      const summary=directorySection.querySelector<HTMLElement>(':scope > summary')!
+      directorySection.dataset.disclosureMotion='true'
+      summary.setAttribute('aria-expanded',String(directorySection.open))
+      summary.addEventListener('click',event=>{
+        if(desktopDirectory.matches)return
+        event.preventDefault();disclose(directorySection,undefined,true)
+      },{signal:lifecycle.signal})
+    }
     const ensureDesktopDirectory = (event?: MediaQueryListEvent) => {
       if (desktopDirectory.matches) {
         if (event) {

@@ -1,37 +1,74 @@
-/** Restrained light around a dark horizon; the front disk crosses the shadow. */
+import {horizonFilaments,horizonStars,horizonShadowPath} from '../scripts/readingHorizonArt'
+/** Native animated filaments: broad hot ribbon, continuous fine strands and drifting broken light. */
 export default function ReadingBlackHole(){
- return <div class="reading-horizon">
-  <svg class="reading-horizon-art" viewBox="0 0 1000 360" role="img" aria-label="视界：深空中的黑洞与吸积盘">
-   <defs>
-    <radialGradient id="reading-horizon-aura"><stop stop-color="var(--horizon-rim)" stop-opacity=".1"/><stop offset=".55" stop-color="var(--horizon-cool)" stop-opacity=".025"/><stop offset="1" stop-color="var(--horizon-cool)" stop-opacity="0"/></radialGradient>
-    <linearGradient id="reading-horizon-disk"><stop stop-color="var(--horizon-disk)" stop-opacity="0"/><stop offset=".2" stop-color="var(--horizon-disk)" stop-opacity=".2"/><stop offset=".46" stop-color="var(--horizon-rim)" stop-opacity=".85"/><stop offset=".61" stop-color="var(--horizon-rim)" stop-opacity=".65"/><stop offset=".85" stop-color="var(--horizon-disk)" stop-opacity=".15"/><stop offset="1" stop-color="var(--horizon-disk)" stop-opacity="0"/></linearGradient>
-    <radialGradient id="reading-horizon-plasma"><stop offset=".08" stop-color="var(--horizon-rim)" stop-opacity="0"/><stop offset=".34" stop-color="var(--horizon-rim)" stop-opacity=".5"/><stop offset=".57" stop-color="var(--horizon-disk)" stop-opacity=".3"/><stop offset=".84" stop-color="var(--horizon-disk)" stop-opacity=".07"/><stop offset="1" stop-color="var(--horizon-disk)" stop-opacity="0"/></radialGradient>
-    <filter id="reading-horizon-bloom" x="-30%" y="-150%" width="160%" height="400%"><feGaussianBlur stdDeviation="4"/></filter>
-   </defs>
-   <ellipse class="reading-horizon-aura" cx="500" cy="180" rx="420" ry="145" fill="url(#reading-horizon-aura)"/>
-   <g fill="var(--horizon-cool)" opacity=".3">
-    {[[183,91,.8],[289,277,.7],[735,72,.8],[842,253,.7],[655,35,.6],[429,315,.7]].map(([cx,cy,r])=><circle cx={cx} cy={cy} r={r}/>)}
-   </g>
-   <g transform="rotate(-11 500 180)" fill="none">
-    <ellipse cx="500" cy="180" rx="380" ry="49" fill="url(#reading-horizon-plasma)"/>
-    <ellipse cx="500" cy="180" rx="280" ry="32" stroke="url(#reading-horizon-disk)" stroke-width="10" opacity=".25" filter="url(#reading-horizon-bloom)"/>
-    <ellipse cx="500" cy="180" rx="324" ry="37" stroke="url(#reading-horizon-disk)" stroke-width=".65" opacity=".35"/>
-    <path d="M404 180C404 55 596 55 596 180" stroke="url(#reading-horizon-disk)" stroke-width="7" opacity=".55" filter="url(#reading-horizon-bloom)"/>
-    <path d="M407 180C407 64 593 64 593 180H589C589 70 411 70 411 180Z" fill="url(#reading-horizon-disk)" opacity=".75"/>
-    <circle cx="500" cy="180" r="81" stroke="var(--horizon-rim)" stroke-width="5" opacity=".2" filter="url(#reading-horizon-bloom)"/>
-    <circle cx="500" cy="180" r="78" fill="var(--horizon-core)"/>
-    <circle cx="500" cy="180" r="79" stroke="var(--horizon-rim)" stroke-width=".8" opacity=".65"/>
-    <path d="M145 180C250 229 750 229 855 180C740 213 260 213 145 180Z" fill="url(#reading-horizon-disk)" opacity=".4" filter="url(#reading-horizon-bloom)"/>
-    <path d="M145 180C250 229 750 229 855 180C740 213 260 213 145 180Z" fill="url(#reading-horizon-disk)" opacity=".7"/>
-    <path d="M170 183C325 222 675 222 830 183" stroke="url(#reading-horizon-disk)" stroke-width=".8" opacity=".65"/>
-    <path class="reading-horizon-stream" d="M170 183C325 222 675 222 830 183" pathLength="100" stroke="var(--horizon-rim)" stroke-width="1.1" stroke-dasharray="6 94" opacity=".35"/>
-   </g>
-  </svg>
-  <div class="reading-horizon-beacons" aria-label="四类内容总量">
-   {([{type:'article',label:'文章'},{type:'repo',label:'仓库'},{type:'share',label:'分享'},{type:'video',label:'视频'}] as const).map(item=><div class="reading-horizon-beacon" data-type={item.type}>
-    <span class="reading-beacon-pin" aria-hidden="true"><svg class="reading-beacon-tether" viewBox="0 -12 44 24" fill="none"><path d="M0 0Q16-4 32 0" stroke="currentColor" stroke-width=".8" stroke-linecap="round"/></svg></span>
-    <div class="reading-beacon-data"><strong data-reading-count={item.type} aria-label={`${item.label}总量正在读取`}>—</strong><span class="reading-beacon-label">{item.label}</span></div>
-   </div>)}
+ const lines=horizonFilaments()
+ const shadow=horizonShadowPath()
+ // Complete rings keep the texture continuous throughout an actual revolution.
+ const orbitRadius=(line:typeof lines[number])=>{
+  const arc=line.path.match(/A([\d.]+)/)
+  return arc?Number(arc[1]):500-Number(line.path.match(/^M(-?[\d.]+)/)![1])
+ }
+ return <header class="reading-horizon">
+  <div class="reading-horizon-scene">
+   <svg class="reading-horizon-art" viewBox="-70 0 1140 400" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+    <defs>
+     <linearGradient id="horizon-density" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1000" y2="0"><stop stop-color="#626262"/><stop offset=".4" stop-color="#999"/><stop offset=".78" stop-color="white"/></linearGradient>
+     <mask id="horizon-density-mask" maskUnits="userSpaceOnUse" x="-100" y="-300" width="1200" height="800"><rect x="-100" y="-300" width="1200" height="800" fill="url(#horizon-density)"/></mask>
+     <linearGradient id="horizon-right-light" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1000" y2="0"><stop offset=".4" stop-color="black"/><stop offset=".72" stop-color="white"/><stop offset="1" stop-color="white" stop-opacity=".3"/></linearGradient>
+     <mask id="horizon-right-light-mask" maskUnits="userSpaceOnUse" x="-100" y="-300" width="1200" height="800"><rect x="-100" y="-300" width="1200" height="800" fill="url(#horizon-right-light)"/></mask>
+     <radialGradient id="horizon-interior" cx=".5" cy=".05" r=".95"><stop stop-color="#010207"/><stop offset=".64" stop-color="#03060d"/><stop offset="1" stop-color="#0b1220"/></radialGradient>
+     <radialGradient id="horizon-penumbra"><stop stop-color="#102039" stop-opacity=".26"/><stop offset="1" stop-color="#030710" stop-opacity="0"/></radialGradient>
+     <clipPath id="horizon-interior-clip"><path d={shadow} transform="translate(0 -10)"/></clipPath>
+     <filter id="horizon-interior-texture" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .018" numOctaves="3" seed="7"/><feColorMatrix type="matrix" values=".025 0 0 0 0  0 .04 0 0 0  0 0 .07 0 0  0 0 0 .18 0"/></filter>
+     <linearGradient id="horizon-edge-fade" gradientUnits="userSpaceOnUse" x1="-70" y1="0" x2="1070" y2="0"><stop stop-color="white" stop-opacity="0"/><stop offset=".025" stop-color="white"/><stop offset=".975" stop-color="white"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>
+     <mask id="horizon-exterior" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="-200" y="-500" width="1400" height="1100"><rect x="-200" y="-500" width="1400" height="1100" fill="url(#horizon-edge-fade)"/><path d={shadow} transform="translate(0 -10)" fill="black"/></mask>
+     <linearGradient id="horizon-gas"><stop stop-color="#7f91b8" stop-opacity=".1"/><stop offset=".12" stop-color="#d1a37d" stop-opacity=".55"/><stop offset=".4" stop-color="#f1cf9f" stop-opacity=".8"/><stop offset=".78" stop-color="#fff2d5"/><stop offset="1" stop-color="#d9af85" stop-opacity=".15"/></linearGradient>
+     <linearGradient id="horizon-hot"><stop stop-color="#d0a07c" stop-opacity=".1"/><stop offset=".15" stop-color="#ffe6c5" stop-opacity=".7"/><stop offset=".44" stop-color="#fffdf4"/><stop offset=".78" stop-color="#fffef7"/><stop offset="1" stop-color="#f4c995" stop-opacity=".1"/></linearGradient>
+     <filter id="horizon-bloom" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+     <filter id="horizon-halo" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="2"/></filter>
+    </defs>
+    <g fill="var(--horizon-star)">{horizonStars().map(star=><circle cx={star.x} cy={star.y} r={star.radius} opacity={star.opacity}/>)}</g>
+    <g class="reading-horizon-lens" transform="translate(0 24)">
+    <path class="reading-horizon-core" d={shadow} transform="translate(0 -10)" fill="url(#horizon-interior)"/>
+    <g clip-path="url(#horizon-interior-clip)">
+     <ellipse cx="510" cy="210" rx="430" ry="180" fill="url(#horizon-penumbra)"/>
+     <rect x="0" y="0" width="1000" height="400" filter="url(#horizon-interior-texture)" opacity=".45"/>
+    </g>
+    <g mask="url(#horizon-exterior)">
+    <path class="reading-horizon-contour" d={lines[8].path} fill="none" stroke="var(--horizon-contour)" stroke-width="23" opacity=".15" filter="url(#horizon-bloom)"/>
+    <g fill="none" stroke="url(#horizon-gas)" filter="url(#horizon-bloom)">
+     {lines.filter((_,i)=>i<18&&i%3===0).map(line=><path d={line.path} stroke-width="12" opacity=".36"/>)}
+    </g>
+    <g fill="none" stroke="url(#horizon-gas)">
+     {lines.filter(line=>line.kind==='long').map(line=><path d={line.path} stroke-width={line.width} opacity={line.opacity}/>)}
+    </g>
+    <g mask="url(#horizon-density-mask)">
+     <g class="reading-horizon-spin" fill="none" stroke="url(#horizon-gas)">
+      {lines.filter(line=>line.kind==='short').map(line=><circle cx="500" cy="-330" r={orbitRadius(line)} stroke-width={line.width} opacity={line.opacity} stroke-dasharray={line.dashes} stroke-dashoffset={line.offset}/>)}
+     </g>
+    </g>
+    <path mask="url(#horizon-density-mask)" d={lines[8].path} fill="none" stroke="url(#horizon-hot)" stroke-width="19" opacity=".55" filter="url(#horizon-bloom)"/>
+    <g mask="url(#horizon-density-mask)" fill="none" stroke="url(#horizon-hot)">{lines.filter(line=>line.kind==='core').map(line=><path d={line.path} stroke-width={line.width} opacity={line.opacity}/>)}</g>
+    <g mask="url(#horizon-density-mask)" fill="none" stroke="url(#horizon-hot)" stroke-linecap="round">
+     <g class="reading-horizon-spin">
+      {[3,9,16,21].map(index=><circle cx="500" cy="-330" r={orbitRadius(lines[index])} stroke-width={lines[index].width+.5} opacity=".48" stroke-dasharray="46 180 12 282" stroke-dashoffset={index*79}/>)}
+     </g>
+    </g>
+    <g mask="url(#horizon-right-light-mask)"><path d={lines[8].path} fill="none" stroke="url(#horizon-hot)" stroke-width="42" opacity=".7" filter="url(#horizon-bloom)"/></g>
+    <path mask="url(#horizon-density-mask)" d={lines[10].path} fill="none" stroke="url(#horizon-hot)" stroke-width="2.4" opacity=".95"/>
+    <path d="M170 326C315 364 700 350 900 248" fill="none" stroke="url(#horizon-gas)" stroke-width=".45" opacity=".18"/>
+    {[[203,64,1],[205,331,.85],[499,338,.7],[749,107,.4],[943,305,.35]].map(([x,y,scale])=><g transform={`translate(${x} ${y}) scale(${scale})`}>
+     <circle r="4.5" fill="#f4cba5" opacity=".45" filter="url(#horizon-halo)"/>
+     <path d="M0-8 .65-1 8 0 .65 1 0 8-.65 1-8 0-.65-1Z" fill="var(--horizon-star-core)" opacity=".65"/>
+     <circle r="1.15" fill="var(--horizon-star-core)"/>
+    </g>)}
+    </g>
+    </g>
+   </svg>
+   <div class="reading-horizon-copy"><h1>视界</h1><p>万象于此交汇</p></div>
   </div>
- </div>
+  <dl class="reading-horizon-census" aria-label="四类内容总量">
+   {([{type:'article',label:'文章'},{type:'repo',label:'仓库'},{type:'share',label:'分享'},{type:'video',label:'视频'}] as const).map(item=><div class="reading-census-item" data-type={item.type}><dt>{item.label}</dt><dd data-reading-count={item.type} aria-label={`${item.label}总量正在读取`}>—</dd></div>)}
+  </dl>
+ </header>
 }

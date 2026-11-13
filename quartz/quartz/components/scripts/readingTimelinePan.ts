@@ -8,3 +8,10 @@ export function readingTimelineTarget(y:number,height:number,maximum:number){
 export function readingTimelineStep(current:number,target:number,elapsed:number){
  return current+(target-current)*(1-Math.exp(-Math.max(8,Math.min(64,elapsed))/180))
 }
+
+/** Critically damped motion keeps velocity continuous when the pointer changes direction. */
+export function readingTimelineMotion(position:number,velocity:number,target:number,elapsed:number){
+ const dt=Math.max(0,Math.min(64,elapsed))/1000,frequency=12
+ const offset=position-target,travel=velocity+frequency*offset,decay=Math.exp(-frequency*dt)
+ return {position:target+(offset+travel*dt)*decay,velocity:(velocity-frequency*travel*dt)*decay}
+}

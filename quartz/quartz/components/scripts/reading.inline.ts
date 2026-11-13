@@ -1,6 +1,5 @@
-import {deepSpaceTexture} from './deepSpaceTexture'
-import {readingTimelineTarget,readingTimelineStep} from './readingTimelinePan'
-import {readingOrbit,readingTether} from './readingOrbit'
+import {setupReadingSpace} from './readingSpace'
+import {readingTimelineTarget,readingTimelineMotion} from './readingTimelinePan'
 import {createReadingPrefetch} from './readingPrefetch'
 import {readingMonth,readingYears} from './readingTimeline'
 import {readContentCatalog} from './contentCatalog'
@@ -17,62 +16,21 @@ import {createInfiniteScroll} from './infiniteScroll'
 document.addEventListener('nav',()=>{
  const root=document.querySelector<HTMLElement>('[data-reading-page]');if(!root)return
  const lifecycle=new AbortController(),signal=lifecycle.signal;window.addCleanup(()=>lifecycle.abort())
- const space=root.querySelector<HTMLElement>('.reading-space')!
- let spaceVersion=''
- const paintSpace=()=>{
-  const box=root.getBoundingClientRect(),width=Math.ceil(box.width+32),height=Math.max(1,innerHeight),light=document.documentElement.getAttribute('saved-theme')!=='dark'
-  if(width<33)return
-  const version=`${width}:${height}:${light}`
-  if(version!==spaceVersion){
-   spaceVersion=version
-   const texture=deepSpaceTexture(width,height,light)
-   space.style.backgroundImage=`url("${texture.toDataURL()}")`;space.style.backgroundSize=`${width}px ${height}px`
-   texture.width=texture.height=0
-  }
-  space.style.backgroundPosition=`${box.left-16}px 0px`
- }
- const spaceSize=new ResizeObserver(paintSpace);spaceSize.observe(root)
- const spaceTheme=new MutationObserver(paintSpace);spaceTheme.observe(document.documentElement,{attributes:true,attributeFilter:['saved-theme']})
- window.addEventListener('resize',paintSpace,{signal})
- signal.addEventListener('abort',()=>{spaceSize.disconnect();spaceTheme.disconnect()},{once:true})
- paintSpace()
- const horizon=root.querySelector<HTMLElement>('.reading-horizon')!
- const beacons=Array.from(horizon.querySelectorAll<HTMLElement>('.reading-horizon-beacon'))
- const tetherPaths=beacons.map(beacon=>beacon.querySelector<SVGPathElement>('.reading-beacon-tether path'))
- const reducedOrbit=matchMedia('(prefers-reduced-motion:reduce)')
- let orbitFrame=0,orbitVisible=false,orbitWidth=horizon.clientWidth,orbitHeight=horizon.clientHeight
- const orbitStarted=performance.now()
- const paintOrbit=(seconds:number)=>{
-  for(const [index,beacon] of beacons.entries()){
-   const position=readingOrbit(index,seconds)
-   beacon.style.transform=`translate3d(${position.x*orbitWidth}px,${position.y*orbitHeight}px,0) translate(-50%,-50%) scale(${position.scale})`
-   beacon.style.zIndex=position.front?'2':'0'
-   const pull=readingTether(index,seconds,orbitWidth,orbitHeight)
-   beacon.style.setProperty('--reading-tether-angle',`${pull.angle}rad`);beacon.style.setProperty('--reading-tether-stretch',String(pull.stretch));beacon.style.setProperty('--reading-tether-pull',`${pull.strength*2}px`);beacon.style.setProperty('--reading-tether-opacity',String(.15+pull.strength*.18))
-   tetherPaths[index]?.setAttribute('d',`M0 0Q${(pull.length/2).toFixed(1)} ${(-pull.bend).toFixed(1)} ${pull.length.toFixed(1)} 0`)
-  }
- }
- const tickOrbit=(now:number)=>{paintOrbit((now-orbitStarted)/1000);orbitFrame=requestAnimationFrame(tickOrbit)}
- const syncOrbit=()=>{cancelAnimationFrame(orbitFrame);if(!signal.aborted&&orbitVisible&&!reducedOrbit.matches)orbitFrame=requestAnimationFrame(tickOrbit);else paintOrbit(0)}
- const orbitSize=new ResizeObserver(()=>{orbitWidth=horizon.clientWidth;orbitHeight=horizon.clientHeight;paintOrbit(reducedOrbit.matches?0:(performance.now()-orbitStarted)/1000)})
- orbitSize.observe(horizon)
- const orbitVisibility=new IntersectionObserver(entries=>{orbitVisible=entries[0]?.isIntersecting??false;syncOrbit()})
- orbitVisibility.observe(horizon);reducedOrbit.addEventListener('change',syncOrbit,{signal})
- signal.addEventListener('abort',()=>{cancelAnimationFrame(orbitFrame);orbitSize.disconnect();orbitVisibility.disconnect()},{once:true})
- paintOrbit(0)
+ setupReadingSpace(root,signal)
  const list=root.querySelector<HTMLElement>('[data-reading-list]')!,status=root.querySelector<HTMLElement>('[data-reading-status]')!,sentinel=root.querySelector<HTMLElement>('[data-reading-sentinel]')!
  let page=0,pages=1,busy=false,lastSuccess=true,jumpingMonth='',jumpVersion=0,activeMonth='',pinnedMonth=''
  let pendingLoad:Promise<void>=Promise.resolve()
  const timeline=root.querySelector<HTMLElement>('[data-reading-timeline]')!,months=new Set<string>()
- let timelinePanFrame=0,timelinePanTarget=0,timelinePanPosition=0,timelinePanTime=0
- const stopTimelinePan=()=>{cancelAnimationFrame(timelinePanFrame);timelinePanFrame=0}
+ let timelinePanFrame=0,timelinePanTarget=0,timelinePanPosition=0,timelinePanTime=0,timelinePanVelocity=0
+ const stopTimelinePan=()=>{cancelAnimationFrame(timelinePanFrame);timelinePanFrame=0;timelinePanVelocity=0}
  const panTimeline=(now:number)=>{
   if(signal.aborted)return
-  timelinePanPosition=readingTimelineStep(timelinePanPosition,timelinePanTarget,now-timelinePanTime)
+  const motion=readingTimelineMotion(timelinePanPosition,timelinePanVelocity,timelinePanTarget,now-timelinePanTime)
+  timelinePanPosition=motion.position;timelinePanVelocity=motion.velocity
   timelinePanTime=now
   // Fractional progress is retained even if this frame rounds to the same physical pixel.
-  timeline.scrollTop=Math.round(timelinePanPosition)
-  if(Math.abs(timelinePanTarget-timelinePanPosition)<.3){timeline.scrollTop=Math.round(timelinePanTarget);timelinePanFrame=0;return}
+  timeline.scrollTop=timelinePanPosition
+  if(Math.abs(timelinePanTarget-timelinePanPosition)<.1&&Math.abs(timelinePanVelocity)<1){timeline.scrollTop=timelinePanTarget;timelinePanFrame=0;timelinePanVelocity=0;return}
   timelinePanFrame=requestAnimationFrame(panTimeline)
  }
  const moveTimeline=(event:PointerEvent)=>{
@@ -83,7 +41,9 @@ document.addEventListener('nav',()=>{
  }
  timeline.addEventListener('pointerenter',moveTimeline,{passive:true,signal})
  timeline.addEventListener('pointermove',moveTimeline,{passive:true,signal})
- timeline.addEventListener('pointerleave',stopTimelinePan,{signal})
+ timeline.addEventListener('pointerleave',()=>{
+  if(timelinePanFrame)timelinePanTarget=Math.max(0,Math.min(timeline.scrollHeight-timeline.clientHeight,timelinePanPosition+timelinePanVelocity/12))
+ },{signal})
  timeline.addEventListener('pointerdown',stopTimelinePan,{signal})
  timeline.addEventListener('wheel',stopTimelinePan,{passive:true,signal})
  window.addEventListener('resize',stopTimelinePan,{signal})

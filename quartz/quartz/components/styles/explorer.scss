@@ -50,9 +50,9 @@
     .sidebar.left:has(.explorer) {
       box-sizing: border-box;
       position: fixed;
-      top:0;left:calc(1rem + env(safe-area-inset-left));right:calc(1rem + env(safe-area-inset-right));
+      top:0;left:0;right:0;
       background-color: var(--light);
-      padding: calc(1rem + env(safe-area-inset-top)) 0 1rem 0;
+      padding: calc(1rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right)) 1rem calc(1rem + env(safe-area-inset-left));
       margin: 0;
     }
 
@@ -751,4 +751,10 @@ li:has(> .folder-outer[data-route-updating]) > .folder-container > svg { transit
   >.mobile-explorer{position:static;margin:0;flex:none;}
   >.mobile-directory-brand{padding:0;background:transparent;color:var(--secondary);font:600 1.75rem/1.2 var(--titleFont);text-decoration:none;}
  }
+}
+
+@media all and ($mobile) {
+ .explorer[data-motion-ready] .mobile-directory-explore[data-disclosure-motion]::details-content {display:block;transition:none;}
+ .explorer .mobile-directory-explore[data-disclosure-motion] > summary[aria-expanded="false"] > .fold {transform:rotate(-90deg);}
+ .explorer .mobile-directory-explore[data-disclosure-motion] > summary[aria-expanded="true"] > .fold {transform:rotate(0deg);}
 }
