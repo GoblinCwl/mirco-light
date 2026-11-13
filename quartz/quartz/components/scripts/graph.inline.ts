@@ -1084,6 +1084,29 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
   let disposed = false
   window.addCleanup(() => { disposed = true })
 
+  // Keep the same graph instance and route state when moving it below the content.
+  queueMicrotask(() => {
+    if (disposed) return
+    const slot = document.querySelector<HTMLElement>("[data-mobile-page-graph]")
+    const graph = document.querySelector<HTMLElement>("[data-repo-graph], [data-video-graph]")
+    if (!slot || !graph) return
+    const home = document.createComment("graph sidebar position")
+    graph.before(home)
+    const compact = matchMedia("(max-width: 1199px)")
+    const placeGraph = () => {
+      if (compact.matches) slot.append(graph)
+      else home.after(graph)
+      void renderLocalGraph(true)
+    }
+    placeGraph()
+    compact.addEventListener("change", placeGraph)
+    window.addCleanup(() => {
+      compact.removeEventListener("change", placeGraph)
+      home.after(graph)
+      home.remove()
+    })
+  })
+
   async function renderLocalGraph(force=false) {
     const slug = currentGraphSlug(getFullSlug(window))
     for(const [graph,record] of localGraphCleanups){

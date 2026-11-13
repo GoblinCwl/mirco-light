@@ -52,6 +52,7 @@ document.addEventListener('nav',()=>{
  const fillOpening=(card:HTMLElement)=>{
   const content=card.querySelector<HTMLElement>('.reading-card-content'),opening=card.querySelector<HTMLElement>('.reading-opening'),footer=card.querySelector<HTMLElement>('.reading-card-footer'),heading=card.querySelector<HTMLElement>('h2')
   if(!content||!opening||!footer||!heading)return
+  if(matchMedia('(max-width:800px)').matches){opening.style.setProperty('--reading-visible-lines','7');return}
   const css=getComputedStyle(content),headingCSS=getComputedStyle(heading),openingCSS=getComputedStyle(opening),px=(value:string)=>parseFloat(value)||0
   const available=content.clientHeight-px(css.paddingTop)-px(css.paddingBottom)-heading.offsetHeight-px(headingCSS.marginTop)-px(headingCSS.marginBottom)-footer.offsetHeight-px(openingCSS.marginTop)-px(openingCSS.marginBottom)
   const lines=readingFillLineCount(available,px(openingCSS.lineHeight))

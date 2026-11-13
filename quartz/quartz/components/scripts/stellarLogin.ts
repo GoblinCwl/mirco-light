@@ -3,6 +3,7 @@ import QRCode from "qrcode"
 import { node } from "./driveUi"
 import { adminPassword } from "./driveAdminFields"
 import { showPasswordToast } from "./passwordFeedback"
+import type { LoginPanel } from "./loginDialog"
 type Enrollment = {
   setupRequired: true
   setupToken: string
@@ -12,7 +13,7 @@ type Enrollment = {
 }
 type Recovery = { recoveryCodes: string[]; completionToken: string }
 export function setupStellarLogin(
-  dialog: HTMLDialogElement,
+  dialog: HTMLDialogElement | LoginPanel,
   signal: AbortSignal,
   request: (path: string, init?: RequestInit) => Promise<any>,
   fail: (message: string) => void,
@@ -27,8 +28,15 @@ export function setupStellarLogin(
     password = adminPassword(passwordHost, "管理员密码", "", true),
     visibility = passwordHost.querySelector<HTMLButtonElement>(".drive-password-toggle")!
   password.name = "stellar-admin-key"
+  password.id = options.rebind ? "stellar-rebind-password" : "stellar-login-password"
+  password.type = "password"
+  for (const attribute of ["data-bwignore", "data-lpignore", "data-1p-ignore"]) password.removeAttribute(attribute)
   password.placeholder = "输入管理员密码"
   password.autocomplete = "current-password"
+  form.autocomplete = "on"
+  visibility.addEventListener("click", () => {
+    password.type = password.classList.contains("is-plain") ? "text" : "password"
+  }, { signal })
   form.noValidate = true
   const code = node("input"),
     switchMode = node("button", "", "observatory-login-mode"),

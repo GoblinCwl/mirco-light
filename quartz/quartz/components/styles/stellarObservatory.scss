@@ -115,6 +115,8 @@
  }
  .observatory-uptime > strong { display:block; min-width:12.5rem; font-size:.85rem; }
 }
+.stellar-login-backdrop { position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,.4); }
+.observatory-dialog.observatory-auth-dialog[data-inline-login] { position:fixed; inset:0; height:fit-content; margin:auto; z-index:10001; }
 .observatory-dialog.observatory-auth-dialog {
  width:min(23rem,calc(100% - 2rem)); max-height:calc(100dvh - 2rem); padding:1.15rem 1.25rem .9rem; margin:auto; border:1px solid var(--lightgray); border-radius:10px; overflow-y:auto; overflow-x:hidden; outline:none;
  .observatory-auth-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:0 0 .9rem; padding:0; h2 { display:flex; align-items:center; gap:.6rem; margin:0; >svg { width:22px; height:22px; flex:none; color:var(--secondary); } color:var(--dark); font-size:1.05rem; font-weight:600; line-height:1.5; } >button { display:grid; place-items:center; flex:0 0 auto; width:32px; height:32px; padding:0; color:var(--gray); svg { width:19px; height:19px; } &:hover { color:var(--secondary); } } }

@@ -2,6 +2,7 @@ import {readSiteSettings} from './siteSettings'
 import { syncArtalkNotificationTheme } from "./artalkNotificationTheme"
 import { commentAvatar, observeArtalkIdenticons } from "./identicon"
 import { alignCommentLayout } from "./commentLayout"
+import { observeArtalkAdminLogout, syncArtalkAdminSession, useSiteArtalkAdminVerifier } from "./artalkAdminSession"
 
 // Keep labels consistent after Artalk renders, paginates or updates a vote.
 function observeCommentLabels(root: HTMLElement) {
@@ -271,6 +272,11 @@ const tryLoadArtalk = async () => {
       releaseInitialization()
 
       const currentArtalkInstance = artalkInstance
+      const stopAdminVerifier = useSiteArtalkAdminVerifier(currentArtalkInstance)
+      const stopAdminLogout = observeArtalkAdminLogout(currentArtalkInstance)
+      // Artalk initializes asynchronously; its plugins may reset the user until created.
+      const syncAdminLogin = () => { void syncArtalkAdminSession(currentArtalkInstance) }
+      currentArtalkInstance.on("created", syncAdminLogin)
       let detachedEditor: HTMLElement | undefined
       const syncRestrictedEditor = (open = false) => {
         if (!requestedAdminOnly || !artalkContainer.isConnected) return
@@ -309,10 +315,13 @@ const tryLoadArtalk = async () => {
       if (window && (window as any).addCleanup) {
         ;(window as any).addCleanup(() => {
           stopNotificationTheme()
+          stopAdminLogout()
+          stopAdminVerifier()
           stopIdenticons()
           stopLabels()
           currentArtalkInstance.off("page-loaded", onPageLoaded)
           currentArtalkInstance.off("created", refreshEditorAccess)
+          currentArtalkInstance.off("created", syncAdminLogin)
           currentArtalkInstance.off("user-changed", refreshEditorAccess)
           editorObserver.disconnect()
           detachedEditor = undefined

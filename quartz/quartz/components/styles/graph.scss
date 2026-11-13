@@ -126,6 +126,12 @@ body:has(article#content > #lock) .graph { display: none !important; }
 @media (prefers-reduced-motion:reduce){.global-graph-container[data-loading]::after{animation:none!important;}}
 
 @media all and not ($desktop) {
+  .mobile-page-graph {
+    width: 100%;
+    flex-shrink: 0;
+    > section:not([hidden]) { margin: 1.25rem 0 .5rem; }
+    [hidden] { display: none !important; }
+  }
   body:not([data-slug="index"]) .sidebar.right > .graph.desktop-only { display: none; }
   body:not([data-slug="index"]) .mobile-article-graph {
     display: block;

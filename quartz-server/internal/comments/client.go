@@ -9,6 +9,7 @@ import (
 	"goblincwl/quartz-server/internal/alerts"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +20,41 @@ type Client struct {
 	HTTP       *http.Client
 	mu         sync.Mutex
 	key, token string
+	browser    *Client
+}
+
+// BrowserSession creates a separate login for an authenticated site administrator.
+// Never return configured passwords or the backend client's cached token.
+func (c *Client) BrowserSession(ctx context.Context) (map[string]any, error) {
+	_, credentials, _, err := c.configuration(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if credentials["email"] == "" || credentials["password"] == "" {
+		return nil, errors.New("评论管理员认证尚未配置")
+	}
+	// Reuse the dedicated browser login across page loads. Repeated password
+	// exchanges can hit Artalk's login rate limit; Do refreshes expired tokens.
+	c.mu.Lock()
+	if c.browser == nil {
+		c.browser = &Client{Settings: c.Settings, HTTP: c.HTTP}
+	}
+	browser := c.browser
+	c.mu.Unlock()
+	profile, err := browser.Do(ctx, "/api/v2/user?email="+url.QueryEscape(text(credentials["email"])), true, "GET", nil)
+	if err != nil {
+		return nil, err
+	}
+	user := object(profile["user"])
+	if user["is_admin"] != true {
+		return nil, errors.New("评论账号不是管理员")
+	}
+	browser.mu.Lock()
+	token := browser.token
+	browser.mu.Unlock()
+	return map[string]any{"token": token, "user": map[string]any{
+		"name": text(user["name"]), "email": text(user["email"]), "link": text(user["link"]), "is_admin": true,
+	}}, nil
 }
 
 func text(value any) string           { v, _ := value.(string); return v }

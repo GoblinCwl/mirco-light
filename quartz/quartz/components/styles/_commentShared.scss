@@ -84,8 +84,11 @@
   img.comments-emoticon, img[atk-emoticon] {
     cursor: default;
     display: inline-block;
-    max-width: 100%;
-    max-height: 60px;
+    // 表情随正文大小缩放，上限为文字的 2 倍；覆盖表情包自带的尺寸。
+    width: auto !important;
+    height: auto !important;
+    max-width: min(100%, 2em) !important;
+    max-height: 2em !important;
     margin: 0 0.12em;
     vertical-align: text-bottom;
   }

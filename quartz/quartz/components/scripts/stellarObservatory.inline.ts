@@ -3,6 +3,7 @@ import {navigationIcon} from './navigationIcon'
 import {readSiteSession} from './siteSession'
 import {readArticleIndex} from './contentCatalog'
 import {setupStellarLogin} from './stellarLogin'
+import {prepareLoginPanel,showLoginDialog} from './loginDialog'
 import { showSiteDialog, closeSiteDialog } from './siteDialog'
 import { showPasswordToast } from './passwordFeedback'
 import { setupDockedButton } from './dockedButton'
@@ -189,7 +190,7 @@ document.addEventListener('nav',()=>{
  const get=<T extends HTMLElement=HTMLElement>(key:string)=>document.querySelector<T>(`[data-observatory-${key}]`)!
  const content=get('content'),status=get('status')
  const fitLayout=setupObservatoryLayout(root,signal)
- const auth=get<HTMLDialogElement>('auth'),manage=get<HTMLDialogElement>('manage')
+ const auth=prepareLoginPanel(get<HTMLElement>('auth'),signal),manage=get<HTMLDialogElement>('manage')
  const identityKey='quartz-observatory-identity:v1'
  let rememberedUntil=0,identityChecked=false
  try{rememberedUntil=Number(JSON.parse(localStorage.getItem(identityKey)||'null')?.expires)||0}catch{}
@@ -200,7 +201,7 @@ document.addEventListener('nav',()=>{
  const releaseToast=()=>{for(const dialog of [auth,manage]){const toast=dialog.querySelector('.decrypt-toast');if(toast){toast.classList.remove('visible');document.body.append(toast)}}}
  const login=()=>{
   if(auth.open)return
-  showSiteDialog(auth);get('auth-open')?.setAttribute('aria-expanded','true')
+  showLoginDialog(auth);get('auth-open')?.setAttribute('aria-expanded','true')
   prepareLogin()
  }
  let data:Snapshot|undefined,authenticated=false,observationStartedAt:number|undefined,identityRevision=0

@@ -18,15 +18,19 @@ export function showPasswordToast(message: string, isError = false) {
   if (isError) toast.querySelector("span")!.textContent = message
   else toast.textContent = message
   if (hideTimeout) window.clearTimeout(hideTimeout)
-  if (typeof toast.showPopover === "function") {
-    const dialogs = document.querySelectorAll<HTMLDialogElement>("dialog:modal")
-    ;(dialogs[dialogs.length - 1] || document.body).append(toast)
+  const dialogs = document.querySelectorAll<HTMLElement>("dialog:modal, [data-inline-login][open]")
+  const host = dialogs[dialogs.length - 1] || document.body
+  if (host !== document.body) {
+    // The modal already supplies the top layer. Do not compete with autofill menus.
+    if (typeof toast.hidePopover === "function" && toast.matches(":popover-open")) toast.hidePopover()
+    toast.removeAttribute("popover")
+    if (toast.parentElement !== host) host.append(toast)
+  } else if (typeof toast.showPopover === "function") {
+    if (toast.parentElement !== host) host.append(toast)
     toast.setAttribute("popover", "manual")
-    if (toast.matches(":popover-open")) toast.hidePopover()
-    toast.showPopover()
+    if (!toast.matches(":popover-open")) toast.showPopover()
   } else {
-    const dialogs = document.querySelectorAll<HTMLDialogElement>("dialog:modal")
-    ;(dialogs[dialogs.length - 1] || document.body).append(toast)
+    if (toast.parentElement !== host) host.append(toast)
   }
   toast.classList.add("visible")
   if (toastTimeout) window.clearTimeout(toastTimeout)
@@ -59,9 +63,9 @@ document.addEventListener('invalid',event=>{
 // A result toast survives the form dialog closing after a successful action.
 document.addEventListener('close',event=>{
  const dialog=event.target,toast=document.querySelector<HTMLElement>('.decrypt-toast')
- if(!(dialog instanceof HTMLDialogElement)||!toast||!dialog.contains(toast))return
+ if(!(dialog instanceof HTMLElement)||!dialog.matches('dialog, [data-inline-login]')||!toast||!dialog.contains(toast))return
  const visible=toast.classList.contains('visible')
  if(typeof toast.hidePopover==='function'&&toast.matches(':popover-open'))toast.hidePopover()
  document.body.append(toast)
- if(visible&&typeof toast.showPopover==='function')toast.showPopover()
+ if(visible&&typeof toast.showPopover==='function'){toast.setAttribute('popover','manual');toast.showPopover()}
 },true)

@@ -206,6 +206,14 @@ html[data-theme="dark"] .artalk .atk-textarea-wrap .atk-textarea {
   display: none !important;
 }
 
+/* Locked administrator identity reads as a label, without a text caret. */
+#artalk-comments .atk-main-editor .atk-header input[aria-readonly="true"] {
+  caret-color: transparent;
+  cursor: default;
+  pointer-events: none;
+  &[name="name"] { @include comment.admin-name; }
+}
+
 /* Adapt Artalk's DOM to the same presentation used by the all-comments page. */
 #artalk-comments .atk-comment {
   @include comment.row;
@@ -237,10 +245,9 @@ html[data-theme="dark"] .artalk .atk-textarea-wrap .atk-textarea {
 #artalk-comments .atk-comment-wrap { margin-block: 0; }
 #artalk-comments .atk-comment-wrap + .atk-comment-wrap { margin-top: 1rem; }
 #artalk-comments .atk-list-body > .atk-comment-wrap:first-child { margin-top: .5rem; }
-// Artalk nests replies inside .atk-main. Match the compact transition from
-// the parent's actions to its first reply for every reply in the same floor.
+// Leave a little space between the parent's actions and its reply thread.
 #artalk-comments .atk-comment-children {
-  margin-top: 0;
+  margin-top: .5rem;
   &:empty { display: none; }
   > .atk-comment-wrap { margin-block: 0; border-bottom-width: 0; }
   > .atk-comment-wrap + .atk-comment-wrap { margin-top: 0; }

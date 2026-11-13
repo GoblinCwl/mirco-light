@@ -120,7 +120,9 @@ document.addEventListener("nav", () => {
     const placeGraph = () => {
       if (compactGraph.matches) {
         const center = root.closest(".center")!
-        center.insertBefore(shareGraph, center.querySelector(":scope > .page-footer"))
+        const slot = center.querySelector("[data-mobile-page-graph]")
+        if (slot) slot.append(shareGraph)
+        else center.insertBefore(shareGraph, center.querySelector(":scope > .page-footer"))
       } else home.after(shareGraph)
     }
     placeGraph()

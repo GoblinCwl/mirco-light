@@ -255,6 +255,7 @@ export async function renderPage(
     const Body = BodyConstructor()
     const Encrypted = EncryptedContent()
     const ArticleGraph = slug !== "index" ? right.find((component) => component.isGraph) : undefined
+    const hasEmbeddedGraph = /^(Repo|Video|Share)\//.test(slug)
 
     const LeftComponent = (
         <div class="left sidebar">
@@ -331,6 +332,7 @@ export async function renderPage(
         {content}
         {slug !== "comments/index" && slug !== "friends/index" && slug !== "reading/index" && !slug.startsWith("observatory/") && <hr/>}
         {ArticleGraph && <ArticleGraph {...componentData} displayClass="mobile-only" articleMobileGraph />}
+        {hasEmbeddedGraph && <div class="mobile-page-graph" data-mobile-page-graph />}
     </>
     const doc = (
         <html lang={lang} dir={direction}>
@@ -340,7 +342,7 @@ export async function renderPage(
             <Body {...componentData}>
                 {LeftComponent}
                 <div class="center">
-                    {ArticleGraph ? <div class="article-viewport">{articleViewport}</div> : articleViewport}
+                    {ArticleGraph || hasEmbeddedGraph ? <div class="article-viewport">{articleViewport}</div> : articleViewport}
                     <div class="page-footer">
                         {afterBody.map((BodyComponent) => (
                             <BodyComponent {...componentData} />

@@ -27,7 +27,7 @@ const StellarObservatory: QuartzComponent = props => <section class="stellar-obs
       ].map(([title,description,legend],index)=><section class="observatory-chart" data-metric={['resources','network','disk','temperature','load','visitors'][index]}><header><h3>{title}</h3><strong class="observatory-skeleton">00.0</strong></header><p class="observatory-chart-description">{description}</p>{title==='磁盘使用'&&<div class="observatory-chart-scale"><span class="observatory-skeleton">使用率 0–100%</span><span class="observatory-skeleton">读写速率</span></div>}<div class="observatory-plot observatory-skeleton"/><div class="observatory-time-axis"><span class="observatory-skeleton">00:00</span><span class="observatory-skeleton">00:00</span></div><div class="observatory-legend">{(legend as string[]).map(label=><button type="button" disabled tabIndex={-1}><i/>{label}</button>)}</div></section>)}</div>
     </section>
   </div></div>
-  <dialog id="observatory-auth-dialog" class="observatory-dialog observatory-auth-dialog" data-observatory-auth tabIndex={-1} aria-labelledby="observatory-auth-title">
+  <div id="observatory-auth-dialog" class="observatory-dialog observatory-auth-dialog" data-observatory-auth role="dialog" hidden tabIndex={-1} aria-labelledby="observatory-auth-title">
     <header class="observatory-auth-header"><h2 id="observatory-auth-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8.5 12 2.3 2.3 4.7-4.6"/></svg><span data-observatory-auth-heading>管理员登录</span></h2><button type="button" data-observatory-auth-close aria-label="关闭登录"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
     <div data-observatory-auth-form>
       <form class="observatory-login-form" autocomplete="off">
@@ -35,7 +35,7 @@ const StellarObservatory: QuartzComponent = props => <section class="stellar-obs
         <button class="observatory-login-submit" type="submit" disabled><span>登录</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button>
       </form>
     </div>
-  </dialog>
+  </div>
   <dialog id="observatory-manage-dialog" class="observatory-dialog observatory-settings-dialog" data-observatory-manage tabIndex={-1} aria-labelledby="observatory-manage-title">
     <header class="observatory-auth-header"><h2 id="observatory-manage-title">星枢管理</h2><div class="observatory-manage-actions"><button type="button" data-observatory-logout class="observatory-manage-logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4H5v16h5m4-12 4 4-4 4M9 12h11"/></svg><span>注销登录</span></button><button type="button" class="observatory-manage-close" data-observatory-manage-close aria-label="关闭星枢管理"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div></header>
     <Settings {...props} />

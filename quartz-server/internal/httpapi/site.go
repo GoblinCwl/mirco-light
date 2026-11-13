@@ -131,6 +131,18 @@ func (s *Server) site(mux *http.ServeMux) {
 		}
 
 		switch {
+		case path == "/admin/comments-session" && r.Method == "POST":
+			w.Header().Set("Cache-Control", "no-store")
+			if s.Comments == nil || s.Comments.Client == nil {
+				JSON(w, 503, map[string]string{"error": "评论服务尚未配置"})
+				return
+			}
+			value, err := s.Comments.Client.BrowserSession(r.Context())
+			if err != nil {
+				JSON(w, 503, map[string]string{"error": "评论自动登录暂时不可用"})
+				return
+			}
+			JSON(w, 200, value)
 		case strings.HasPrefix(path, "/admin/data/friends"), strings.HasPrefix(path, "/admin/data/feedback"), path == "/friends", strings.HasPrefix(path, "/friends/avatar/"), path == "/friends/apply", path == "/feedback":
 			s.siteCommunity(w, r, path, feedbackLimits)
 		case strings.HasPrefix(path, "/admin/services"), strings.HasPrefix(path, "/admin/service-credentials"):
