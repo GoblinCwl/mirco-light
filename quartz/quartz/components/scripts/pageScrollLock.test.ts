@@ -29,3 +29,17 @@ test('fullscreen starts at the viewport origin and nested locks do not unlock ea
 test('aborting a page releases its lock, and aborted owners cannot acquire one',t=>{
  const {body}=fixture(t),controller=new AbortController(),release=lockPageScroll({signal:controller.signal});t.after(release);controller.abort();assert.equal(body.style.getPropertyValue('position'),'');lockPageScroll({signal:controller.signal})();assert.equal(body.style.getPropertyValue('position'),'')
 })
+
+test('lightbox preserves body geometry and reserves the existing scrollbar gutter',t=>{
+ const {html,body}=fixture(t)
+ Object.assign(window,{innerWidth:1200});Object.assign(html,{clientWidth:1185})
+ const release=lockPageScroll({preserveLayout:true});t.after(release)
+ assert.equal(body.style.getPropertyValue('position'),'');assert.equal(body.style.getPropertyValue('top'),'3px');assert.equal(body.style.getPropertyValue('width'),'');assert.equal(body.style.getPropertyValue('height'),'')
+ assert.equal(html.style.getPropertyValue('scrollbar-gutter'),'stable');assert.equal(html.style.getPropertyValue('overflow'),'hidden')
+ release();assert.equal(html.style.getPropertyValue('scrollbar-gutter'),'');assert.equal(body.style.getPropertyValue('top'),'3px')
+})
+test('nested fixed overlay returns to lightbox layout without unlocking scrolling',t=>{
+ const {html,body}=fixture(t),lightbox=lockPageScroll({preserveLayout:true}),drawer=lockPageScroll();t.after(()=>{drawer();lightbox()})
+ assert.equal(body.style.getPropertyValue('position'),'fixed');drawer()
+ assert.equal(body.style.getPropertyValue('position'),'');assert.equal(body.style.getPropertyValue('top'),'3px');assert.equal(html.style.getPropertyValue('overflow'),'hidden');lightbox()
+})

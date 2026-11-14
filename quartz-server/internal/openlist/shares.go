@@ -296,6 +296,40 @@ func (s *Shares) Operate(ctx context.Context, operation string, input map[string
 	if current["creator"] != user["username"] {
 		return nil, &Problem{403, "只能编辑自己创建的分享"}
 	}
+	if raw, exists := input["metadataPatch"]; operation == "share-update" && exists {
+		if role != 2 {
+			return nil, &Problem{403, "仅管理员可管理分享标签与评论权限"}
+		}
+		patch, ok := raw.(map[string]any)
+		if !ok || len(patch) == 0 {
+			return nil, errors.New("分享元数据修改无效")
+		}
+		meta, err := metadata(current["remark"])
+		if err != nil {
+			return nil, err
+		}
+		encoded, _ := json.Marshal(meta)
+		var fields map[string]any
+		json.Unmarshal(encoded, &fields)
+		for key, value := range patch {
+			if key != "tags" && key != "comment" {
+				return nil, errors.New("不支持的分享元数据字段")
+			}
+			fields[key] = value
+		}
+		encoded, err = json.Marshal(fields)
+		if err != nil {
+			return nil, err
+		}
+		meta, err = ParseMetadata(string(encoded), true)
+		if err != nil {
+			return nil, err
+		}
+		input = clone(current)
+		input["id"] = id
+		input["new_id"] = id
+		input["remark"] = remark(meta)
+	}
 	if operation == "share-delete" {
 		if _, err = s.API(ctx, "share/delete?id="+url.QueryEscape(id), map[string]any{}, token); err != nil {
 			return nil, err

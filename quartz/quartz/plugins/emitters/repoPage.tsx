@@ -12,7 +12,7 @@ import { write } from "./helpers"
 import { escapeHTML, unescapeHTML } from "../../util/escape"
 
 export const RepoPage: QuartzEmitterPlugin = () => {
-  const layout: FullPageLayout = { ...sharedPageComponents, ...defaultListPageLayout, beforeBody: [...standardPageHeading({ crumbs: [{ displayName: "Home", path: "/" }, { displayName: "Repo", path: "/Repo/" }] }), CustomContentMeta({ showReadingTime: false, datePrefix: "更新于：", includeSeconds: true, placeholder: true })], afterBody: [], right: [RepoSidebar], pageBody: Repo() }
+  const layout: FullPageLayout = { ...sharedPageComponents, ...defaultListPageLayout, beforeBody: [...standardPageHeading({ crumbs: [{ displayName: "Home", path: "/" }, { displayName: "Repo", path: "/Repo/" }] }), CustomContentMeta({ showReadingTime: false, datePrefix: "更新于：", includeSeconds: true, placeholder: true })], afterBody: sharedPageComponents.afterBody, right: [RepoSidebar], pageBody: Repo() }
   const emit: NonNullable<ReturnType<QuartzEmitterPlugin>["emit"]> = async function* (ctx, content, resources) {
     const slug = "Repo/index" as FullSlug
     const [tree, file] = defaultProcessedContent({ slug, frontmatter: { title: "星域: Repo", description: "开源项目、代码与版本记录", tags: [] } })
@@ -24,5 +24,5 @@ export const RepoPage: QuartzEmitterPlugin = () => {
     })
     yield write({ ctx, content: html, slug, ext: ".html" })
   }
-  return { name: "RepoPage", getQuartzComponents: () => [layout.head, Header(), Body(), ...layout.header, ...layout.beforeBody, layout.pageBody, ...layout.left, ...layout.right, layout.footer], emit, partialEmit: emit }
+  return { name: "RepoPage", getQuartzComponents: () => [layout.head, Header(), Body(), ...layout.header, ...layout.beforeBody, layout.pageBody, ...layout.afterBody, ...layout.left, ...layout.right, layout.footer], emit, partialEmit: emit }
 }

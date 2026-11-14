@@ -61,6 +61,8 @@ function observeCommentLabels(root: HTMLElement) {
 }
 
 // 保存Artalk实例的引用
+let activeCommentLayout:(()=>void)|undefined
+let disposeActiveArtalk:(()=>void)|undefined
 let artalkInstance: any = null;
 let artalkInitializingContainer: HTMLElement | null = null;
 let artalkInitializedContainer: HTMLElement | null = null;
@@ -144,7 +146,9 @@ const tryLoadArtalk = async () => {
   }
 
   artalkInitializingContainer = artalkContainer;
+  const initializationKey=artalkContainer.dataset.pageKey
   const stopCommentLayout = alignCommentLayout(artalkContainer)
+  activeCommentLayout=stopCommentLayout
   const releaseInitialization = () => {
     if (artalkInitializingContainer === artalkContainer) {
       artalkInitializingContainer = null;
@@ -314,8 +318,9 @@ const tryLoadArtalk = async () => {
       // 初始化ViewImage灯箱功能
       initArtalkImageView();
 
-      if (window && (window as any).addCleanup) {
-        ;(window as any).addCleanup(() => {
+      let disposed=false
+      const dispose=()=>{
+          if(disposed)return;disposed=true;stopCommentLayout()
           stopNotificationTheme()
           stopAdminLogout()
           document.removeEventListener('comments-admin-changed', refreshManagedComments)
@@ -335,8 +340,9 @@ const tryLoadArtalk = async () => {
           if (artalkInitializedContainer === artalkContainer) {
             artalkInitializedContainer = null
           }
-        })
       }
+      disposeActiveArtalk=dispose
+      if(window && (window as any).addCleanup)(window as any).addCleanup(dispose)
 
     }
 
@@ -349,6 +355,7 @@ const tryLoadArtalk = async () => {
         return
       }
 
+      if(!artalkContainer.isConnected||artalkContainer.dataset.pageKey!==initializationKey){stopCommentLayout();releaseInitialization();return}
       initArtalk()
       finishLoading()
     })
@@ -403,3 +410,9 @@ document.addEventListener("nav", handleArtalkLoading);
 
 // Share pages are initialized only after successful access and server-side permissions.
 document.addEventListener("drive-share-comments-ready", handleArtalkLoading)
+
+document.addEventListener('repo-comments-reset',()=>{
+ disposeActiveArtalk?.();disposeActiveArtalk=undefined;activeCommentLayout?.();activeCommentLayout=undefined
+ document.removeEventListener('themechange',changeArtalkTheme);document.removeEventListener('readermodechange',changeArtalkReaderMode)
+ artalkInitializingContainer=null;artalkInitializedContainer=null
+})

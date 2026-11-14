@@ -6,7 +6,7 @@ if(!state.started){
  document.addEventListener('view-image-open',event=>{
   const overlay=(event as CustomEvent).detail?.overlay
   if(!(overlay instanceof HTMLElement)||state.owners.has(overlay))return
-  state.owners.set(overlay,lockPageScroll())
+  state.owners.set(overlay,lockPageScroll({preserveLayout:true}))
  })
  document.addEventListener('view-image-close',event=>{
   const overlay=(event as CustomEvent).detail?.overlay

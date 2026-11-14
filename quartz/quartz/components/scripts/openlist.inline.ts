@@ -1,3 +1,5 @@
+import {parseShareMetadata} from '../../util/shareMetadata.mjs'
+import {homeIcons} from '../../home/icons'
 import {showSiteNotFound} from "./siteError"
 import {renderShareHome} from './driveShareHome'
 import {syncShareAdminSession} from './shareAdminSession'
@@ -356,6 +358,7 @@ document.addEventListener("nav", () => {
       link.querySelector("span:last-child")!.textContent = "复制链接"
       link.title = "复制链接"
       const buttons = [link]
+      let prepare:(()=>Promise<void>)|undefined
       if (driveToken() && accountUser?.role === 2 && ownShares.has(driveRoute(new URL(entry.target, location.origin)).share)) {
         const button = node("button", "", "drive-operation-action is-applicable"), icon = node("span", "", "drive-operation-icon")
         icon.setAttribute("aria-hidden", "true"); icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 5 5-12 12-6 1 1-6Z"/><path d="m14 5 5 5"/></svg>'
@@ -363,9 +366,15 @@ document.addEventListener("nav", () => {
         const remove = node("button", "", "drive-operation-action is-applicable is-danger"), trash = node("span", "", "drive-operation-icon")
         trash.setAttribute("aria-hidden", "true"); trash.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/></svg>'
         remove.type = "button"; remove.dataset.operation = "delete-share"; remove.append(trash, node("span", "取消分享"))
-        buttons.push(button, remove)
+        const tags=node('button','','drive-operation-action is-applicable'),tagIcon=node('span','','drive-operation-icon');tagIcon.innerHTML=homeIcons.tags;tags.type='button';tags.dataset.operation='edit-share-tags';tags.append(tagIcon,node('span','编辑标签'))
+        const toggle=node('button','','drive-operation-action is-applicable'),commentIcon=node('span','','drive-operation-icon');commentIcon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9H13a8.5 8.5 0 0 1 8 8v.5Z"/></svg>';toggle.type='button';toggle.append(commentIcon)
+        prepare=async()=>{
+          try{const id=driveRoute(new URL(entry.target,location.origin)).share,current=await driveRequest<{remark?:string}>(`share/get?id=${encodeURIComponent(id)}`,undefined,{token:driveToken(),signal:lifecycle.signal});const allow=!parseShareMetadata(current.remark).comment;toggle.dataset.operation=allow?'allow-share-comments':'deny-share-comments';toggle.append(node('span',allow?'允许普通用户评论':'禁止普通用户评论'))}
+          catch(error){toggle.disabled=true;toggle.dataset.operation='unavailable-share-comments';toggle.append(node('span','评论权限暂不可用'));if(!lifecycle.signal.aborted)showPasswordToast(error instanceof Error?error.message:'评论权限读取失败',true)}
+        }
+        buttons.push(button,tags,toggle,remove)
       }
-      return { name: entry.name, buttons, execute: kind => execute(kind, { view, path, share, name: entry.name, directory: directoryPage, user: accountUser, selected: [entry], entries: tableEntries.filter(item => !item.portal) }) }
+      return { name: entry.name, buttons, prepare, execute: kind => execute(kind, { view, path, share, name: entry.name, directory: directoryPage, user: accountUser, selected: [entry], entries: tableEntries.filter(item => !item.portal) }) }
     }
     if (!driveToken() || !accountUser) return
     selected.clear(); selected.add(entry.target); updateSelection()

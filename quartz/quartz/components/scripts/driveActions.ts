@@ -1,3 +1,6 @@
+import {readContentCatalog} from './contentCatalog'
+import {openContentTagDialog} from './contentTagDialog'
+import {parseShareMetadata} from '../../util/shareMetadata.mjs'
 import {driveGuestFileUrl} from './openlistShared'
 import {requireDriveUser as readAuthorizedDriveUser} from './driveClient'
 import {managedShareTarget} from './driveShareManagement'
@@ -52,7 +55,7 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
   const monitor = setupDriveTaskMonitor(signal, refresh)
   return async (kind: string, context: ActionContext) => {
     if (active || signal.aborted || isSpaceRootOperationDisabled(context.view, context.path, kind)) return
-    if(['edit-share','delete-share'].includes(kind)){
+    if(['edit-share','delete-share','edit-share-tags','allow-share-comments','deny-share-comments'].includes(kind)){
       const target=managedShareTarget(context)
       if(!target||context.user?.role!==2){showPasswordToast('请选择自己创建的分享',true);return}
       context={...context,selected:[target]}
@@ -69,6 +72,7 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
     const checkAccount = () => { if (signal.aborted) throw new DOMException("页面已切换", "AbortError"); if (!token || token !== driveToken()) throw new Error("登录状态已变化，请重新操作") }
     const api = async <T>(route: string, body?: object): Promise<T> => { checkAccount(); return driveRequest<T>(route, body, { token, signal }) }
     let modal: ReturnType<typeof driveActionDialog> | undefined
+    let tagDialogOpen=false
     const open = (title: string) => {
       modal = driveActionDialog(title, signal)
       modal.dialog.addEventListener("close", () => { active = false }, { once: true })
@@ -220,6 +224,18 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
           showPasswordToast("分享已取消"); await changed()
         }); return
       }
+      if(['edit-share-tags','allow-share-comments','deny-share-comments'].includes(kind)){
+        const id=targets[0].name,current=await api<ShareDetails>(`share/get?id=${encodeURIComponent(id)}`),metadata=parseShareMetadata(current.remark)
+        if(current.creator!==user?.username||user?.role!==2)throw Error('只能编辑自己创建的分享')
+        if(kind==='edit-share-tags'){
+          await readContentCatalog().catch(()=>undefined)
+          tagDialogOpen=true
+          const dialog=openContentTagDialog(id,metadata.tags,metadata.tags,signal,async tags=>{await api('share-update',{id,metadataPatch:{tags}});showPasswordToast('标签已保存');await changed()})
+          dialog.addEventListener('close',()=>{active=false},{once:true});return
+        }
+        const allow=kind==='allow-share-comments'
+        await api('share-update',{id,metadataPatch:{comment:allow}});showPasswordToast(allow?'已允许普通用户评论':'已禁止普通用户评论');await changed();return
+      }
       if (kind === "share" || kind === "edit-share") {
         if (!user || user.role !== 2 && !((user.permission || 0) & (1 << 14))) throw new Error("当前账号没有分享权限")
         const editing = kind === "edit-share"
@@ -295,6 +311,6 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
         if (modal) { modal.fail(text); modal.submit.hidden = true; modal.cancel.textContent = "关闭" }
         else showPasswordToast(text, true)
       }
-    } finally { if (!modal) active = false }
+    } finally { if (!modal&&!tagDialogOpen) active = false }
   }
 }

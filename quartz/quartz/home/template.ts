@@ -42,9 +42,9 @@ export const renderHomeMarkup = (explore = homeConfig.explore) => `<div class="h
           <strong data-home-tag-count data-home-stat-pending>—</strong>
           <span>标签</span>
         </a>
-        <a class="home-profile-stat" href="/about/" data-about-link="true" title="建站天数 · 前往星碑">
-          <strong data-home-age-count data-home-stat-pending>—</strong>
-          <span>光阴</span>
+        <a class="home-profile-rss" href="/index.xml" type="application/rss+xml" target="_blank" rel="noopener noreferrer" data-no-popover="true" data-router-ignore="true" aria-label="RSS 订阅" title="RSS 订阅">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="5" cy="19" r="2" fill="currentColor"/><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          <span>RSS</span>
         </a>
       </div>
     </div>

@@ -22,6 +22,7 @@ import (
 	"goblincwl/quartz-server/internal/video"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -180,6 +181,26 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 				key := comments.ShareKey(entry.ID)
 				pages[key] = comments.Page{Slug: key, Title: entry.ID, PublicPath: key}
 			}
+		}
+		rows, err := app.DB.QueryContext(ctx, "SELECT slug,title,href FROM content WHERE type='repo' AND encrypted=0")
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var slug, title, href string
+			if err := rows.Scan(&slug, &title, &href); err != nil {
+				return nil, err
+			}
+			u, err := url.Parse(href)
+			if err != nil {
+				return nil, err
+			}
+			key := u.EscapedPath()
+			pages[key] = comments.Page{Slug: slug, Title: title, PublicPath: key}
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
 		}
 		return pages, nil
 	}}

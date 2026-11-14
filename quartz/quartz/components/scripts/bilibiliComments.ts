@@ -54,13 +54,32 @@ export function setupBilibiliComments(root:HTMLElement,bvid:string,signal:AbortS
   }
   return row
  }
- let busy=false
+ let busy=false,nextPage=1,hasMore=true
+ const shown=new Set<string>()
+ paging.classList.add('bili-comment-scroll-status');paging.setAttribute('aria-live','polite')
+ const observer=typeof IntersectionObserver==='undefined'?undefined:new IntersectionObserver(entries=>{
+  if(entries.some(entry=>entry.isIntersecting)&&hasMore&&!busy)void load(nextPage)
+ },{rootMargin:'0px 0px 240px 0px'})
+ signal.addEventListener('abort',()=>observer?.disconnect(),{once:true})
  const load=async(page:number)=>{
-  if(busy)return;busy=true;root.setAttribute('aria-busy','true');paging.querySelectorAll('button').forEach(button=>button.disabled=true)
-  const status=node('p','正在读取 Bilibili 评论…','bili-comment-status');status.setAttribute('role','status');list.replaceChildren(status)
-  try{const value=await request(page);if(signal.aborted)return;list.replaceChildren(...value.items.map(reply=>renderReply(reply)));if(!value.items.length)list.append(node('p','暂无公开评论','bili-comment-status'));navigation(paging,value,p=>void load(p))}
-  catch(error){if(!signal.aborted){status.textContent=error instanceof Error?error.message:'评论读取失败';const retry=node('button','重试');retry.type='button';retry.onclick=()=>void load(page);list.append(retry);paging.replaceChildren()}}
-  finally{busy=false;root.setAttribute('aria-busy','false')}
+  if(busy||signal.aborted||!hasMore)return
+  busy=true;observer?.unobserve(paging);root.setAttribute('aria-busy','true')
+  paging.replaceChildren(node('span',page===1?'正在读取 Bilibili 评论…':'正在加载更多评论…','bili-comment-status'))
+  let loaded=false
+  try{
+   const value=await request(page);if(signal.aborted)return
+   for(const reply of value.items){if(shown.has(reply.id))continue;shown.add(reply.id);list.append(renderReply(reply))}
+   nextPage=page+1;hasMore=value.hasMore===true;loaded=true
+   paging.replaceChildren()
+   if(!shown.size){hasMore=false;list.append(node('p','暂无公开评论','bili-comment-status'))}
+   else if(!hasMore)paging.append(node('span','已显示全部评论','bili-comment-status'))
+   else if(!observer){const more=node('button','加载更多评论');more.type='button';more.onclick=()=>void load(nextPage);paging.append(more)}
+   else paging.append(node('span','继续下滑加载评论','bili-comment-status'))
+  }catch(error){
+   if(!signal.aborted){const status=node('span',error instanceof Error?error.message:'评论读取失败','bili-comment-status'),retry=node('button','重试');retry.type='button';retry.onclick=()=>void load(page);paging.replaceChildren(status,retry)}
+  }finally{
+   busy=false;if(!signal.aborted){root.setAttribute('aria-busy','false');if(loaded&&hasMore)observer?.observe(paging)}
+  }
  }
  void load(1)
 }

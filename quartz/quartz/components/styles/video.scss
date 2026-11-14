@@ -128,3 +128,5 @@ body[data-slug^="Video/"] {
  .bili-comment-pagination {display:flex;align-items:center;justify-content:center;gap:.8rem;margin:.8rem 0;font-size:.78rem;color:var(--gray);}
  @media(max-width:600px){.bili-comment{gap:.6rem;}.bili-comment-avatar{flex-basis:34px;width:34px;height:34px;}.bili-comment-meta time {flex-basis:100%;}.bili-comment-replies{padding-left:.5rem;}}
 }
+
+.bili-comments .bili-comment-scroll-status {min-height:2rem;margin:1rem 0;font-size:.75rem;}

@@ -4,7 +4,8 @@
 @use "driveLoading";
 
 body[data-slug^="Repo/"] {
-  .center > hr, .center > .page-footer { display: none; }
+  .center > hr, .center > .article-viewport > hr, .center > .page-footer { display: none; }
+  .center > .page-footer:has(#artalk-comments:not([hidden])) {display:block;border-top:0;}
   .center > .page-header .article-title { visibility: hidden; }
   .repo-title-tag { display: inline-block; box-sizing: border-box; flex-shrink: 0; padding: .15rem .4rem; border: 1px solid var(--lightgray); border-radius: 4px; background: var(--highlight); color: var(--gray); font-family: var(--bodyFont); font-size: .72rem; font-weight: 400; line-height: 1.4; white-space: nowrap; text-decoration: none; }
   .article-title > .repo-title-tag { vertical-align: middle; margin: 0 .6rem .15rem 0; }

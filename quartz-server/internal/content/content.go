@@ -558,7 +558,7 @@ func (s Store) RSS(ctx context.Context) (string, error) {
 			perma = "true"
 			guid = s.Origin + r.Href
 		}
-		fmt.Fprintf(&b, "<item><title>%s</title><link>%s</link><guid isPermaLink=%q>%s</guid>", escaped(r.Title), escaped(s.Origin+r.Href), perma, escaped(guid))
+		fmt.Fprintf(&b, "<item><title>%s</title><link>%s</link><guid isPermaLink=%q>%s</guid>", escaped(rssTitle(r)), escaped(s.Origin+r.Href), perma, escaped(guid))
 		if r.Published != nil {
 			if p, err := time.Parse(time.RFC3339Nano, *r.Published); err == nil {
 				b.WriteString("<pubDate>" + p.UTC().Format(time.RFC1123Z) + "</pubDate>")
@@ -640,4 +640,12 @@ func rssItems(records []Record) []Record {
 		items = items[:20]
 	}
 	return items
+}
+
+func rssTitle(r Record) string {
+	prefix := map[string]string{"article": "📝", "share": "🔗", "repo": "💻", "video": "🎬"}[r.Type]
+	if prefix == "" {
+		return r.Title
+	}
+	return prefix + " " + r.Title
 }

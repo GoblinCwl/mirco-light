@@ -1,3 +1,4 @@
+import {resetRepoComments,setupRepoComments} from './repoComments'
 import {repoLanguageChart} from './repoLanguageChart'
 import {PageNotFoundError,showSiteNotFound} from "./siteError"
 import {fileNameIcon,fileTypeIcons} from '../../util/fileTypeIcons'
@@ -117,6 +118,7 @@ document.addEventListener("nav", () => {
 async function renderRepo(root: HTMLElement, signal: AbortSignal) {
   if (signal.aborted) return
   const route = repoRoute(new URL(location.href))
+  const commentsRoot=document.getElementById('artalk-comments');if(!route.name||commentsRoot?.dataset.repoCommentsName!==route.name)resetRepoComments()
   if (!root.dataset.repoName) {
     const known = peekRepoCatalog()?.repositories.find(repo => repo.name.toLowerCase() === route.name.toLowerCase())
     if (route.name && !known) root.closest(".center")?.querySelector<HTMLElement>(".article-title")?.style.setProperty("visibility", "hidden")
@@ -167,6 +169,7 @@ async function renderRepo(root: HTMLElement, signal: AbortSignal) {
     if (signal.aborted) return
     const ref = route.ref ? info.branches.includes(route.ref) ? `refs/heads/${route.ref}` : info.tags.includes(route.ref) ? `refs/tags/${route.ref}` : route.ref : `refs/heads/${info.default_branch}`
     updateRepoHeading(info)
+    void setupRepoComments(info.name,signal)
     showGraph(info.name)
     const retainedShell = root.dataset.repoName === info.name && Boolean(root.querySelector("[data-repo-content]"))
     if (!retainedShell) {

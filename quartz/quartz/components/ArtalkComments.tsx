@@ -24,7 +24,7 @@ export default ((opts: Options) => {
     const frontmatter: any = fileData.frontmatter || {}
     // `false` is deliberately distinct from an absent value: it means the
     // page stays visible, but only an Artalk administrator may comment.
-    const dynamicShare = fileData.slug === "Share/index"
+    const dynamicShare = fileData.slug === "Share/index" || fileData.slug === "Repo/index"
     const commentValue = frontmatter.comment
     if (!dynamicShare && commentValue !== true && commentValue !== false) {
       return <></>

@@ -63,3 +63,63 @@ func TestShareRenameRollsBackOnCommentFailure(t *testing.T) {
 		t.Fatal("share date lost")
 	}
 }
+
+func TestShareMetadataPatchPreservesOtherFields(t *testing.T) {
+	current := map[string]any{"id": "example", "creator": "admin", "files": []any{"/file"}, "pwd": "keep-password", "expires": "2027-01-01T00:00:00Z", "max_accessed": float64(12), "header": "keep-header", "readme": "keep-readme", "remark": `{"tags":["old"],"comment":true,"sharedAt":"2026-11-01T00:00:00Z","order":7,"jellyfin":true,"aliases":{"/file":"alias"}}`}
+	denied := false
+	updates := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		respond := func(data any) { json.NewEncoder(w).Encode(map[string]any{"code": 200, "data": data}) }
+		switch r.URL.Path {
+		case "/api/me":
+			respond(map[string]any{"role": float64(2), "username": "admin", "base_path": "/"})
+		case "/api/share/get":
+			respond(current)
+		case "/api/share/update":
+			var input map[string]any
+			json.NewDecoder(r.Body).Decode(&input)
+			for key, value := range input {
+				current[key] = value
+			}
+			updates++
+			respond(nil)
+		case "/api/v2/auth/email/login":
+			w.Write([]byte(`{"token":"fixture"}`))
+		case "/api/v2/pages":
+			json.NewEncoder(w).Encode(map[string]any{"pages": []any{map[string]any{"id": 1, "key": comments.ShareKey("example"), "title": "example", "site_name": "site", "admin_only": denied}}})
+		case "/api/v2/pages/1":
+			var input map[string]any
+			json.NewDecoder(r.Body).Decode(&input)
+			denied = input["admin_only"] == true
+			w.Write([]byte(`{}`))
+		default:
+			t.Error("unexpected route", r.URL.Path)
+			w.WriteHeader(404)
+		}
+	}))
+	defer server.Close()
+	settings := func(context.Context) (map[string]any, error) {
+		return map[string]any{"openlist.url": server.URL, "api.artalk.url": server.URL, "api.artalk.email": "admin@test", "api.artalk.password": "fixture"}, nil
+	}
+	shares := Shares{Settings: settings, Artalk: &comments.Client{Settings: settings}, Site: "site"}
+	ctx := context.Background()
+	if _, err := shares.Operate(ctx, "share-update", map[string]any{"id": "example", "metadataPatch": map[string]any{"comment": false}}, "fixture"); err != nil {
+		t.Fatal(err)
+	}
+	if !denied {
+		t.Fatal("Artalk permission not updated")
+	}
+	if _, err := shares.Operate(ctx, "share-update", map[string]any{"id": "example", "metadataPatch": map[string]any{"tags": []any{"new"}}}, "fixture"); err != nil {
+		t.Fatal(err)
+	}
+	meta, err := metadata(current["remark"])
+	if err != nil || meta.Comment || len(meta.Tags) != 1 || meta.Tags[0] != "new" || meta.SharedAt != "2026-11-01T00:00:00.000Z" || meta.Aliases["/file"] != "alias" || meta.Jellyfin == nil || !*meta.Jellyfin || meta.Order == nil || *meta.Order != 7 {
+		t.Fatal("unrelated metadata changed", meta, err)
+	}
+	if current["pwd"] != "keep-password" || current["header"] != "keep-header" || current["readme"] != "keep-readme" || current["expires"] != "2027-01-01T00:00:00Z" || current["max_accessed"] != float64(12) {
+		t.Fatal("unrelated share fields changed")
+	}
+	if _, err := shares.Operate(ctx, "share-update", map[string]any{"id": "example", "metadataPatch": map[string]any{"pwd": "invalid"}}, "fixture"); err == nil || updates != 2 {
+		t.Fatal("unrelated field accepted")
+	}
+}
