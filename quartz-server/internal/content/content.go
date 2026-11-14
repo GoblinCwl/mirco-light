@@ -542,7 +542,7 @@ func (s Store) RSS(ctx context.Context) (string, error) {
 	}
 	items := rssItems(records)
 	var b strings.Builder
-	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>微光集</title><link>` + escaped(s.Origin) + `</link><description>微光集的文章、分享、仓库与视频</description><language>zh-cn</language>`)
+	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><title>微光集</title><link>` + escaped(s.Origin) + `</link><description>微光集的文章、分享、仓库与视频</description><language>zh-cn</language>`)
 	var latest string
 	err = s.DB.QueryRowContext(ctx, "SELECT value FROM content_meta WHERE `key`='feed_updated'").Scan(&latest)
 	if err != nil && err != sql.ErrNoRows {
@@ -564,7 +564,13 @@ func (s Store) RSS(ctx context.Context) (string, error) {
 				b.WriteString("<pubDate>" + p.UTC().Format(time.RFC1123Z) + "</pubDate>")
 			}
 		}
-		b.WriteString("<description>" + escaped(r.Description) + "</description>")
+		poster := rssPosterURL(s.Origin, r.Type)
+		description := r.Description
+		if poster != "" {
+			description = `<p><img src="` + escaped(poster) + `" alt="` + escaped(r.Title) + `" width="1200" height="630" /></p><p>` + escaped(r.Description) + `</p>`
+			fmt.Fprintf(&b, `<media:thumbnail url="%s" width="1200" height="630"/><media:content url="%s" medium="image" type="image/png" width="1200" height="630"/>`, escaped(poster), escaped(poster))
+		}
+		b.WriteString("<description>" + escaped(description) + "</description>")
 		for _, tag := range r.Tags {
 			b.WriteString("<category>" + escaped(tag) + "</category>")
 		}
@@ -643,9 +649,17 @@ func rssItems(records []Record) []Record {
 }
 
 func rssTitle(r Record) string {
-	prefix := map[string]string{"article": "📝", "share": "🔗", "repo": "💻", "video": "🎬"}[r.Type]
+	prefix := map[string]string{"article": "✒️", "share": "🔗", "repo": "🍵", "video": "🎬"}[r.Type]
 	if prefix == "" {
 		return r.Title
 	}
 	return prefix + " " + r.Title
+}
+
+func rssPosterURL(origin, kind string) string {
+	switch kind {
+	case "article", "share", "repo", "video":
+		return strings.TrimRight(origin, "/") + "/static/rss/" + kind + ".png?v=20261114-starlight"
+	}
+	return ""
 }

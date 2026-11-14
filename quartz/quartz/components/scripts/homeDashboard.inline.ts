@@ -6,6 +6,7 @@ import { setActivityCategoryColors } from "./activityColors"
 import { setupAttendanceCalendar } from "./attendance"
 import { activitySceneLabel, createActivityDetails, type ActivityDetails } from "./activityDetails"
 import { setupQQContact } from "./qqContact"
+import { setupRSSSubscription } from "./rssSubscription"
 import { createActivityCategoryDetails, type ActivityCategory } from "./activityCategoryDetails"
 import { setupHomeSkeletonLayout } from "./homeSkeletonLayout"
 
@@ -316,6 +317,7 @@ const updateHomeDashboard = () => {
   updateActivityCards()
   updateQQStatus()
   setupQQContact()
+  setupRSSSubscription()
   updateActivityStatus()
   setupAttendanceCalendar()
   setupVisitorSky()

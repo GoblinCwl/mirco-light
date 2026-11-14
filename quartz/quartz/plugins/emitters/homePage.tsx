@@ -34,7 +34,7 @@ export const HomePage: QuartzEmitterPlugin<Partial<FullPageLayout>> = (userOpts)
         title: homeConfig.title,
         description: homeConfig.description,
         tags: [],
-        socialImage: homeConfig.profile.avatar.replace(/^\/static\//, ""),
+        socialImage: "og-image.png",
       },
     })
     const tree = fromHtml(renderHomeMarkup(homeConfig.explore.filter(item => visibleExplore(item.href, ctx.cfg.configuration))), { fragment: true })

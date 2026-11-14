@@ -39,3 +39,14 @@ func TestRSSSelectsLatestPublishedBeforeLimiting(t *testing.T) {
 		t.Fatal("missing publication date did not sort last")
 	}
 }
+
+func TestRSSDefaultPostersByType(t *testing.T) {
+	for _, kind := range []string{"article", "share", "repo", "video"} {
+		if got := rssPosterURL("https://site.test/", kind); got != "https://site.test/static/rss/"+kind+".png?v=20261114-starlight" {
+			t.Fatal(kind, got)
+		}
+	}
+	if rssPosterURL("https://site.test", "../secret") != "" {
+		t.Fatal("unknown poster type accepted")
+	}
+}

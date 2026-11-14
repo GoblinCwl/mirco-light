@@ -31,10 +31,10 @@ async function generateSocialImage(
   userOpts: SocialImageOptions,
 ): Promise<Readable> {
   const { width, height } = userOpts
-  const iconPath = joinSegments(QUARTZ, "static", "icon.png")
+  const iconPath = joinSegments(QUARTZ, "static", "avatars", "goblincwl-profile-transparent-v1.webp")
   let iconBase64: string | undefined = undefined
   try {
-    const iconData = await fs.readFile(iconPath)
+    const iconData = await sharp(await fs.readFile(iconPath)).png().toBuffer()
     iconBase64 = `data:image/png;base64,${iconData.toString("base64")}`
   } catch (err) {
     console.warn(styleText("yellow", `Warning: Could not find icon at ${iconPath}`))
@@ -59,7 +59,7 @@ async function generateSocialImage(
         return await loadEmoji(getIconCode(segment))
       }
 
-      return languageCode
+      return []
     },
   })
 
@@ -115,6 +115,7 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
       const headerFont = cfg.theme.typography.header
       const bodyFont = cfg.theme.typography.body
       const fonts = await getSatoriFonts(headerFont, bodyFont)
+      fonts.push({name:"Droid Sans Fallback",data:await fs.readFile(joinSegments(QUARTZ,"util","fonts","DroidSansFallbackFull.ttf")),weight:400,style:"normal"})
 
       for (const [_tree, vfile] of content) {
         if (vfile.data.frontmatter?.socialImage !== undefined) continue
@@ -126,6 +127,7 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
       const headerFont = cfg.theme.typography.header
       const bodyFont = cfg.theme.typography.body
       const fonts = await getSatoriFonts(headerFont, bodyFont)
+      fonts.push({name:"Droid Sans Fallback",data:await fs.readFile(joinSegments(QUARTZ,"util","fonts","DroidSansFallbackFull.ttf")),weight:400,style:"normal"})
 
       // find all slugs that changed or were added
       for (const changeEvent of changeEvents) {

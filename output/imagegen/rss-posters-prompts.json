@@ -1,0 +1,21 @@
+{
+  "tool": "built-in image_gen",
+  "newVariants": [
+    {
+      "type": "article",
+      "detail": "Left title exact '文章'. Right: one simplified page with a folded upper corner and three short text strokes, thick clean geometry, muted sage green #84a59d. Keep symbol scale comparable to reference chain links.",
+      "prompt": "Create one finished minimalist RSS default poster, landscape 1200x630. The attached image is the APPROVED series template. Match its layout, typography, text sizes, margins, colors, background and star/orbit accent as closely as possible. Keep warm white #faf8f8 background, top-left small exact '微光集', bottom-left exact 'GoblinCwl', bottom-right exact 'goblincwl.site'. Keep large bold dark navy #284b63 two-character title at left, one large flat graphic symbol at right, a fine muted sage orbit and one small sage star. No avatar, no photography, no 3D, no additional text or tagline, no UI, no watermark. Only replace the category title and central symbol as specified: Left title exact '文章'. Right: one simplified page with a folded upper corner and three short text strokes, thick clean geometry, muted sage green #84a59d. Keep symbol scale comparable to reference chain links."
+    },
+    {
+      "type": "repo",
+      "detail": "Left title exact '仓库'. Right: a bold graphic code mark with left angle bracket, diagonal slash and right angle bracket, </>, muted soft violet #a69ac1. Keep symbol scale comparable to reference chain links.",
+      "prompt": "Create one finished minimalist RSS default poster, landscape 1200x630. The attached image is the APPROVED series template. Match its layout, typography, text sizes, margins, colors, background and star/orbit accent as closely as possible. Keep warm white #faf8f8 background, top-left small exact '微光集', bottom-left exact 'GoblinCwl', bottom-right exact 'goblincwl.site'. Keep large bold dark navy #284b63 two-character title at left, one large flat graphic symbol at right, a fine muted sage orbit and one small sage star. No avatar, no photography, no 3D, no additional text or tagline, no UI, no watermark. Only replace the category title and central symbol as specified: Left title exact '仓库'. Right: a bold graphic code mark with left angle bracket, diagonal slash and right angle bracket, </>, muted soft violet #a69ac1. Keep symbol scale comparable to reference chain links."
+    }
+  ],
+  "reusedApprovedVariants": {
+    "share": "exec-512b46d5-a07b-432b-b10e-76ac2ecfcafa.png",
+    "video": "exec-34ced9b6-8de0-473c-a4bc-102817a8022b.png"
+  },
+  "assets": "quartz/quartz/static/rss/{article,share,repo,video}.png",
+  "size": "1200x630"
+}

@@ -4,8 +4,8 @@ tags:
   - plugin/emitter
 ---
 
-This plugin emits a `favicon.ico` into the `public` folder. It creates the favicon from `icon.png` located in the `quartz/static` folder.
-The plugin resizes `icon.png` to 48x48px to make it as small as possible.
+This site emits `favicon.ico` into the `public` folder by copying `quartz/static/icon.ico`.
+The prepared ICO is copied without resizing.
 
 > [!note]
 > For information on how to add, remove or configure plugins, see the [[configuration#Plugins|Configuration]] page.
