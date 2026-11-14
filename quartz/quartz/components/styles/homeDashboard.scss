@@ -619,6 +619,7 @@ body[data-slug="index"] {
   .home-profile-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    align-items: center;
     margin-top: 1.2rem;
     padding-top: 1rem;
     border-top: 1px solid var(--lightgray);
@@ -656,13 +657,14 @@ body[data-slug="index"] {
     outline-offset: 3px;
   }
   .home-profile-stats > a.home-profile-rss {
-    display:grid;grid-template-rows:1rem 1.4rem;justify-items:center;align-items:center;gap:.18rem;min-width:0;
-    border-left:1px solid var(--lightgray);color:var(--dark);background:transparent;text-decoration:none;line-height:normal;
-    svg {display:block;width:19px;height:19px;flex-shrink:0;transition:color .18s ease;}
-    span {grid-row:1;line-height:1rem;color:var(--gray);font-size:.76rem;font-weight:400;letter-spacing:0;}
-    svg {grid-row:2;}
+    display:grid;grid-template-rows:1rem 1.4rem;justify-items:center;align-items:center;gap:.18rem;
+    min-width:0;padding:0;margin:0;border:0;border-left:1px solid var(--lightgray);border-radius:0;
+    color:var(--dark);background:transparent;text-decoration:none;line-height:normal;
+    .home-profile-rss-symbol {grid-row:2;color:inherit;font-family:var(--headerFont);font-size:1.05rem;font-weight:600;line-height:1.4rem;}
+    svg {display:inline-block;width:1em;height:1em;vertical-align:-.1em;}
+    span {grid-row:1;color:var(--gray);font-size:.8rem;font-weight:400;line-height:1rem;letter-spacing:.015em;}
     &:hover {color:var(--secondary);span {color:var(--secondary);}}
-    &:focus-visible {outline:2px solid var(--secondary);outline-offset:3px;border-radius:3px;}
+    &:focus-visible {outline:2px solid var(--secondary);outline-offset:3px;}
   }
   .home-profile-stat span {
     grid-row: 1;
