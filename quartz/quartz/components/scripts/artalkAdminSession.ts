@@ -34,10 +34,14 @@ function clearLinkedLogin(unlock = true) {
   if (localStorage.getItem(linkedKey) !== "true") return
   localStorage.removeItem(linkedKey)
   current?.ctx?.getUser?.().logout()
-  try {
-    const user = JSON.parse(localStorage.getItem("ArtalkUser") || "{}")
-    localStorage.setItem("ArtalkUser", JSON.stringify({ ...user, token: "", is_admin: false }))
-  } catch { localStorage.removeItem("ArtalkUser") }
+  // Artalk logout preserves visitor identity; a linked site administrator must
+  // also clear that identity from the live editor and its persisted user data.
+  current?.ctx?.getUser?.().update({ name: "", email: "", link: "", token: "", is_admin: false })
+  for (const name of ["name", "email", "link"] as const) {
+    const input = current?.getEl?.().querySelector<HTMLInputElement>(`.atk-main-editor input[name="${name}"]`)
+    if (input) input.value = ""
+  }
+  localStorage.removeItem("ArtalkUser")
 }
 
 // All native administrator checks use this singleton, including API retries

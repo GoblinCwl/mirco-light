@@ -2,7 +2,6 @@
 @use "../../styles/variables.scss" as *;
 
 .article-viewport { display: contents; }
-body:has(article#content > #lock) .graph { display: none !important; }
 
 .graph {
   width: 100%; min-width: 0;

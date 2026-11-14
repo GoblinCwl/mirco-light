@@ -283,11 +283,13 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
 
   const lightSky = document.documentElement.getAttribute("saved-theme") !== "dark"
   const graphLinkColor = lightSky ? "#c4cfd5" : computedStyleMap["--lightgray"]
-  const diskAccent = lightSky ? "#bb9a60" : computedStyleMap["--tertiary"]
+  // Match 视界: blue/sage in light mode, warm gas/gold in dark mode.
+  const diskColor = lightSky ? "#7b97aa" : "#d1a37d"
+  const diskAccent = lightSky ? "#84a59d" : "#f1cf9f"
 
   // Node identity determines color; browsing history has no visual side effects.
   const color = (d: NodeData) => {
-    if (d.id === "/") return computedStyleMap["--secondary"]
+    if (d.id === "/") return diskColor
     const kind = d.id.startsWith("tags/") ? "tag" : graphNodeKind(d.id) || "article"
     return graphPalette[kind][lightSky ? "light" : "dark"]
   }
@@ -590,7 +592,7 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
       disk.rotation = -0.35
       disk.scale.set(1, 0.4)
       const rings = new Graphics({ eventMode: "none" })
-      rings.circle(0, 0, core * 2.5).stroke({ width: 1.2, color: computedStyleMap["--secondary"], alpha: 0.25 })
+      rings.circle(0, 0, core * 2.5).stroke({ width: 1.2, color: diskColor, alpha: 0.25 })
         .circle(0, 0, core * 2).stroke({ width: 2.5, color: diskAccent, alpha: 0.5 })
       const flow = new Graphics({ eventMode: "none" })
       for (let i = 0; i < 3; i++) {
@@ -598,7 +600,7 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
         const orbit = core * (1.85 + i * 0.2)
         flow.moveTo(Math.cos(start) * orbit, Math.sin(start) * orbit)
           .arc(0, 0, orbit, start, start + 0.9)
-          .stroke({ width: 2.6, color: computedStyleMap["--secondary"], alpha: 0.9 })
+          .stroke({ width: 2.6, color: diskColor, alpha: 0.9 })
         flow.circle(Math.cos(start + 0.9) * orbit, Math.sin(start + 0.9) * orbit, 2.1)
           .fill({ color: diskAccent })
       }
@@ -606,7 +608,7 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
       blackHoleFlow = flow
       gfx.addChild(disk)
       const hole = new Graphics({ eventMode: "none" })
-      hole.circle(0, 0, core).fill({ color: lightSky ? "#233747" : "#0b1017" })
+      hole.circle(0, 0, core).fill({ color: "#03060d" })
         .circle(0, 0, core + 0.5).stroke({ width: 1, color: diskAccent, alpha: 0.85 })
       gfx.addChild(hole)
     }

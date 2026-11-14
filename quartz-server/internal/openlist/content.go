@@ -2,6 +2,7 @@ package openlist
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"goblincwl/quartz-server/internal/content"
@@ -19,13 +20,15 @@ func (s *Shares) Content(ctx context.Context) ([]content.Item, error) {
 	}
 	for index := range items {
 		item := &items[index]
-		// The public index deliberately excludes protected bodies, even with server credentials.
+		var raw string
+		var header, readme sql.NullString
+		if err = s.Adapter.DB.QueryRowContext(ctx, "SELECT files_raw,header,readme FROM x_sharing_dbs WHERE id=?", item.SourceID).Scan(&raw, &header, &readme); err != nil {
+			return nil, err
+		}
+		item.ReferenceContent = header.String + "\n" + readme.String
+		// Protected HEAD/README provide relations only; never fetch their files.
 		if item.Encrypted {
 			continue
-		}
-		var raw string
-		if err = s.Adapter.DB.QueryRowContext(ctx, "SELECT files_raw FROM x_sharing_dbs WHERE id=?", item.SourceID).Scan(&raw); err != nil {
-			return nil, err
 		}
 		value, err := s.IndexCache.Get(ctx, item.SourceID+":"+raw, 5*time.Minute, false, func(ctx context.Context) (map[string]any, error) {
 			var paths []string

@@ -198,7 +198,7 @@ body:has(.reading-page) .center>.page-header,body:has(.reading-page) .center>hr 
 :root[saved-theme=dark] .reading-page .reading-horizon {--horizon-star:#b9c9df;--horizon-star-core:#fff0da;--horizon-contour:#ddc29e;}
 @media(prefers-reduced-motion:reduce){.reading-page .reading-horizon-spin {animation:none;}}
 
-// The light-mode disk uses the graph dark-mode 微光集 blue and sage palette.
+// The light-mode disk and graph 微光集 node share the blue and sage palette.
 :root:not([saved-theme=dark]) .reading-page {
  #horizon-gas {
   stop:nth-child(1) {stop-color:#7b97aa;}

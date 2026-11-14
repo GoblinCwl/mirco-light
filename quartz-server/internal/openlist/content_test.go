@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestShareIndexReadsOneLevelAndCachesWithoutReadingProtectedShares(t *testing.T) {
+func TestShareIndexReadsReferencesAndCachesWithoutFetchingProtectedFiles(t *testing.T) {
 	db, err := sql.Open("sqlite", "file:"+t.TempDir()+"/openlist.db")
 	if err != nil {
 		t.Fatal(err)
@@ -18,8 +18,8 @@ func TestShareIndexReadsOneLevelAndCachesWithoutReadingProtectedShares(t *testin
 	statements := []string{
 		`CREATE TABLE x_users(id INTEGER,role INTEGER,base_path TEXT,disabled INTEGER,permission INTEGER)`,
 		`INSERT INTO x_users VALUES(1,0,'/',0,16384)`,
-		`CREATE TABLE x_sharing_dbs(id TEXT,files_raw TEXT,expires TEXT,pwd TEXT,accessed INTEGER,max_accessed INTEGER,remark TEXT,creator_id INTEGER,disabled INTEGER)`,
-		`INSERT INTO x_sharing_dbs VALUES('public','["/actual/root"]','','',0,0,'{}',1,0),('protected','["/private"]','','password',0,0,'{}',1,0)`,
+		`CREATE TABLE x_sharing_dbs(id TEXT,files_raw TEXT,expires TEXT,pwd TEXT,accessed INTEGER,max_accessed INTEGER,remark TEXT,creator_id INTEGER,disabled INTEGER,header TEXT,readme TEXT)`,
+		`INSERT INTO x_sharing_dbs VALUES('public','["/actual/root"]','','',0,0,'{}',1,0,'https://site.test/Repo/head','https://site.test/Video/BV1'),('protected','["/private"]','','password',0,0,'{}',1,0,'private-header','private-readme')`,
 		`CREATE TABLE x_setting_items(key TEXT,value TEXT)`,
 		`INSERT INTO x_setting_items VALUES('token','server-token')`,
 	}
@@ -65,7 +65,10 @@ func TestShareIndexReadsOneLevelAndCachesWithoutReadingProtectedShares(t *testin
 			if item.SourceID == "public" && item.Content != "folder\nvisible.txt" {
 				t.Fatal(item)
 			}
-			if item.SourceID == "protected" && item.Content != "" {
+			if item.SourceID == "public" && item.ReferenceContent != "https://site.test/Repo/head\nhttps://site.test/Video/BV1" {
+				t.Fatal("missing share references", item)
+			}
+			if item.SourceID == "protected" && (item.Content != "" || item.ReferenceContent != "private-header\nprivate-readme") {
 				t.Fatal("private content exposed", item)
 			}
 		}

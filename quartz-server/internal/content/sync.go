@@ -18,19 +18,20 @@ import (
 )
 
 type Item struct {
-	SourceID      string         `json:"sourceId"`
-	Slug          string         `json:"slug"`
-	Href          string         `json:"href"`
-	Title         string         `json:"title"`
-	Content       string         `json:"content"`
-	Description   string         `json:"description"`
-	Tags          []string       `json:"tags"`
-	Links         []string       `json:"links"`
-	PublishedAt   string         `json:"publishedAt"`
-	UpdatedAt     string         `json:"updatedAt"`
-	Encrypted     bool           `json:"encrypted"`
-	EventRevision string         `json:"eventRevision"`
-	Extra         map[string]any `json:"extra"`
+	ReferenceContent string         `json:"-"`
+	SourceID         string         `json:"sourceId"`
+	Slug             string         `json:"slug"`
+	Href             string         `json:"href"`
+	Title            string         `json:"title"`
+	Content          string         `json:"content"`
+	Description      string         `json:"description"`
+	Tags             []string       `json:"tags"`
+	Links            []string       `json:"links"`
+	PublishedAt      string         `json:"publishedAt"`
+	UpdatedAt        string         `json:"updatedAt"`
+	Encrypted        bool           `json:"encrypted"`
+	EventRevision    string         `json:"eventRevision"`
+	Extra            map[string]any `json:"extra"`
 }
 
 func uuid() (string, error) {
@@ -206,6 +207,11 @@ func (s Store) Sync(ctx context.Context, kind string, input []Item) error {
 			tags = append([]string{}, old.Tags...)
 		}
 		links := unique(item.Links)
+		if kind != "article" && !item.Encrypted {
+			links = unique(append(links, projectLinks(s.Origin, item.Content+"\n"+item.Description+"\n"+item.ReferenceContent, item.Slug)...))
+		} else if kind == "share" && item.Encrypted {
+			links = unique(append(links, projectLinks(s.Origin, item.ReferenceContent, item.Slug)...))
+		}
 		body, description := item.Content, item.Description
 		if item.Encrypted {
 			body = ""

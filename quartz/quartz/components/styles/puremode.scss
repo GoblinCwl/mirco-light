@@ -13,6 +13,14 @@ html.pure-mode body {
     display: none !important;
   }
 
+  // Project pages use custom right panels rather than the article TOC.
+  // Hide their whole sidebar, including mobile launchers using display:contents.
+  &:is([data-slug^="Share/"], [data-slug^="Repo/"], [data-slug^="Video/"]) {
+    #quartz-body > .sidebar.right {
+      display: none !important;
+    }
+  }
+
   /* 隐藏面包屑导航 */
   .breadcrumb-container {
     display: none !important;

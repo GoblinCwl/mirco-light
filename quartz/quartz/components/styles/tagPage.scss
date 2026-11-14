@@ -122,7 +122,7 @@ body:has(.tag-index-page) .page > #quartz-body {
 .tag-project-dialog {
   --cluster-rgb:var(--cluster-light);
   box-sizing:border-box; width:min(34rem,calc(100vw - 2rem)); max-width:calc(100vw - 2rem);
-  max-height:calc(100dvh - 3rem); margin:auto; padding:0; overflow:visible;
+  max-height:calc(100dvh * 2 / 3); margin:auto; padding:0; overflow:visible;
   color:var(--darkgray); background:var(--light); border:1px solid var(--lightgray); border-radius:12px;
   box-shadow:0 14px 55px rgb(0 0 0 / 16%);
   &[open]{display:flex;flex-direction:column;}
@@ -150,7 +150,7 @@ body:has(.tag-index-page) .page > #quartz-body {
   .tag-project-empty{padding:1.5rem .5rem!important;color:var(--gray);font-size:.85rem;}
 }
 :root[saved-theme="dark"] .tag-project-dialog{--cluster-rgb:var(--cluster-dark);}
-@media(max-width:800px){.tag-project-dialog{width:calc(100vw - 1.25rem);max-width:calc(100vw - 1.25rem);max-height:calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));.tag-project-heading{padding:.9rem 1rem;}.tag-project-list{padding-inline:.6rem;}}}
+@media(max-width:800px){.tag-project-dialog{width:calc(100vw - 1.25rem);max-width:calc(100vw - 1.25rem);max-height:min(calc(100dvh * 2 / 3),calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)));.tag-project-heading{padding:.9rem 1rem;}.tag-project-list{padding-inline:.6rem;}}}
 
 .tag-project-dialog .tag-project-sentinel{height:1px;border:0!important;}
 .tag-project-actions{display:flex;align-items:center;gap:.3rem;flex:none;}
