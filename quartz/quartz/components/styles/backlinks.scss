@@ -1,10 +1,12 @@
-@use "../../styles/variables.scss" as *;
+@use "sidebarPanel";
 
 .backlinks {
+  display: flex;
   flex-direction: column;
+  min-width: 0;
 
   & > h3 {
-    font-size: 1rem;
+    @include sidebarPanel.heading;
     margin: 0;
   }
 
@@ -14,10 +16,23 @@
     margin: 0.5rem 0;
     max-height: calc(100% - 2rem);
     overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--lightgray) transparent;
 
-    & > li {
-      & > a {
-        background-color: transparent;
+    & > li > a {
+      display: block;
+      background: transparent;
+      color: var(--secondary);
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+      text-decoration: none;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--tertiary);
+        text-decoration: none;
       }
     }
   }

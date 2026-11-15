@@ -1,3 +1,4 @@
+import { isNavigationLink } from "../../util/previewPolicy"
 import { QuartzTransformerPlugin } from "../types"
 import {
   FullSlug,
@@ -65,6 +66,11 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                   node.properties.className = [...classes, "internal", "tag-link"]
                   node.properties["data-no-popover"] = "true"
                   return
+                }
+                const siteBase = ctx.cfg.configuration.baseUrl || "goblincwl.site"
+                const siteOrigin = new URL(siteBase.includes("://") ? siteBase : `https://${siteBase}`)
+                if (isNavigationLink(dest, new URL(file.data.slug!, siteOrigin.origin + "/").href)) {
+                  node.properties["data-no-popover"] = "true"
                 }
                 const project = projectReference(dest, ctx.cfg.configuration.baseUrl)
                 if (project) {

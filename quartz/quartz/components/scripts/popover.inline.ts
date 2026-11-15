@@ -1,3 +1,4 @@
+import { isNavigationLink } from "../../util/previewPolicy"
 import { attachVideoPreview } from "./videoPreview"
 import {repoHoverContent,repoHoverAvailable} from "./repoHover"
 import { computePosition, flip, inline, shift } from "@floating-ui/dom"
@@ -52,6 +53,7 @@ async function mouseEnterHandler(
   { clientX, clientY }: { clientX: number; clientY: number },
 ) {
   const link = this
+  if (isNavigationLink(link.href, location.href)) return
   // Tags are navigation/filter links, never content preview targets. Check the
   // destination too, covering Markdown links and dynamically rendered tags.
   if (link.classList.contains("tag-link") || link.closest(".tags") ||
@@ -193,6 +195,7 @@ document.addEventListener("nav", () => {
   const enter = (event: MouseEvent) => {
     const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a.internal,a[data-drive-hover],a[data-repo-hover]") : null
     if (!link || event.relatedTarget instanceof Node && link.contains(event.relatedTarget)) return
+    if (isNavigationLink(link.href, location.href)) return
     clearTimeout(driveHoverTimer)
     driveHoverTimer=setTimeout(()=>void mouseEnterHandler.call(link,event),250)
   }
