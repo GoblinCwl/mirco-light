@@ -133,14 +133,16 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
   const links: SimpleLinkData[] = []
   const tags: SimpleSlug[] = []
   const validLinks = new Set(data.keys())
+  const relationTargets = new Map([...data.keys()].map(id=>[id.replace(/\/+$/g,""),id]))
 
   const tweens = new Map<string, TweenNode>()
   for (const [source, details] of data.entries()) {
     const outgoing = details.links ?? []
 
     for (const dest of outgoing) {
-      if (validLinks.has(dest)) {
-        links.push({ source: source, target: dest })
+      const target = relationTargets.get(dest.replace(/\/+$/g,""))
+      if (target && validLinks.has(target)) {
+        links.push({ source: source, target })
       }
     }
 

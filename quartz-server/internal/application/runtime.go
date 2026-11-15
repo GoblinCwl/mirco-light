@@ -189,12 +189,24 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	permissions := &comments.Permissions{DB: app.DB, Client: app.Comments.Client, SnapshotPath: options.ArticleSnapshot, Site: app.Comments.Site}
 	runtime.commentPermissions = newEventTask("comment-permissions", 2*time.Minute, permissions.Refresh)
 	snapshot := &content.ArticleSnapshot{Store: content.Store{DB: app.DB, Origin: app.Origin}, Path: options.ArticleSnapshot}
+	var relationsPending bool
 	runtime.articleIndex = newEventTask("article-index", 60*time.Second, func(ctx context.Context) error {
-		if err := snapshot.Import(ctx); err != nil {
+		changed, err := snapshot.ImportChanged(ctx)
+		if err != nil {
 			return err
 		}
 		runtime.commentPermissions.request()
-		return nil
+		relationsPending = relationsPending || changed
+		if !relationsPending {
+			return nil
+		}
+		// An article or alias change can create/remove targets in external descriptions.
+		var relationErr error
+		for _, kind := range []string{"share", "repo", "video"} {
+			relationErr = errors.Join(relationErr, runtime.syncSource(ctx, kind))
+		}
+		relationsPending = relationErr != nil
+		return relationErr
 	})
 	runtime.mirrorCredential = newEventTask("gitea-mirror-credential", 10*time.Second, runtime.projectMirrorTokens)
 	app.SettingsChanged = func(key string) {

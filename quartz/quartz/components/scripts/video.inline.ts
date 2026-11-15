@@ -136,7 +136,9 @@ document.addEventListener("nav", () => {
       const available = Math.max(0, Math.floor(innerHeight - sidebarContent.getBoundingClientRect().top - bottom))
       sidebarContent.style.maxHeight = `${available}px`
       const padding = parseFloat(getComputedStyle(sidebarContent).paddingBottom) || 0
-      const fixed = sidebar.getBoundingClientRect().height + (graph.hidden ? 0 : graph.getBoundingClientRect().height) - (hasParts ? partsList.getBoundingClientRect().height : 0) - (related?.getBoundingClientRect().height || 0)
+      const backlinksPanel=sidebarContent.querySelector<HTMLElement>("[data-backlinks]")
+      const backlinksHeight=backlinksPanel?.getBoundingClientRect().height||0
+      const fixed = backlinksHeight + sidebar.getBoundingClientRect().height + (graph.hidden ? 0 : graph.getBoundingClientRect().height) - (hasParts ? partsList.getBoundingClientRect().height : 0) - (related?.getBoundingClientRect().height || 0)
       const budget = Math.max(0, available - padding - Math.ceil(fixed) - 2)
       const desiredParts = hasParts ? Math.min(partsList.scrollHeight, innerHeight * .32, 384) : 0
       const desiredRelated = related ? Math.min(related.scrollHeight, innerHeight * .28, 352) : 0
@@ -151,6 +153,7 @@ document.addEventListener("nav", () => {
     })
   }
   const sidebarSizes = new ResizeObserver(layoutSidebar)
+  document.addEventListener("backlinks-updated",layoutSidebar,{signal:pageEvents.signal})
   sidebarSizes.observe(sidebarContent); sidebarSizes.observe(partsPanel); sidebarSizes.observe(graph)
   sidebarSizes.observe(sidebarContent.querySelector<HTMLElement>("[data-video-sidebar]")!)
   addEventListener("resize", layoutSidebar, { signal: pageEvents.signal })

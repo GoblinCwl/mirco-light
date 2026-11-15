@@ -54,6 +54,10 @@ ul.toc-content.overflow {
   margin: 0.5rem 0;
   padding: 0;
   max-height: calc(100% - 2rem);
+  min-height:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  scrollbar-gutter:stable;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--lightgray) transparent;
@@ -240,4 +244,9 @@ ul.toc-content.overflow {
     margin: .3rem 0;
     border-top: 1px solid var(--lightgray);
   }
+}
+
+// DesktopOnly otherwise resets .toc to display: initial in the base stylesheet.
+@media(min-width:1200px) {
+  .toc.desktop-only { display:flex; }
 }

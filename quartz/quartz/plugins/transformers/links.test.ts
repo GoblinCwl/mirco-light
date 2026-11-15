@@ -28,7 +28,11 @@ test('Markdown website project links become internal references without changing
   assert.deepEqual(file.data.links, ['Repo/CwlWeb', 'Video/BV1ua4W6XEJd', 'Share/分享/资料', 'Memo/target'])
   assert.equal(links[0].properties.href, '/Repo/CwlWeb?tab=code#readme')
   assert.equal(links[0].properties['data-repo-hover'], 'true')
-  assert.deepEqual(links[0].children, [{ type: 'text', value: '仓库名称', position: links[0].children[0].position }])
+  const label=links[0].children.filter(child=>child.type==='text')
+  assert.deepEqual(label, [{ type: 'text', value: '仓库名称', position: label[0].position }])
+  assert.equal((links[0].children[0] as Element).properties['dataLinkIcon'],'repo')
+  assert.equal((links[4].children[0] as Element).properties['dataLinkIcon'],'external')
+  assert.ok(!JSON.stringify(links).includes('external-icon'))
   assert.deepEqual(links[0].properties.className, ['internal'])
   assert.equal(links[2].properties['data-video-reference'], 'BV1ua4W6XEJd')
   assert.equal(links[3].properties.href, '/Share/%E5%88%86%E4%BA%AB/%E8%B5%84%E6%96%99')
@@ -46,4 +50,26 @@ test('tag galaxy query links bypass Markdown path slugification', async () => {
  assert.equal(link?.properties.href,href)
  assert.equal(link?.properties['data-no-popover'],'true')
  assert.deepEqual(file.data.links,[])
+})
+
+test('absolute article and alias links are indexed; external and navigation links are excluded',()=>{
+ const plugin=CrawlLinks({openLinksInNewTab:true})
+ const ctx={cfg:{configuration:{baseUrl:'goblincwl.site'}},allSlugs:['Memo/note','about','reading','Memo/source']} as unknown as BuildCtx
+ const factory=plugin.htmlPlugins!(ctx)[0] as ()=>Function
+ const tree={type:'root',children:['https://goblincwl.site/Memo/note?x=1#heading','https://goblincwl.site/about','/reading/','https://evil.test/Memo/note'].map(href=>({type:'element',tagName:'a',properties:{href},children:[{type:'text',value:'link'}]}))}
+ const file={data:{slug:'Memo/source'}} as {data:{slug:string;links?:string[]}}
+ factory()(tree,file)
+ assert.deepEqual(file.data.links,['Memo/note','about'])
+ assert.equal((tree.children[2].properties as Record<string,unknown>)['data-no-popover'],'true')
+})
+
+test('leading icons stay with nested link labels rather than creating a separate card row',()=>{
+ const plugin=CrawlLinks(),factory=plugin.htmlPlugins!(ctx)[0] as ()=>Function
+ const title={type:'element',tagName:'strong',properties:{},children:[{type:'text',value:'项目标题'}]}
+ const anchor={type:'element',tagName:'a',properties:{href:'https://goblincwl.site/Repo/code'},children:[title]}
+ factory()({type:'root',children:[anchor]},{data:{slug:'Memo/source'}})
+ assert.equal(anchor.children[0],title)
+ assert.equal(title.children.length,2)
+ assert.equal((title.children[0] as unknown as Element).tagName,'svg')
+ assert.equal(title.children[1].value,'项目标题')
 })

@@ -39,11 +39,13 @@ test("file metadata is escaped and commit links retain the selected branch", () 
 })
 
 test("sidebar repository name links to GitHub without a separate jump button", () => {
-  const html = repoSidebar({...repository("example","TypeScript"),owner:"Example",branches:["main"],tags:[],sha:"a".repeat(40),githubUrl:"https://github.com/Example/example"},"refs/heads/main")
+  const html = repoSidebar({...repository("example","TypeScript"),owner:"Example",branches:["main"],tags:[],sha:"a".repeat(40),githubUrl:"https://github.com/Example/example"})
   assert.ok(html.includes('href="https://github.com/Example/example"'))
   assert.ok(html.includes("<dd>TypeScript</dd>"))
   assert.ok(!html.includes('class="internal tag-link"'))
   assert.ok(!html.includes('repo-github-link'))
+  assert.ok(!html.includes('版本信息'))
+  assert.ok(!html.includes('当前提交'))
 })
 
 test("issue activity links remain on the issue even for a mirrored project",()=>{

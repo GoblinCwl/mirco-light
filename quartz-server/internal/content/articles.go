@@ -20,28 +20,34 @@ type ArticleSnapshot struct {
 }
 
 func (s *ArticleSnapshot) Import(ctx context.Context) error {
+	_, err := s.ImportChanged(ctx)
+	return err
+}
+
+// ImportChanged lets dependent relation updates run only after a new successful snapshot.
+func (s *ArticleSnapshot) ImportChanged(ctx context.Context) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	raw, err := os.ReadFile(s.Path)
 	if err != nil {
-		return err
+		return false, err
 	}
 	digest := sha256.Sum256(raw)
 	if s.loaded && digest == s.digest {
-		return nil
+		return false, nil
 	}
 	var snapshot struct {
 		Articles []Item `json:"articles"`
 	}
 	if err := json.Unmarshal(raw, &snapshot); err != nil {
-		return err
+		return false, err
 	}
 	if snapshot.Articles == nil {
-		return errors.New("article snapshot incomplete; keeping previous index")
+		return false, errors.New("article snapshot incomplete; keeping previous index")
 	}
 	if err := s.Store.Sync(ctx, "article", snapshot.Articles); err != nil {
-		return err
+		return false, err
 	}
 	s.digest, s.loaded = digest, true
-	return nil
+	return true, nil
 }

@@ -155,10 +155,11 @@ func (s Store) Sync(ctx context.Context, kind string, input []Item) error {
 	if err = tx.QueryRowContext(ctx, "SELECT name FROM resource_locks WHERE name='content' FOR UPDATE").Scan(&lock); err != nil {
 		return err
 	}
-	records, err := readSource(ctx, tx, kind)
+	records, err := readMetadata(ctx, tx)
 	if err != nil {
 		return err
 	}
+	routes := relationRoutes(records, kind, input)
 	previous := map[string]Record{}
 	for _, r := range records {
 		if r.Type == kind {
@@ -208,10 +209,16 @@ func (s Store) Sync(ctx context.Context, kind string, input []Item) error {
 		}
 		links := unique(item.Links)
 		if kind != "article" && !item.Encrypted {
-			links = unique(append(links, projectLinks(s.Origin, item.Content+"\n"+item.Description+"\n"+item.ReferenceContent, item.Slug)...))
+			links = unique(append(links, projectLinks(s.Origin, item.Content+"\n"+item.Description+"\n"+item.ReferenceContent, item.Slug, routes)...))
 		} else if kind == "share" && item.Encrypted {
-			links = unique(append(links, projectLinks(s.Origin, item.ReferenceContent, item.Slug)...))
+			links = unique(append(links, projectLinks(s.Origin, item.ReferenceContent, item.Slug, routes)...))
 		}
+		for i, link := range links {
+			if canonical, ok := routes[relationKey(link)]; ok {
+				links[i] = canonical
+			}
+		}
+		links = unique(links)
 		body, description := item.Content, item.Description
 		if item.Encrypted {
 			body = ""

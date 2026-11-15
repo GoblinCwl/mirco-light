@@ -178,14 +178,26 @@ a {
     }
   }
 
-  &.external .external-icon {
-    height: 1ex;
-    margin: 0 0.15em;
-
-    > path {
-      fill: var(--dark);
-    }
+  .content-link-icon {
+    display:inline-block;
+    width:.95em!important;height:.95em!important;
+    margin-inline-end:.06em;
+    vertical-align:-.12em;
+    flex:0 0 .95em!important;
+    color:inherit;
+    fill:none!important;stroke:currentColor!important;
+    :is(path,rect,circle,ellipse,line,polyline,polygon) {fill:none!important;stroke:currentColor!important;}
   }
+  .external-icon {display:none!important;}
+
+}
+
+// Body links share one treatment; navigation and sidebar links keep their own styles.
+.center :is(article.popover-hint, article#content, .repo-markdown, .drive-metadata, .drive-media-overview) a.internal {
+  background:transparent;
+  padding:0;
+  border-radius:0;
+  line-height:inherit;
 }
 
 .flex-component {

@@ -1,3 +1,4 @@
+import {observationTimeline,observationGap} from "./observatoryTimeline"
 import {serviceIcon} from '../../util/serviceIcons'
 import {navigationIcon} from './navigationIcon'
 import {readSiteSession} from './siteSession'
@@ -97,13 +98,12 @@ function chart(metric:Metric,history:Point[],current:Record<string,any>){
   const previousHistory=history,previousEnd=end,previousStart=start,previousRange=timeRange
   metric=nextMetric;history=nextHistory;current=nextCurrent
   name.textContent=metric.title
-  // Fit the samples collected so far, then keep a rolling one-minute window.
   end=history.at(-1)?.time||Date.now()
-  if(history.length&&(firstLiveSample===undefined||end-previousEnd>60000))firstLiveSample=history[0].time
-  timeRange=Math.min(60000,Math.max(1,end-(firstLiveSample??end)));start=end-timeRange
-  if(history.length===1&&timeRange<1000){start=end-500;timeRange=1000}
+  // Drop a disconnected segment and fit the first new batch to the entire plot.
+  const timeline=observationTimeline(history,firstLiveSample,previousEnd)
+  if(!metric.dimension){history=timeline.history;firstLiveSample=timeline.first;end=timeline.end;start=timeline.start;timeRange=timeline.range}
   if(metric.dimension){start=history[0]?.time||end;timeRange=Math.max(86400000,end-start);if(history.length===1){start=end-43200000;end+=43200000}}
-  const live=!metric.dimension&&shapes.size>0&&previousHistory.length>0&&history.length>0&&end>=previousEnd&&end-previousEnd<=60000
+  const live=!metric.dimension&&!timeline.reset&&shapes.size>0&&previousHistory.length>0&&history.length>0&&end>=previousEnd&&end-previousEnd<=observationGap
   const animate=live&&previousHistory.length>1
   const shift=animate?(start-previousStart)/previousRange*600:0,stretch=animate?timeRange/previousRange:1
   const samples=live?[...new Map([...drawingSamples,...history].map(point=>[point.time,point])).values()].sort((a,b)=>a.time-b.time):history

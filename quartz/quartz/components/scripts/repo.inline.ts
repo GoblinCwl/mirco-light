@@ -184,7 +184,7 @@ async function renderRepo(root: HTMLElement, signal: AbortSignal) {
       if (tab === route.tab) anchor.setAttribute("aria-current", "page"); else anchor.removeAttribute("aria-current")
     }
     root.querySelector<HTMLSelectElement>("[data-repo-ref]")!.addEventListener("change", event => void go({ ref: (event.target as HTMLSelectElement).value, tab: route.tab, path: undefined }), { signal })
-    const sidebarMarkup = repoSidebar(info, ref)
+    const sidebarMarkup = repoSidebar(info)
     const sidebarSignature = JSON.stringify([info.name, info.description, info.language, info.stargazers_count, info.forks_count, info.branches, info.tags, info.sha, info.topics, info.license, ref])
     if (sidebar && sidebar.dataset.repoSignature !== sidebarSignature) {
       sidebar.innerHTML = sidebarMarkup; sidebar.dataset.repoSignature = sidebarSignature

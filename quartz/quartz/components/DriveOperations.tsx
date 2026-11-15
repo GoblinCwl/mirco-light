@@ -1,3 +1,5 @@
+import Backlinks from "./Backlinks"
+import { concatenateResources } from "../util/resources"
 import { QuartzComponent, QuartzComponentConstructor } from "./types"
 import style from "./styles/driveOperations.scss"
 import Graph from "./Graph"
@@ -5,6 +7,7 @@ import { homeIcons } from "../home/icons"
 
 export default (() => {
   const ShareGraph = Graph()
+  const ShareBacklinks = Backlinks({panel:true})
   const DriveOperations: QuartzComponent = (props) => <section class="drive-operations" data-drive-operations>
     <button type="button" class="drive-operations-launch" data-drive-operations-launch hidden aria-haspopup="dialog" aria-expanded="false" aria-controls="drive-operations-dialog">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /><circle cx="8" cy="6" r="2" fill="var(--light)" /><circle cx="16" cy="12" r="2" fill="var(--light)" /><circle cx="10" cy="18" r="2" fill="var(--light)" /></svg>
@@ -32,10 +35,11 @@ export default (() => {
           <select id="drive-preview-renderer" data-drive-preview-renderer aria-label="预览方式" />
         </section>
         <div class="drive-operation-groups" data-drive-operation-groups />
+        <ShareBacklinks {...props} />
       </div>
     </dialog>
   </section>
-  DriveOperations.css = [style, ...(Array.isArray(ShareGraph.css) ? ShareGraph.css : ShareGraph.css ? [ShareGraph.css] : [])]
-  DriveOperations.afterDOMLoaded = ShareGraph.afterDOMLoaded
+  DriveOperations.css = [style, ...(Array.isArray(ShareBacklinks.css)?ShareBacklinks.css:ShareBacklinks.css?[ShareBacklinks.css]:[]), ...(Array.isArray(ShareGraph.css) ? ShareGraph.css : ShareGraph.css ? [ShareGraph.css] : [])]
+  DriveOperations.afterDOMLoaded = concatenateResources(ShareGraph.afterDOMLoaded,ShareBacklinks.afterDOMLoaded)
   return DriveOperations
 }) satisfies QuartzComponentConstructor

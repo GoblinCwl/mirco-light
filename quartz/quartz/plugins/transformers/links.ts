@@ -1,3 +1,5 @@
+import {fromHtml} from "hast-util-from-html"
+import {linkIconSVG,articleLinkRoutes} from "../../util/linkIcons"
 import { isNavigationLink } from "../../util/previewPolicy"
 import { QuartzTransformerPlugin } from "../types"
 import {
@@ -15,7 +17,30 @@ import { projectReference } from "../../util/projectReference"
 import path from "path"
 import { visit } from "unist-util-visit"
 import isAbsoluteUrl from "is-absolute-url"
-import { Root } from "hast"
+import { Root,Element } from "hast"
+
+function decorateLink(node:Element,href:string,base:string,articles:ReadonlySet<string>) {
+  const illustrated=(element:Element):boolean=> {
+    const classes=String(element.properties.className||"")
+    if(classes.includes("encrypted-mark"))return false
+    return ["svg","img","picture"].includes(element.tagName)||element.children.some(child=>child.type==="element"&&illustrated(child))
+  }
+  if(node.children.some(child=>child.type==="element"&&illustrated(child)))return
+  const icon=linkIconSVG(href,base,articles)
+  if(icon){
+    const element=fromHtml(icon,{fragment:true}).children.find(child=>child.type==="element")
+    if(!element)return
+    const prepend=(parent:Element):boolean=>{
+      for(let i=0;i<parent.children.length;i++){
+        const child=parent.children[i]
+        if(child.type==="text"&&child.value.trim()){parent.children.splice(i,0,element);return true}
+        if(child.type==="element"&&prepend(child))return true
+      }
+      return false
+    }
+    prepend(node)
+  }
+}
 
 interface Options {
   /** How to resolve Markdown paths */
@@ -24,7 +49,6 @@ interface Options {
   prettyLinks: boolean
   openLinksInNewTab: boolean
   lazyLoad: boolean
-  externalLinkIcon: boolean
 }
 
 const defaultOptions: Options = {
@@ -32,7 +56,6 @@ const defaultOptions: Options = {
   prettyLinks: true,
   openLinksInNewTab: false,
   lazyLoad: false,
-  externalLinkIcon: true,
 }
 
 export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) => {
@@ -44,6 +67,7 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
         () => {
           return (tree: Root, file) => {
             const curSlug = simplifySlug(file.data.slug!)
+            const articleRoutes = articleLinkRoutes(ctx.allSlugs)
             const outgoing: Set<SimpleSlug> = new Set()
 
             const transformOptions: TransformOptions = {
@@ -69,10 +93,11 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                 }
                 const siteBase = ctx.cfg.configuration.baseUrl || "goblincwl.site"
                 const siteOrigin = new URL(siteBase.includes("://") ? siteBase : `https://${siteBase}`)
-                if (isNavigationLink(dest, new URL(file.data.slug!, siteOrigin.origin + "/").href)) {
+                const navigationLink = isNavigationLink(dest, new URL(file.data.slug!, siteOrigin.origin + "/").href)
+                if (navigationLink) {
                   node.properties["data-no-popover"] = "true"
                 }
-                const project = projectReference(dest, ctx.cfg.configuration.baseUrl)
+                const project = navigationLink ? undefined : projectReference(dest, ctx.cfg.configuration.baseUrl)
                 if (project) {
                   if (!Object.hasOwn(node.properties, "download")) delete node.properties.target
                   outgoing.add(project.slug as SimpleSlug)
@@ -84,34 +109,22 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                     node.properties["data-video-reference"] = project.slug.slice("Video/".length)
                     node.properties["data-no-popover"] = "true"
                   }
+                  decorateLink(node,project.href,siteOrigin.origin,articleRoutes)
                   return
                 }
+                // Absolute article links, including alias routes, also participate in the index.
+                try {
+                  const url = new URL(dest, siteOrigin.origin + "/" + file.data.slug!)
+                  if (/^https?:$/.test(url.protocol) && url.host === siteOrigin.host && !url.username && !url.password) {
+                    const candidate = decodeURIComponent(url.pathname).replace(/^\/+|\/+$/g, "").replace(/\.html$/, "")
+                    const known = ctx.allSlugs.find(slug => String(simplifySlug(slug)) === String(simplifySlug(candidate as FullSlug)))
+                    if (known && !isNavigationLink(url.href,siteOrigin.origin) && (dest.startsWith("/") || /^https?:\/\//i.test(dest))) outgoing.add(simplifySlug(known))
+                  }
+                } catch { /* Invalid URLs are not indexed. */ }
                 const linkKind = contentLinkKind(dest, ctx.cfg.configuration.baseUrl)
                 const isExternal = linkKind === "external"
                 classes.push(isExternal ? "external" : "internal")
 
-                if (isExternal && opts.externalLinkIcon) {
-                  node.children.push({
-                    type: "element",
-                    tagName: "svg",
-                    properties: {
-                      "aria-hidden": "true",
-                      class: "external-icon",
-                      style: "max-width:0.8em;max-height:0.8em",
-                      viewBox: "0 0 512 512",
-                    },
-                    children: [
-                      {
-                        type: "element",
-                        tagName: "path",
-                        properties: {
-                          d: "M320 0H288V64h32 82.7L201.4 265.4 178.7 288 224 333.3l22.6-22.6L448 109.3V192v32h64V192 32 0H480 320zM32 32H0V64 480v32H32 456h32V480 352 320H424v32 96H64V96h96 32V32H160 32z",
-                        },
-                        children: [],
-                      },
-                    ],
-                  })
-                }
 
                 // Check if the link has alias text
                 if (
@@ -157,7 +170,7 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                   // need to decodeURIComponent here as WHATWG URL percent-encodes everything
                   const full = decodeURIComponent(stripSlashes(destCanonical, true)) as FullSlug
                   const simple = simplifySlug(full)
-                  outgoing.add(simple)
+                  if (!navigationLink) outgoing.add(simple)
                   node.properties["data-slug"] = full
                 }
 
@@ -171,6 +184,7 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                 ) {
                   node.children[0].value = path.basename(node.children[0].value)
                 }
+                decorateLink(node,String(node.properties.href),new URL(file.data.slug!,siteOrigin.origin+"/").href,articleRoutes)
               }
 
               // transform all other resources that may use links

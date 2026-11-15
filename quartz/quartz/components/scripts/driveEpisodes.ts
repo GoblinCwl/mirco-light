@@ -39,7 +39,9 @@ export function setupDriveEpisodes(root: HTMLElement, signal: AbortSignal) {
       const inner = root.querySelector<HTMLElement>(".drive-operations-inner")!, sidebar = root.closest<HTMLElement>(".sidebar")
       const padding = (element: HTMLElement) => parseFloat(getComputedStyle(element).paddingBottom) || 0
       const bottom = Math.max(16, sidebar ? padding(sidebar) : 16) + padding(section) + padding(inner)
-      const available = Math.max(0, Math.floor(innerHeight - list.getBoundingClientRect().top - bottom))
+      const backlinks=root.querySelector<HTMLElement>("[data-backlinks]")
+      const backlinksHeight=backlinks&&!backlinks.hidden?backlinks.getBoundingClientRect().height:0
+      const available = Math.max(0, Math.floor(innerHeight - list.getBoundingClientRect().top - bottom - backlinksHeight))
       const value = `${available}px`
       if (!compact.matches && list.style.getPropertyValue("--drive-episode-max-height") !== value) list.style.setProperty("--drive-episode-max-height", value)
       const current = list.querySelector<HTMLAnchorElement>('a[aria-current="page"]')
@@ -63,6 +65,7 @@ export function setupDriveEpisodes(root: HTMLElement, signal: AbortSignal) {
   if (collections) resize.observe(collections)
   addEventListener("scroll", layout, { passive: true, signal })
   signal.addEventListener("abort", () => { cancelAnimationFrame(layoutFrame); resize.disconnect() }, { once: true })
+  document.addEventListener("backlinks-updated",layout,{signal})
   addEventListener("resize", layout, { signal })
   compact.addEventListener("change", () => { placeSection(); updateHeading(); layout() }, { signal })
   return (active: boolean, episodes: DriveEpisode[] = [], season?: number, programTitle?: string, seasonTitle?: string, pending = false) => {
