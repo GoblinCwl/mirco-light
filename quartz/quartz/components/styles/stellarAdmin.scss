@@ -110,7 +110,6 @@
     > svg { width: 17px; height: 17px; }
     &:hover { background: var(--highlight); color: var(--secondary); }
     &[aria-selected=true] { background: var(--stellar-accent); color: var(--secondary); font-weight: 600; border-color: color-mix(in srgb, var(--secondary) 18%, transparent); }
-    .stellar-admin-tab-count { font-size: .65rem; opacity: .75; font-weight: 400; font-variant-numeric: tabular-nums; }
     .stellar-admin-unsaved { position: absolute; top: 7px; right: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--stellar-waiting); }
   }
   .stellar-admin-content {
@@ -289,7 +288,7 @@
   .stellar-admin {
     .stellar-admin-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
     .stellar-admin-navigation { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; padding: .65rem; border-right: 0; border-bottom: 1px solid var(--lightgray); }
-    .stellar-admin-tab { justify-content: center; gap: .4rem; min-height: 36px; padding: .45rem .3rem; font-size: .76rem; > span:first-of-type { flex: 0 1 auto; } > svg { width: 15px; height: 15px; } .stellar-admin-tab-count { display: none; } }
+    .stellar-admin-tab { justify-content: center; gap: .4rem; min-height: 36px; padding: .45rem .3rem; font-size: .76rem; > span:first-of-type { flex: 0 1 auto; } > svg { width: 15px; height: 15px; } }
     .stellar-admin-content { padding: .8rem .75rem 1rem; }
     .stellar-admin-module-intro { align-items: start; gap: .65rem; margin-bottom: .8rem; h2 { font-size: 1.05rem; } p { font-size: .74rem; } }
     .stellar-admin-module-icon { flex-basis: 34px; height: 34px; border-radius: 8px; > svg { width: 19px; height: 19px; } }
@@ -516,4 +515,14 @@
  > .data-admin-note {overflow-wrap:anywhere;line-height:1.7;}
  .friend-avatar-previews {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0;figure {min-width:0;margin:0;padding:1rem;border:1px solid var(--lightgray);border-radius:10px;background:var(--stellar-surface);display:flex;flex-direction:column;align-items:center;gap:1rem;}figcaption {align-self:flex-start;font-size:.82rem;font-weight:500;}img,.friend-avatar-placeholder {width:112px;height:112px;object-fit:contain;border-radius:12px;margin:0;background:var(--stellar-accent);} .friend-avatar-placeholder {display:grid;place-items:center;font-size:2rem;color:var(--secondary);&[hidden]{display:none;}}code {width:100%;overflow-wrap:anywhere;white-space:normal;font-size:.68rem;line-height:1.6;color:var(--stellar-muted);background:transparent;padding:0;}}
  @media(max-width:500px){.friend-avatar-previews {gap:.6rem;figure {padding:.65rem;}img,.friend-avatar-placeholder {width:88px;height:88px;}}}
+}
+
+.comment-admin .comment-admin-user {
+  padding: .75rem 1rem;
+  .comment-admin-author-copy { flex: 1; gap: .15rem; }
+  .comment-admin-user-heading { display: flex; align-items: center; gap: .45rem; width: 100%; min-width: 0; }
+  .comment-admin-user-heading > strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .comment-admin-user-heading > :not(strong) { flex-shrink: 0; }
+  .comment-admin-user-number { color: var(--gray); font-size: .75rem; font-variant-numeric: tabular-nums; }
+  .comment-admin-meta { margin: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.5; }
 }

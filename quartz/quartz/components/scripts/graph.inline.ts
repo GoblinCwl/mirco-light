@@ -1,3 +1,4 @@
+import {hasReadingUnlock} from "./readingUnlock"
 import {graphPalette} from '../../util/graphPalette'
 import {readContentCatalog} from './contentCatalog'
 import { videoRoute } from "./videoLibrary"
@@ -44,6 +45,7 @@ type GraphicsInfo = {
 type NodeData = {
   id: SimpleSlug
   text: string
+  locked: boolean
   tags: string[]
 } & SimulationNodeDatum
 
@@ -64,6 +66,7 @@ type LinkRenderData = GraphicsInfo & {
 type NodeRenderData = GraphicsInfo & {
   simulationData: NodeData
   label: Text
+  lockMark?: Graphics
 }
 
 type TweenNode = {
@@ -180,6 +183,7 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
     return {
       id: url,
       text,
+      locked: graphNodeKind(url) === "article" && data.get(url)?.encrypted === true && !hasReadingUnlock("/"+url, data.get(url)?.updatedAt),
       tags: data.get(url)?.tags ?? [],
     }
   })
@@ -635,7 +639,19 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
     nodesContainer.addChild(nodeVisibility)
     labelsContainer.addChild(labelVisibility)
 
+    let lockMark: Graphics | undefined
+    if (graphNodeKind(nodeId) === "article" && data.get(nodeId)?.encrypted) {
+      const r = nodeRadius(n)
+      lockMark = new Graphics({ eventMode: "none" })
+        .circle(0, 0, 3.6).fill({ color: "#e0525b", alpha: 0.24 })
+        .circle(0, 0, 1.9).fill({ color: "#e0525b" })
+      lockMark.position.set(r * Math.SQRT1_2, -r * Math.SQRT1_2)
+      lockMark.visible = n.locked
+      gfx.addChild(lockMark)
+    }
+
     const nodeRenderDatum: NodeRenderData = {
+      lockMark,
       simulationData: n,
       gfx,
       label,
@@ -1048,8 +1064,21 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
     animationFrame = requestAnimationFrame(animate)
   }
 
+  const updateLocks = () => {
+    for (const node of nodeRenderData) {
+      if (!node.lockMark) continue
+      const n = node.simulationData
+      n.locked = !hasReadingUnlock("/" + n.id, data.get(n.id)?.updatedAt)
+      node.lockMark.visible = n.locked
+      node.label.text = expandedLayout ? compactGraphTitle(n.text) : n.text
+    }
+  }
+  document.addEventListener("decryptComplete", updateLocks)
+  document.addEventListener("reading-content-unlocked", updateLocks)
   animationFrame = requestAnimationFrame(animate)
   return () => {
+    document.removeEventListener("decryptComplete", updateLocks)
+    document.removeEventListener("reading-content-unlocked", updateLocks)
     graphVisibility.delete(graph)
     stopAnimation = true
     cancelAnchorReturn()

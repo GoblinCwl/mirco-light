@@ -8,12 +8,16 @@ if(typeof document!=='undefined'&&!state.listening){
  state.listening=true
  document.addEventListener('reading-content-unlocked',event=>{const detail=(event as CustomEvent).detail;if(typeof detail?.href==='string'&&typeof detail?.text==='string')rememberReadingUnlock(detail.href,detail.text)})
 }
+function unlockedEntry(href:string,updatedAt?:string|null) {
+ const entry=state.previews.get(key(href))
+ if(!entry)return undefined
+ if(entry.expires<=Date.now()||(Date.parse(updatedAt||'')||0)>entry.at){state.previews.delete(key(href));return undefined}
+ return entry
+}
+export function hasReadingUnlock(href:string,updatedAt?:string|null):boolean {return Boolean(unlockedEntry(href,updatedAt))}
 export function readingExcerpt(item:ReadingItem):string|null {
- const entry=state.previews.get(key(item.href))
- if(entry){
-  if(entry.expires<=Date.now()||(Date.parse(item.updatedAt||'')||0)>entry.at)state.previews.delete(key(item.href))
-  else return entry.text
- }
+ const entry=unlockedEntry(item.href,item.updatedAt)
+ if(entry)return entry.text
  // The gate applies to every content type, including protected Share entries.
  if(item.encrypted||/🔐[βγ]|\[加密文本\]/.test(item.excerpt))return null
  return item.excerpt

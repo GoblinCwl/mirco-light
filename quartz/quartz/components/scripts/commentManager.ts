@@ -17,8 +17,8 @@ export function setupCommentManager(root:HTMLElement, signal:AbortSignal, reques
  const tabs=node('div','','data-admin-tabs'),toolbar=node('form','','comment-admin-toolbar'),search=node('input'),filter=node('select'),list=node('div','','comment-admin-list'),footer=node('div','','stellar-admin-pagination')
  search.type='search';search.placeholder='搜索评论内容、昵称或邮箱';search.setAttribute('aria-label','搜索评论或用户')
  filter.setAttribute('aria-label','筛选评论或用户')
- const commentTab=button('评论',()=>select('comments')),userTab=button('用户',()=>select('users')),query=button('搜索',()=>void load(1)),refresh=button('刷新',()=>void load()),create=button('新增用户',()=>editUser())
- query.type='submit';query.onclick=null;tabs.append(commentTab,userTab);toolbar.append(search,filter,query,refresh,create);root.append(tabs,toolbar,list,footer,editorHost)
+ const commentTab=button('评论',()=>select('comments')),userTab=button('用户',()=>select('users')),query=button('搜索',()=>void load(1)),refresh=button('刷新',()=>void load())
+ query.type='submit';query.onclick=null;tabs.append(commentTab,userTab);toolbar.append(search,filter,query,refresh);root.append(tabs,toolbar,list,footer,editorHost)
  const closeEditor=()=>{editorHost.hidden=true;editorHost.replaceChildren();for(const el of [tabs,toolbar,list,footer])el.hidden=false}
  const editForm=(title:string)=>{
   const form=node('form','','friend-admin-form'),heading=node('header','','friend-admin-heading'),back=button('返回列表',()=>{if(!mutating)closeEditor()}),fields=node('div','','friend-admin-fields'),actions=node('div','','friend-admin-footer'),submit=node('button','保存')
@@ -57,14 +57,14 @@ export function setupCommentManager(root:HTMLElement, signal:AbortSignal, reques
   dialog.note(`作者：${item.nick} · 页面：${item.page_key}`)
   dialog.run(()=>mutate(`/admin/comments/comments/${item.id}`,{method:'PUT',body:JSON.stringify({content:content.value})}))
  }
- const editUser=(item?:User)=>{
-  const dialog=editForm(item?'编辑用户':'新增用户')
-  const name=dialog.field('昵称',item?.name||''),email=dialog.field('邮箱',item?.email||'','email'),link=dialog.field('网址',item?.link||'','url'),badge=dialog.field('徽章文字',item?.badge_name||''),color=dialog.field('徽章颜色',item?.badge_color||''),password=dialog.field(item?'重设密码（留空保持原密码）':'密码（可选）','','password')
+ const editUser=(item:User)=>{
+  const dialog=editForm('编辑用户')
+  const name=dialog.field('昵称',item?.name||''),email=dialog.field('邮箱',item?.email||'','email'),link=dialog.field('网址',item?.link||'','url'),badge=dialog.field('徽章文字',item?.badge_name||''),color=dialog.field('徽章颜色',item?.badge_color||''),password=dialog.field('重设密码（留空保持原密码）','','password')
   name.required=email.required=true;name.maxLength=200;email.maxLength=320;password.autocomplete='new-password';password.minLength=12
   const checkbox=(title:string,checked:boolean)=>{const label=node('label','','comment-admin-checkbox'),input=node('input');input.type='checkbox';input.setAttribute('role','switch');input.checked=checked;label.append(input,node('span',title));dialog.body.append(label);return input}
   const receive=checkbox('接收邮件通知',item?.receive_email??true)
   dialog.note('重设密码至少 12 个字符。')
-  dialog.run(()=>mutate(`/admin/comments/users${item?`/${item.id}`:''}`,{method:item?'PUT':'POST',body:JSON.stringify({name:name.value,email:email.value,link:link.value,badge_name:badge.value,badge_color:color.value,password:password.value,is_admin:false,receive_email:receive.checked})}))
+  dialog.run(()=>mutate(`/admin/comments/users/${item.id}`,{method:'PUT',body:JSON.stringify({name:name.value,email:email.value,link:link.value,badge_name:badge.value,badge_color:color.value,password:password.value,is_admin:false,receive_email:receive.checked})}))
  }
  const toggle=(item:Comment,key:'is_pending'|'is_pinned'|'is_collapsed')=>{
   if(mutating)return
@@ -90,10 +90,12 @@ export function setupCommentManager(root:HTMLElement, signal:AbortSignal, reques
  }
  const renderUsers=(items:User[])=>{
   for(const item of items){
-   const card=node('section','','comment-admin-card'),header=node('header'),title=node('strong',item.name),role=node('span',item.is_admin?'管理员':'普通用户','stellar-admin-badge'),meta=node('p',`#${item.id} · ${item.email}${item.badge_name?` · ${item.badge_name}`:''}`,'comment-admin-meta'),actions=node('div','','comment-admin-actions'),edit=button('编辑',()=>editUser(item)),del=button('删除',()=>remove(item))
-   const author=node('div','','comment-admin-author'),copy=node('div','','comment-admin-author-copy');copy.append(title,role);author.append(avatar(item.name,item.avatarSeed,item.is_admin),copy);header.append(author,actions);del.className='is-danger';actions.append(edit,del)
-   card.append(header,meta,node('p',item.link||'未填写网址','comment-admin-meta'))
-   list.append(card)
+   const card=node('section','','comment-admin-card comment-admin-user'),header=node('header'),title=node('strong',item.name),role=node('span',item.is_admin?'管理员':'普通用户','stellar-admin-badge'),actions=node('div','','comment-admin-actions'),edit=button('编辑',()=>editUser(item)),del=button('删除',()=>remove(item))
+   const author=node('div','','comment-admin-author'),copy=node('div','','comment-admin-author-copy'),heading=node('div','','comment-admin-user-heading')
+   heading.append(title,role,node('small',`#${item.id}`,'comment-admin-user-number'))
+   const detail=[item.email,item.badge_name,item.link].filter(Boolean).join(' · '),meta=node('p',detail,'comment-admin-meta');meta.title=detail
+   copy.append(heading,meta);author.append(avatar(item.name,item.avatarSeed,item.is_admin),copy);header.append(author,actions);del.className='is-danger';actions.append(edit,del)
+   card.append(header);list.append(card)
   }
  }
  const load=async(next=page)=>{
@@ -112,7 +114,7 @@ export function setupCommentManager(root:HTMLElement, signal:AbortSignal, reques
  }
  function select(value:'comments'|'users'){
   if(mutating)return
-  kind=value;page=1;search.value='';commentTab.setAttribute('aria-pressed',String(kind==='comments'));userTab.setAttribute('aria-pressed',String(kind==='users'));create.hidden=kind!=='users'
+  kind=value;page=1;search.value='';commentTab.setAttribute('aria-pressed',String(kind==='comments'));userTab.setAttribute('aria-pressed',String(kind==='users'))
   filter.hidden=kind==='users'
   filter.replaceChildren()
   for(const [value,title] of kind==='comments'?[['all','全部评论'],['pending','待审核']]:[['all','普通用户']]){const option=node('option',title);option.value=value;filter.append(option)}

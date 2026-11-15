@@ -7,6 +7,7 @@ export type ContentDetails = {
   links: SimpleSlug[]
   tags: string[]
   content: string
+  updatedAt?: string
   createdAt?: string
   date?: Date
   description?: string

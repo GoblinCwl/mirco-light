@@ -91,7 +91,7 @@ document.addEventListener('nav', () => {
       const tab=document.createElement('button'),panel=document.createElement('section'),intro=document.createElement('header'),title=document.createElement('h2'),description=document.createElement('p')
       tab.type='button';tab.className='stellar-admin-tab';tab.dataset.moduleId=design.id;tab.id=`stellar-tab-${design.id}`;tab.setAttribute('role','tab');tab.setAttribute('aria-controls',`stellar-panel-${design.id}`)
       tab.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${design.icon}</svg>`
-      const nameNode=document.createElement('span'),count=document.createElement('span'),indicator=document.createElement('i');nameNode.textContent=design.title;count.textContent=String(entries.length);count.className='stellar-admin-tab-count';if(name==='告警中心')count.hidden=true;indicator.className='stellar-admin-unsaved';indicator.hidden=true;indicator.setAttribute('aria-label','有未保存修改');tab.append(nameNode,count,indicator)
+      const nameNode=document.createElement('span'),indicator=document.createElement('i');nameNode.textContent=design.title;indicator.className='stellar-admin-unsaved';indicator.hidden=true;indicator.setAttribute('aria-label','有未保存修改');tab.append(nameNode,indicator)
       panel.id=`stellar-panel-${design.id}`;panel.className='stellar-admin-module';panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);panel.tabIndex=0
       intro.className='stellar-admin-module-intro';title.textContent=design.title;description.textContent=design.description
       const moduleIcon=document.createElement('span'),introCopy=document.createElement('div');moduleIcon.className='stellar-admin-module-icon';moduleIcon.innerHTML=tab.querySelector('svg')!.outerHTML;moduleIcon.setAttribute('aria-hidden','true');introCopy.append(title,description);intro.append(moduleIcon,introCopy);panel.append(intro)
@@ -177,7 +177,7 @@ document.addEventListener('nav', () => {
         }
         let saved=result.values[field.key],busy=false
         const value=()=>field.type==='boolean'?(input as HTMLInputElement).checked:field.type==='number'?Number(input.value)/(percentage?100:1):input.value
-        const update=()=>{const changed=value()!==saved;row.classList.toggle('is-dirty',changed);if(changed)dirty.add(field.key);else dirty.delete(field.key);if(switchLabel)switchLabel.textContent=value()?'已开启':'已关闭';save.disabled=busy||!changed;indicator.hidden=!entries.some(entry=>dirty.has(entry.key));tab.setAttribute('aria-label',`${design.title}，${entries.length} 项设置${indicator.hidden?'':'，有未保存修改'}`);panel.dispatchEvent(new Event('stellar-setting-change'))}
+        const update=()=>{const changed=value()!==saved;row.classList.toggle('is-dirty',changed);if(changed)dirty.add(field.key);else dirty.delete(field.key);if(switchLabel)switchLabel.textContent=value()?'已开启':'已关闭';save.disabled=busy||!changed;indicator.hidden=!entries.some(entry=>dirty.has(entry.key));tab.setAttribute('aria-label',`${design.title}${indicator.hidden?'':'，有未保存修改'}`);panel.dispatchEvent(new Event('stellar-setting-change'))}
         input.oninput=input.onchange=()=>{status.textContent='';status.classList.remove('is-error');update()}
         row.onsubmit=async event=>{
           event.preventDefault();if(busy||value()===saved)return

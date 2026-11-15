@@ -1,12 +1,14 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {rememberReadingUnlock,readingExcerpt} from './readingUnlock'
+import {rememberReadingUnlock,readingExcerpt,hasReadingUnlock} from './readingUnlock'
 import type {ReadingItem} from './readingView'
 const item:ReadingItem={id:'test',type:'article',title:'Private',href:'/Memo/private',excerpt:'',tags:[],encrypted:true,updatedAt:null,createdAt:null}
 test('locked articles are hidden until successfully decrypted in this tab',()=>{
  assert.equal(readingExcerpt(item),null)
+ assert.equal(hasReadingUnlock(item.href),false)
  rememberReadingUnlock('/Memo/private','已经解密的内容')
  assert.equal(readingExcerpt(item),'已经解密的内容')
+ assert.equal(hasReadingUnlock('/Memo/private/index.html'),true)
  assert.equal(readingExcerpt({...item,encrypted:false,excerpt:'解锁前的索引'}),'已经解密的内容')
 })
 test('previews expire and do not outlive a newer encrypted article revision',()=>{
@@ -16,6 +18,7 @@ test('previews expire and do not outlive a newer encrypted article revision',()=
   assert.equal(readingExcerpt({...item,href:'/Memo/expired'}),null)
   rememberReadingUnlock('/Memo/revised','old text')
   assert.equal(readingExcerpt({...item,href:'/Memo/revised',updatedAt:new Date(now+1000).toISOString()}),null)
+  assert.equal(hasReadingUnlock('/Memo/revised'),false)
  }finally{Date.now=original}
 })
 

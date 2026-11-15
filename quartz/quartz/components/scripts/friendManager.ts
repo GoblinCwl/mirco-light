@@ -95,7 +95,7 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
   const render = () => {
     if (signal.aborted) return
     const toolbar = node('div', '', 'friend-admin-heading'), refresh=node('button','刷新'); refresh.type = 'button'
-    const summary=node('span',`${friends.length} 个站点 · 按最近更新排序`);summary.style.marginRight='auto';toolbar.append(summary,refresh)
+    const summary=node('span',`${friends.length} 个站点 · 按编号倒序`);summary.style.marginRight='auto';toolbar.append(summary,refresh)
     refresh.onclick=async()=>{
       if(busy)return;busy=true
       const controls=[...root.querySelectorAll<HTMLButtonElement>('button')],disabled=controls.map(control=>control.disabled);controls.forEach(control=>control.disabled=true)
@@ -104,7 +104,8 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
       finally{busy=false;controls.forEach((control,i)=>control.disabled=disabled[i])}
     }
     const list = node('div', '', 'friend-admin-list')
-    friends.forEach(friend => {
+    const orderedFriends = [...friends].sort((a,b)=>(b.number??0)-(a.number??0)||a.id.localeCompare(b.id))
+    orderedFriends.forEach(friend => {
       const row = node('div', '', 'friend-admin-row'), avatar = node('span', Array.from(friend.name)[0], 'friend-admin-avatar')
       if((friend.healthFailures||0)>0){row.classList.add('is-unavailable');avatar.classList.add('is-unavailable')}
       if (friend.avatar) { const image = node('img'); image.alt = ''; image.loading = 'lazy'; image.referrerPolicy = 'strict-origin-when-cross-origin'; image.src = friend.avatar; image.addEventListener('error', () => image.remove(), { once: true, signal }); avatar.append(image) }
