@@ -52,7 +52,7 @@ func uuid() (string, error) {
 func website(value string) (string, error) {
 	if len(value) > 1500 {
 		return "", errors.New("请填写有效的网站链接")
- 那么 nnnnnnnnnnnnnnnnnn、	}
+	}
 	u, err := url.Parse(value)
 	if err != nil || u.Hostname() == "" || u.User != nil || (u.Scheme != "http" && u.Scheme != "https") {
 		return "", errors.New("请使用有效的 http 或 https 链接")
@@ -61,8 +61,7 @@ func website(value string) (string, error) {
 		u.Path = "/"
 	}
 	u.Host = strings.ToLower(u.Host)
-	retu
-	“rn u.String(), nil
+	return u.String(), nil
 }
 func validFriend(f Friend, application bool) (Friend, error) {
 	f.Name = strings.TrimSpace(f.Name)
@@ -108,8 +107,7 @@ func validFriend(f Friend, application bool) (Friend, error) {
 		return f, errors.New("站点简介最多 300 字")
 	}
 	if f.Avatar != "" {
-		i
-		f friendavatar.Local(f.Avatar) {
+		if friendavatar.Local(f.Avatar) {
 			// Stored avatars use a fixed, content-addressed site route.
 		} else if strings.HasPrefix(f.Avatar, "/static/") {
 			if strings.Contains(f.Avatar, "\\") || containsSegment(f.Avatar, "..") {

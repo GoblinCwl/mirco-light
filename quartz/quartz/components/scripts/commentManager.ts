@@ -8,7 +8,7 @@ import { commentContent } from './commentContent'
 
 type Request = (path: string, init?: RequestInit) => Promise<any>
 type Comment = { id:number; nick:string; content:string; content_marked?:string; date:string; page_key:string; page_url?:string; rid:number; is_pending:boolean; is_pinned:boolean; is_collapsed:boolean; avatarSeed?:string; isAdmin?:boolean }
-type User = { id:number; name:string; email:string; link:string; is_admin:boolean; receive_email:boolean; badge_name:string; badge_color:string; protected:boolean; avatarSeed?:string }
+type User = { id:number; name:string; email:string; link:string; is_admin:boolean; receive_email:boolean; badge_name:string; badge_color:string; avatarSeed?:string }
 const button = (title:string, action:()=>void) => { const el=node('button',title);el.type='button';el.onclick=action;return el }
 
 export function setupCommentManager(root:HTMLElement, signal:AbortSignal, request:Request) {
@@ -62,9 +62,9 @@ export function setupCommentManager(root:HTMLElement, signal:AbortSignal, reques
   const name=dialog.field('昵称',item?.name||''),email=dialog.field('邮箱',item?.email||'','email'),link=dialog.field('网址',item?.link||'','url'),badge=dialog.field('徽章文字',item?.badge_name||''),color=dialog.field('徽章颜色',item?.badge_color||''),password=dialog.field(item?'重设密码（留空保持原密码）':'密码（可选）','','password')
   name.required=email.required=true;name.maxLength=200;email.maxLength=320;password.autocomplete='new-password';password.minLength=12
   const checkbox=(title:string,checked:boolean)=>{const label=node('label','','comment-admin-checkbox'),input=node('input');input.type='checkbox';input.setAttribute('role','switch');input.checked=checked;label.append(input,node('span',title));dialog.body.append(label);return input}
-  const admin=checkbox('管理员',item?.is_admin||false),receive=checkbox('接收邮件通知',item?.receive_email??true)
-  dialog.note('重设密码至少 12 个字符。本站同步管理员账号在服务接入中管理。')
-  dialog.run(()=>mutate(`/admin/comments/users${item?`/${item.id}`:''}`,{method:item?'PUT':'POST',body:JSON.stringify({name:name.value,email:email.value,link:link.value,badge_name:badge.value,badge_color:color.value,password:password.value,is_admin:admin.checked,receive_email:receive.checked})}))
+  const receive=checkbox('接收邮件通知',item?.receive_email??true)
+  dialog.note('重设密码至少 12 个字符。')
+  dialog.run(()=>mutate(`/admin/comments/users${item?`/${item.id}`:''}`,{method:item?'PUT':'POST',body:JSON.stringify({name:name.value,email:email.value,link:link.value,badge_name:badge.value,badge_color:color.value,password:password.value,is_admin:false,receive_email:receive.checked})}))
  }
  const toggle=(item:Comment,key:'is_pending'|'is_pinned'|'is_collapsed')=>{
   if(mutating)return
@@ -91,9 +91,8 @@ export function setupCommentManager(root:HTMLElement, signal:AbortSignal, reques
  const renderUsers=(items:User[])=>{
   for(const item of items){
    const card=node('section','','comment-admin-card'),header=node('header'),title=node('strong',item.name),role=node('span',item.is_admin?'管理员':'普通用户','stellar-admin-badge'),meta=node('p',`#${item.id} · ${item.email}${item.badge_name?` · ${item.badge_name}`:''}`,'comment-admin-meta'),actions=node('div','','comment-admin-actions'),edit=button('编辑',()=>editUser(item)),del=button('删除',()=>remove(item))
-   const author=node('div','','comment-admin-author'),copy=node('div','','comment-admin-author-copy');copy.append(title,role);author.append(avatar(item.name,item.avatarSeed,item.is_admin),copy);header.append(author,actions);edit.disabled=del.disabled=!!item.protected;del.className='is-danger';actions.append(edit,del)
+   const author=node('div','','comment-admin-author'),copy=node('div','','comment-admin-author-copy');copy.append(title,role);author.append(avatar(item.name,item.avatarSeed,item.is_admin),copy);header.append(author,actions);del.className='is-danger';actions.append(edit,del)
    card.append(header,meta,node('p',item.link||'未填写网址','comment-admin-meta'))
-   if(item.protected)card.append(node('p','本站同步管理员 · 受保护','comment-admin-meta'))
    list.append(card)
   }
  }
@@ -114,8 +113,9 @@ export function setupCommentManager(root:HTMLElement, signal:AbortSignal, reques
  function select(value:'comments'|'users'){
   if(mutating)return
   kind=value;page=1;search.value='';commentTab.setAttribute('aria-pressed',String(kind==='comments'));userTab.setAttribute('aria-pressed',String(kind==='users'));create.hidden=kind!=='users'
+  filter.hidden=kind==='users'
   filter.replaceChildren()
-  for(const [value,title] of kind==='comments'?[['all','全部评论'],['pending','待审核']]:[['all','全部用户'],['admin','管理员']]){const option=node('option',title);option.value=value;filter.append(option)}
+  for(const [value,title] of kind==='comments'?[['all','全部评论'],['pending','待审核']]:[['all','普通用户']]){const option=node('option',title);option.value=value;filter.append(option)}
   void load(1)
  }
  signal.addEventListener('abort',()=>{revision++},{once:true})

@@ -1,6 +1,6 @@
 // Artalk Comments styles to support ReaderMode
 
-.artalk-comments {
+:is(.artalk-comments, .bili-comments) {
   transition: opacity 280ms ease-out;
 
   :root[reader-mode="on"] & {
@@ -12,5 +12,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .artalk-comments { transition: none; }
+  :is(.artalk-comments, .bili-comments) { transition: none; }
 }

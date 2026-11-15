@@ -93,3 +93,58 @@ func TestCommentImagesUpgradeTrustedCDNToHTTPS(t *testing.T) {
 		}
 	}
 }
+
+func TestCommentChronologicalOrderAndReverseCursor(t *testing.T) {
+	ctx := context.Background()
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "order.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	for _, q := range []string{`CREATE TABLE videos(bvid TEXT,title TEXT,cover TEXT,description TEXT,duration INTEGER,published_at TEXT,play INTEGER,danmaku INTEGER,comment_count INTEGER,fetched_at TEXT)`, `CREATE TABLE video_meta(key TEXT PRIMARY KEY,value TEXT)`, `INSERT INTO videos VALUES('BV1ua4W6XEJd','','','',1,'',0,0,1,'')`} {
+		if _, err = db.Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	detail, _ := json.Marshal(map[string]any{"stats": map[string]any{}, "updatedAt": stamp()})
+	db.Exec("INSERT INTO video_meta VALUES(?,?)", "detail:BV1ua4W6XEJd", string(detail))
+	var requests []string
+	s := &Service{Store: Store{DB: db, MID: "123"}, Client: &Client{HTTP: &http.Client{Transport: transport(func(r *http.Request) (*http.Response, error) {
+		body := `{"code":0,"data":{"bvid":"BV1ua4W6XEJd","aid":123,"owner":{"mid":123}}}`
+		if r.URL.Path == "/x/v2/reply/main" {
+			requests = append(requests, r.URL.RawQuery)
+			if r.URL.Query().Get("mode") != "2" {
+				t.Fatal("chronological order must use time mode")
+			}
+			body = `{"code":0,"data":{"cursor":{"all_count":80,"next":22,"prev":23,"is_end":false,"is_begin":false},"replies":[{"rpid_str":"200","ctime":200,"member":{},"content":{}},{"rpid_str":"100","ctime":100,"member":{},"content":{}}]}}`
+			if r.URL.Query().Get("prev") == "23" {
+				body = `{"code":0,"data":{"cursor":{"all_count":80,"prev":0,"is_begin":true},"replies":[{"rpid_str":"300","ctime":300,"member":{},"content":{}}]}}`
+			}
+		}
+		return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body))}, nil
+	})}}}
+	latest, err := s.Comments(ctx, "BV1ua4W6XEJd", "", 1, "0", "newest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldest, err := s.Comments(ctx, "BV1ua4W6XEJd", "", 1, "0", "oldest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if latest["items"].([]map[string]any)[0]["id"] != "200" || oldest["items"].([]map[string]any)[0]["id"] != "100" {
+		t.Fatal("wrong chronological order", latest, oldest)
+	}
+	if !strings.Contains(requests[0], "next=0") || !strings.Contains(requests[1], "prev=1") {
+		t.Fatal(requests)
+	}
+	if oldest["nextCursor"] != "23" || oldest["total"] != float64(80) {
+		t.Fatal(oldest)
+	}
+	last, err := s.Comments(ctx, "BV1ua4W6XEJd", "", 2, "23", "oldest")
+	if err != nil || last["hasMore"] != false {
+		t.Fatal(last, err)
+	}
+	if _, err = s.Comments(ctx, "BV1ua4W6XEJd", "", 1, "0", "unknown"); err == nil {
+		t.Fatal("invalid sort accepted")
+	}
+}

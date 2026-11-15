@@ -1,8 +1,9 @@
-// Prefer registered Gravatars; use site-owned artwork when none is available.
+// Prefer Gravatar, then Cravatar; otherwise generate the site-owned avatar.
 const avatarCache = new Map<string, string>()
-const gravatarChecks = new Map<string, Promise<boolean>>()
+const avatarChecks = new Map<string, Promise<boolean>>()
 const boundAvatars = new WeakMap<HTMLImageElement, string>()
-const selectedGravatars = new WeakMap<HTMLImageElement, boolean>()
+const selectedAvatars = new WeakMap<HTMLImageElement, string | null>()
+const md5Checks = new Map<string, Promise<string>>()
 const avatarPrefix = "data:image/svg+xml,"
 const adminAvatar = "/static/avatars/goblincwl-profile-transparent-v1.webp"
 // Recognize both current SHA-256 and legacy MD5 email hashes; the caller must
@@ -20,8 +21,8 @@ export function commentAvatar(seed: string, isAdmin = false): string {
     : identicon(seed)
 }
 
-function hasGravatar(source: string): Promise<boolean> {
-  const cached = gravatarChecks.get(source)
+function hasRemoteAvatar(source: string): Promise<boolean> {
+  const cached = avatarChecks.get(source)
   if (cached) return cached
   const check = new Promise<boolean>((resolve) => {
     const probe = new Image()
@@ -36,9 +37,38 @@ function hasGravatar(source: string): Promise<boolean> {
     probe.onerror = () => finish(false)
     probe.src = source
   })
-  if (gravatarChecks.size >= 256) gravatarChecks.delete(gravatarChecks.keys().next().value!)
-  gravatarChecks.set(source, check)
+  if (avatarChecks.size >= 256) avatarChecks.delete(avatarChecks.keys().next().value!)
+  avatarChecks.set(source, check)
   return check
+}
+
+async function cravatarSource(seed: string): Promise<string | null> {
+  let hash = seed
+  if (hash.length === 64) {
+    let pending = md5Checks.get(hash)
+    if (!pending) {
+      pending = (async () => {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 5000)
+        try {
+          const response = await fetch('/api/comments/avatar-hash?hash=' + encodeURIComponent(hash), { signal: controller.signal, credentials: 'omit' })
+          if (!response.ok) return ''
+          const value = await response.json()
+          return typeof value.hash === 'string' && /^[a-f0-9]{32}$/.test(value.hash) ? value.hash : ''
+        } catch { return '' } finally { clearTimeout(timeout) }
+      })()
+      if (md5Checks.size >= 256) md5Checks.delete(md5Checks.keys().next().value!)
+      md5Checks.set(hash, pending)
+    }
+    hash = await pending
+  }
+  if (!/^[a-f0-9]{32}$/.test(hash)) return null
+  const source = `https://cn.cravatar.com/avatar/${hash}?d=404&s=160`
+  return await hasRemoteAvatar(source) ? source : null
+}
+
+async function selectAvatar(source: string, seed: string): Promise<string | null> {
+  return await hasRemoteAvatar(source) ? source : cravatarSource(seed)
 }
 
 export function identicon(seed: string): string {
@@ -115,6 +145,9 @@ export function bindIdenticon(image: HTMLImageElement, fallbackSeed: string, exp
     image.removeAttribute("srcset")
     return
   }
+  // A selected Cravatar uses MD5 even when the original Artalk seed is SHA-256.
+  // Do not reinterpret its URL as a new identity when the src observer runs.
+  if (!explicitSeed && boundAvatars.has(image) && selectedAvatars.get(image) === original) return
   let generatedSeed: string | undefined
   if (original.startsWith(avatarPrefix)) {
     try {
@@ -132,38 +165,40 @@ export function bindIdenticon(image: HTMLImageElement, fallbackSeed: string, exp
     // Attribute observers also see our own updates; never restart the same probe.
     const binding = `${seed}:${source}`
     if (boundAvatars.get(image) === binding) {
-      const available = selectedGravatars.get(image)
+      const available = selectedAvatars.get(image)
       if (available !== undefined) {
         if (available) delete image.dataset.identiconSeed
-        const selected = available ? source : identicon(seed)
+        const selected = available || identicon(seed)
         if (original !== selected) image.src = selected
       }
       return
     }
     boundAvatars.set(image, binding)
-    selectedGravatars.delete(image)
+    selectedAvatars.delete(image)
     const visibility = image.style.visibility
     image.style.visibility = "hidden"
-    void hasGravatar(source).then(async (available) => {
+    void selectAvatar(source, seed).then(async (available) => {
       if (boundAvatars.get(image) !== binding) return
-      image.src = available ? source : identicon(seed)
+      selectedAvatars.set(image, available)
+      image.src = available || identicon(seed)
       try {
         await image.decode()
       } catch {
         if (boundAvatars.get(image) !== binding) return
+        available = null
+        selectedAvatars.set(image, null)
         image.src = identicon(seed)
         await image.decode().catch(() => {})
-        available = false
       }
       if (boundAvatars.get(image) !== binding) return
-      selectedGravatars.set(image, available)
+      selectedAvatars.set(image, available)
       if (available) delete image.dataset.identiconSeed
       image.style.visibility = visibility
     })
     return
   }
   boundAvatars.delete(image)
-  selectedGravatars.delete(image)
+  selectedAvatars.delete(image)
   image.classList.toggle("site-profile-avatar", source === adminAvatar)
   if (source === adminAvatar) delete image.dataset.identiconSeed
   else image.dataset.identiconSeed = seed
@@ -186,9 +221,9 @@ export function observeArtalkIdenticons(root: HTMLElement) {
 document.addEventListener("themechange", () => {
   for (const image of document.querySelectorAll<HTMLImageElement>("img[data-identicon-seed]")) {
     // Artalk can rebuild avatars while changing theme. Refresh only resolved,
-    // locally generated images, never an in-flight or registered Gravatar.
+    // locally generated images, never an in-flight or registered remote avatar.
     if (!image.getAttribute("src")?.startsWith(avatarPrefix)) continue
-    if (boundAvatars.has(image) && selectedGravatars.get(image) !== false) continue
+    if (boundAvatars.has(image) && selectedAvatars.get(image) !== null) continue
     image.src = identicon(image.dataset.identiconSeed!)
   }
 })

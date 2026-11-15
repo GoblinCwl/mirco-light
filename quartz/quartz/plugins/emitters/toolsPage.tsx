@@ -1,3 +1,4 @@
+import ScrollButton from "../../components/ScrollButton"
 import { QuartzEmitterPlugin } from "../types"
 import { ProcessedContent, defaultProcessedContent } from "../vfile"
 import { FullPageLayout } from "../../cfg"
@@ -11,7 +12,7 @@ import { pageResources, renderPage } from "../../components/renderPage"
 import { FullSlug, RelativeURL } from "../../util/path"
 import { BuildCtx } from "../../util/ctx"
 import { StaticResources } from "../../util/resources"
-import { defaultListPageLayout, sharedPageComponents, standardPageHeading } from "../../../quartz.layout"
+import { defaultContentPageLayout, defaultListPageLayout, sharedPageComponents, standardPageHeading } from "../../../quartz.layout"
 import { write } from "./helpers"
 import { escapeHTML, unescapeHTML } from "../../util/escape"
 import { toolPages } from "../../tools/config"
@@ -19,7 +20,7 @@ import { toolPages } from "../../tools/config"
 export const ToolsPage: QuartzEmitterPlugin = () => {
   const opts: FullPageLayout = {
     ...sharedPageComponents, ...defaultListPageLayout,
-    beforeBody: [...standardPageHeading({ crumbs: [{ displayName: "Home", path: "/" }, { displayName: "Share", path: "/Share/" }] }), CustomContentMeta({ showReadingTime: false, datePrefix: "更新于：", includeSeconds: true, placeholder: true })], afterBody: [sharedPageComponents.afterBody[0]], right: [DriveOperations()], pageBody: OpenList(),
+    beforeBody: [...standardPageHeading({ crumbs: [{ displayName: "Home", path: "/" }, { displayName: "Share", path: "/Share/" }] }), CustomContentMeta({ showReadingTime: false, datePrefix: "更新于：", includeSeconds: true, placeholder: true })], afterBody: [sharedPageComponents.afterBody[0]], left: defaultContentPageLayout.left, right: [DriveOperations(), ScrollButton()], pageBody: OpenList(),
   }
   const { head, header, beforeBody, pageBody, afterBody, left, right, footer } = opts
   async function* emit(ctx: BuildCtx, content: ProcessedContent[], resources: StaticResources) {

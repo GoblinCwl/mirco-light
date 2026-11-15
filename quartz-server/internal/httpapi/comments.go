@@ -10,9 +10,24 @@ import (
 )
 
 var commentPage = regexp.MustCompile(`^[1-9]\d{0,5}$`)
+var commentAvatarHash = regexp.MustCompile(`(?i)^[a-f0-9]{32}(?:[a-f0-9]{32})?$`)
 
 func (s *Server) comments(mux *http.ServeMux) {
 	if s.Comments != nil {
+		mux.HandleFunc("GET /api/comments/avatar-hash", func(w http.ResponseWriter, r *http.Request) {
+			hash := r.URL.Query().Get("hash")
+			if !commentAvatarHash.MatchString(hash) {
+				JSON(w, 400, map[string]string{"error": "头像哈希无效"})
+				return
+			}
+			value, err := s.Comments.AvatarHash(r.Context(), hash)
+			if err != nil {
+				JSON(w, 503, map[string]string{"error": "头像检测暂不可用"})
+				return
+			}
+			w.Header().Set("Cache-Control", "public, max-age=300")
+			JSON(w, 200, map[string]string{"hash": value})
+		})
 		mux.HandleFunc("GET /api/comments", func(w http.ResponseWriter, r *http.Request) {
 			page := r.URL.Query().Get("page")
 			if page == "" {

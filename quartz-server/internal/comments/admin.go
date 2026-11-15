@@ -23,9 +23,8 @@ func pick(value map[string]any, fields ...string) map[string]any {
 	}
 	return out
 }
-func adminUser(value map[string]any, protectedEmail string) map[string]any {
+func adminUser(value map[string]any) map[string]any {
 	out := pick(value, "id", "name", "email", "link", "is_admin", "receive_email", "badge_name", "badge_color", "created_at", "last_ip", "last_ua", "comment_count")
-	out["protected"] = strings.EqualFold(text(value["email"]), protectedEmail)
 	hash := sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(text(value["email"])))))
 	out["avatarSeed"] = hex.EncodeToString(hash[:])
 	return out
@@ -52,13 +51,10 @@ func (a *Archive) AdminList(ctx context.Context, kind string, page int, search, 
 		query.Set("sort_by", "date_desc")
 		path = "/api/v2/comments"
 	case "users":
-		if filter != "" && filter != "all" && filter != "admin" {
+		if filter != "" && filter != "all" {
 			return nil, errors.New("用户筛选无效")
 		}
-		if filter == "" {
-			filter = "all"
-		}
-		path = "/api/v2/users/" + filter
+		return a.ordinaryUsers(ctx, page, search)
 	default:
 		return nil, errors.New("管理类型无效")
 	}
@@ -67,23 +63,68 @@ func (a *Archive) AdminList(ctx context.Context, kind string, page int, search, 
 		return nil, err
 	}
 	items := []any{}
-	_, credentials, _, err := a.Client.configuration(ctx)
-	if err != nil {
-		return nil, err
-	}
 	for _, entry := range list(value[kind]) {
 		row := object(entry)
-		if kind == "users" {
-			items = append(items, adminUser(row, text(credentials["email"])))
-		} else {
-			item := pick(row, "id", "nick", "content", "content_marked", "date", "page_key", "page_url", "rid", "site_name", "is_pending", "is_pinned", "is_collapsed", "user_id")
-			item["avatarSeed"] = strings.ToLower(text(row["email_encrypted"]))
-			badge := text(row["badge_name"])
-			item["isAdmin"] = badge == "管理员" || badge == "拾光者"
-			items = append(items, item)
-		}
+		item := pick(row, "id", "nick", "content", "content_marked", "date", "page_key", "page_url", "rid", "site_name", "is_pending", "is_pinned", "is_collapsed", "user_id")
+		item["avatarSeed"] = strings.ToLower(text(row["email_encrypted"]))
+		badge := text(row["badge_name"])
+		item["isAdmin"] = badge == "管理员" || badge == "拾光者"
+		items = append(items, item)
 	}
 	return map[string]any{"items": items, "total": value["count"], "page": page, "pageSize": adminPageSize}, nil
+}
+
+// Artalk has no non-admin filter. Read bounded chunks until the requested
+// ordinary-user page is full; subtract matching admins from the upstream total.
+func (a *Archive) ordinaryUsers(ctx context.Context, page int, search string) (map[string]any, error) {
+	const chunk = 100
+	start, seen, total := (page-1)*adminPageSize, 0, 0
+	items := []any{}
+	for offset := 0; ; {
+		query := url.Values{"limit": {strconv.Itoa(chunk)}, "offset": {strconv.Itoa(offset)}, "search": {search}}
+		value, err := a.Client.Do(ctx, "/api/v2/users/all?"+query.Encode(), true, "GET", nil)
+		if err != nil {
+			return nil, err
+		}
+		rows := list(value["users"])
+		all, ok := integer(value["count"])
+		if !ok {
+			return nil, errors.New("用户统计无效")
+		}
+		complete := offset == 0 && int64(len(rows)) >= all
+		if offset == 0 && !complete {
+			admins, err := a.Client.Do(ctx, "/api/v2/users/admin?"+url.Values{"limit": {"1"}, "offset": {"0"}, "search": {search}}.Encode(), true, "GET", nil)
+			if err != nil {
+				return nil, err
+			}
+			count, ok := integer(admins["count"])
+			if !ok {
+				return nil, errors.New("管理员统计无效")
+			}
+			total = max(0, int(all-count))
+			if start >= total {
+				break
+			}
+		}
+		for _, entry := range rows {
+			row := object(entry)
+			if row["is_admin"] == true {
+				continue
+			}
+			if seen >= start && len(items) < adminPageSize {
+				items = append(items, adminUser(row))
+			}
+			seen++
+		}
+		if complete {
+			total = seen
+		}
+		if len(items) == adminPageSize || len(rows) == 0 || int64(offset+len(rows)) >= all {
+			break
+		}
+		offset += len(rows)
+	}
+	return map[string]any{"items": items, "total": total, "page": page, "pageSize": adminPageSize}, nil
 }
 func (a *Archive) findUser(ctx context.Context, id int64) (map[string]any, error) {
 	for offset := 0; offset < 100000; offset += 100 {
@@ -191,14 +232,14 @@ func (a *Archive) AdminMutate(ctx context.Context, kind, method string, id int64
 		if err != nil {
 			return err
 		}
-		protectedEmail := text(credentials["email"])
+		adminEmail := text(credentials["email"])
 		if method != "POST" {
 			current, err := a.findUser(ctx, id)
 			if err != nil {
 				return err
 			}
-			if strings.EqualFold(text(current["email"]), protectedEmail) {
-				return errors.New("本站同步管理员账号受保护，请通过服务接入配置管理")
+			if current["is_admin"] == true {
+				return errors.New("管理员账号不能在此处修改或删除")
 			}
 		}
 		if method != "DELETE" {
@@ -206,8 +247,11 @@ func (a *Archive) AdminMutate(ctx context.Context, kind, method string, id int64
 			if err != nil {
 				return err
 			}
-			if strings.EqualFold(text(payload["email"]), protectedEmail) {
-				return errors.New("不能占用本站同步管理员邮箱")
+			if payload["is_admin"] == true {
+				return errors.New("此处仅管理普通用户")
+			}
+			if strings.EqualFold(text(payload["email"]), adminEmail) {
+				return errors.New("不能使用管理员邮箱")
 			}
 			if method == "POST" {
 				path = "/api/v2/users"

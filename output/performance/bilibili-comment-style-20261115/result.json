@@ -1,0 +1,59 @@
+{
+  "artalk": {
+    "avatar": [
+      "50px",
+      "50px",
+      "7px"
+    ],
+    "name": [
+      "15px",
+      "400",
+      "rgb(123, 151, 170)"
+    ],
+    "date": [
+      "13px",
+      "0.6",
+      "rgb(212, 212, 212)"
+    ],
+    "body": [
+      "16px",
+      "25.6px",
+      "rgb(212, 212, 212)"
+    ],
+    "grid": [
+      "50px 712px",
+      "13px"
+    ]
+  },
+  "bilibili": {
+    "avatar": [
+      "50px",
+      "50px",
+      "7px"
+    ],
+    "name": [
+      "15px",
+      "400",
+      "rgb(123, 151, 170)"
+    ],
+    "date": [
+      "13px",
+      "0.6",
+      "rgb(212, 212, 212)"
+    ],
+    "body": [
+      "16px",
+      "25.6px",
+      "rgb(212, 212, 212)"
+    ],
+    "grid": [
+      "50px 712px",
+      "13px"
+    ]
+  },
+  "replyAvatar": 50,
+  "upColor": "#fb7299",
+  "readonly": true,
+  "errors": [],
+  "blockedVisits": 3
+}

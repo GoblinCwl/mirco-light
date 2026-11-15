@@ -1,14 +1,21 @@
+import {commentToolbar, type CommentOrder} from './commentToolbar'
 import {node} from './driveUi'
 type Reply={id:string;mid:string;name:string;avatar:string;message:string;createdAt:number;likes:number;replyCount:number;owner:boolean;pinned:boolean;emotes:Record<string,string>;replies:Reply[]}
 type Page={items:Reply[];page:number;pages:number;total:number;hasMore?:boolean;nextCursor?:string}
 const imageURL=(raw:string)=>{try{const url=new URL(raw);return url.protocol==='https:'&&url.hostname.endsWith('.hdslb.com')?url.href:''}catch{return ''}}
 export function setupBilibiliComments(root:HTMLElement,bvid:string,signal:AbortSignal){
+ let order:CommentOrder='newest',revision=0,controller=new AbortController()
+ const toolbar=commentToolbar(value=>{
+  controller.abort();controller=new AbortController();revision++;order=value;busy=false;nextPage=1;hasMore=true;shown.clear();cursors.clear();cursors.set(1,'0');observer?.unobserve(paging);list.replaceChildren();paging.replaceChildren();toolbar.setOrder(order);void load(1)
+ }, 'B站原生热门排序')
  const list=node('div','','bili-comment-list'),paging=node('nav','','bili-comment-pagination')
- root.append(list,paging);root.classList.add('bili-comments');root.setAttribute('aria-label','Bilibili 评论')
+ root.append(toolbar.element,list,paging);root.classList.add('bili-comments');root.setAttribute('aria-label','Bilibili 评论')
  const cursors=new Map<number,string>([[1,'0']])
  const request=async(page:number,replyRoot='')=>{
-  const query=new URLSearchParams({bvid,page:String(page)});if(replyRoot)query.set('root',replyRoot);else query.set('cursor',cursors.get(page)||'0')
-  const response=await fetch('/api/video/comments?'+query,{signal,credentials:'omit'}),data=await response.json()
+  const query=new URLSearchParams({bvid,page:String(page),sort:order});if(replyRoot)query.set('root',replyRoot);else query.set('cursor',cursors.get(page)||'0')
+  const requestSignal=controller.signal
+  const response=await fetch('/api/video/comments?'+query,{signal:requestSignal,credentials:'omit'}),data=await response.json()
+  if(requestSignal.aborted)throw new DOMException('Aborted','AbortError')
   if(!response.ok)throw Error(data.error||'评论读取失败');if(!replyRoot&&data.nextCursor)cursors.set(page+1,data.nextCursor);return data as Page
  }
  const message=(reply:Reply)=>{
@@ -16,7 +23,7 @@ export function setupBilibiliComments(root:HTMLElement,bvid:string,signal:AbortS
   const pattern=labels.length?new RegExp('('+labels.map(label=>label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')','g'):undefined
   for(const part of pattern?reply.message.split(pattern):[reply.message]){
    const url=imageURL(reply.emotes?.[part]||'')
-   if(url){const img=node('img');img.src=url;img.alt=part;img.title=part;img.loading='lazy';img.className='bili-comment-emote';img.referrerPolicy='no-referrer';body.append(img)}else body.append(document.createTextNode(part))
+   if(url){const img=node('img');img.src=url;img.alt=part;img.title=part;img.loading='lazy';img.className='bili-comment-emote comments-emoticon';img.referrerPolicy='no-referrer';body.append(img)}else body.append(document.createTextNode(part))
   }
   return body
  }
@@ -28,10 +35,10 @@ export function setupBilibiliComments(root:HTMLElement,bvid:string,signal:AbortS
  const renderReply=(reply:Reply,nested=false)=>{
   const row=node('article','','bili-comment'+(nested?' is-reply':'')),avatar=node('span',Array.from(reply.name||'?')[0],'bili-comment-avatar'),content=node('div','','bili-comment-content'),meta=node('div','','bili-comment-meta'),name=node('a',reply.name||'Bilibili 用户')
   if(/^[1-9][0-9]*$/.test(reply.mid)){name.href='https://space.bilibili.com/'+reply.mid;name.target='_blank';name.rel='noopener noreferrer';name.dataset.noPopover='true'}
-  const src=imageURL(reply.avatar);if(src){const image=node('img');image.src=src;image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.onerror=()=>image.remove();avatar.append(image)}
-  meta.append(name);if(reply.owner)meta.append(node('span','UP','bili-comment-badge bili-comment-up'));if(reply.pinned)meta.append(node('span','置顶','bili-comment-badge'))
-  const date=node('time',reply.createdAt?new Date(reply.createdAt*1000).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false}):'');meta.append(date)
-  const likes=node('span',`赞 ${reply.likes||0}`,'bili-comment-likes');content.append(meta,message(reply),likes);row.append(avatar,content)
+  const src=imageURL(reply.avatar);if(src){const image=node('img');image.src=src;image.alt='';image.dataset.noLightbox='true';image.loading='lazy';image.referrerPolicy='no-referrer';image.onerror=()=>image.remove();avatar.append(image)}
+  if(reply.owner)name.classList.add('bili-comment-owner');meta.append(name);if(reply.pinned)meta.append(node('span','置顶','bili-comment-badge'))
+  const date=node('time',reply.createdAt?new Date(reply.createdAt*1000).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false}):'');if(reply.createdAt)date.dateTime=new Date(reply.createdAt*1000).toISOString();meta.append(date)
+  content.append(meta,message(reply));row.append(avatar,content)
   if(!nested){
    const replies=node('div','','bili-comment-replies');for(const child of reply.replies||[])replies.append(renderReply(child,true));content.append(replies)
    if(reply.replyCount>(reply.replies?.length||0)){
@@ -60,25 +67,27 @@ export function setupBilibiliComments(root:HTMLElement,bvid:string,signal:AbortS
  const observer=typeof IntersectionObserver==='undefined'?undefined:new IntersectionObserver(entries=>{
   if(entries.some(entry=>entry.isIntersecting)&&hasMore&&!busy)void load(nextPage)
  },{rootMargin:'0px 0px 240px 0px'})
- signal.addEventListener('abort',()=>observer?.disconnect(),{once:true})
+ signal.addEventListener('abort',()=>{controller.abort();observer?.disconnect()},{once:true})
  const load=async(page:number)=>{
   if(busy||signal.aborted||!hasMore)return
-  busy=true;observer?.unobserve(paging);root.setAttribute('aria-busy','true')
+  const currentRevision=revision
+  busy=true;toolbar.setBusy(true);observer?.unobserve(paging);root.setAttribute('aria-busy','true')
   paging.replaceChildren(node('span',page===1?'正在读取 Bilibili 评论…':'正在加载更多评论…','bili-comment-status'))
   let loaded=false
   try{
-   const value=await request(page);if(signal.aborted)return
+   const value=await request(page);if(signal.aborted||currentRevision!==revision)return
+   toolbar.setTotal(value.total)
    for(const reply of value.items){if(shown.has(reply.id))continue;shown.add(reply.id);list.append(renderReply(reply))}
    nextPage=page+1;hasMore=value.hasMore===true;loaded=true
    paging.replaceChildren()
-   if(!shown.size){hasMore=false;list.append(node('p','暂无公开评论','bili-comment-status'))}
-   else if(!hasMore)paging.append(node('span','已显示全部评论','bili-comment-status'))
-   else if(!observer){const more=node('button','加载更多评论');more.type='button';more.onclick=()=>void load(nextPage);paging.append(more)}
-   else paging.append(node('span','继续下滑加载评论','bili-comment-status'))
+   if(!shown.size){hasMore=false}
+   else if(hasMore&&!observer){const more=node('button','加载更多评论');more.type='button';more.onclick=()=>void load(nextPage);paging.append(more)}
+   else if(hasMore)paging.append(node('span','继续下滑加载评论','bili-comment-status'))
   }catch(error){
-   if(!signal.aborted){const status=node('span',error instanceof Error?error.message:'评论读取失败','bili-comment-status'),retry=node('button','重试');retry.type='button';retry.onclick=()=>void load(page);paging.replaceChildren(status,retry)}
+   if(!signal.aborted&&currentRevision===revision){const status=node('span',error instanceof Error?error.message:'评论读取失败','bili-comment-status'),retry=node('button','重试');retry.type='button';retry.onclick=()=>void load(page);paging.replaceChildren(status,retry)}
   }finally{
-   busy=false;if(!signal.aborted){root.setAttribute('aria-busy','false');if(loaded&&hasMore)observer?.observe(paging)}
+   if(currentRevision===revision){busy=false;toolbar.setBusy(false)}
+   if(!signal.aborted&&currentRevision===revision){root.setAttribute('aria-busy','false');if(loaded&&hasMore)observer?.observe(paging)}
   }
  }
  void load(1)

@@ -1,10 +1,12 @@
 package video
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -57,6 +59,13 @@ func publicReply(raw any, owner string) map[string]any {
 	return map[string]any{"id": replyID(row, "rpid"), "mid": mid, "name": text(member["uname"]), "avatar": commentImage(text(member["avatar"])), "message": text(content["message"]), "createdAt": row["ctime"], "likes": row["like"], "replyCount": row["rcount"], "owner": mid == owner, "emotes": emotes, "replies": replies}
 }
 func (s *Service) Comments(ctx context.Context, bvid, root string, page int, cursors ...string) (map[string]any, error) {
+	order := "hot"
+	if len(cursors) > 1 && cursors[1] != "" {
+		order = cursors[1]
+	}
+	if order != "newest" && order != "oldest" && order != "hot" {
+		return nil, &Problem{"评论排序无效", 400}
+	}
 	cursor := "0"
 	if len(cursors) > 0 && cursors[0] != "" {
 		cursor = cursors[0]
@@ -70,7 +79,7 @@ func (s *Service) Comments(ctx context.Context, bvid, root string, page int, cur
 	if _, err := s.Detail(ctx, bvid); err != nil {
 		return nil, err
 	}
-	key := fmt.Sprintf("%s:%s:%d:%s", bvid, root, page, cursor)
+	key := fmt.Sprintf("%s:%s:%d:%s:%s", bvid, root, page, cursor, order)
 	return s.CommentsCache.Get(ctx, key, 2*time.Minute, false, func(ctx context.Context) (map[string]any, error) {
 		// Public comments are fetched anonymously: never expose owner-only moderation data.
 		view, err := s.CommentsCache.Get(ctx, "aid:"+bvid, time.Hour, false, func(ctx context.Context) (map[string]any, error) {
@@ -85,7 +94,17 @@ func (s *Service) Comments(ctx context.Context, bvid, root string, page int, cur
 		}
 		ownerN, _ := numeric(object(view["owner"])["mid"])
 		owner := strconv.FormatInt(int64(ownerN), 10)
-		endpoint := fmt.Sprintf("/x/v2/reply/main?type=1&oid=%.0f&mode=3&next=%s&ps=20", aid, cursor)
+		mode, direction := 3, "next"
+		if order != "hot" {
+			mode = 2
+		}
+		if order == "oldest" {
+			direction = "prev"
+			if cursor == "0" {
+				cursor = "1"
+			}
+		}
+		endpoint := fmt.Sprintf("/x/v2/reply/main?type=1&oid=%.0f&mode=%d&%s=%s&ps=20", aid, mode, direction, cursor)
 		if root != "" {
 			endpoint = fmt.Sprintf("/x/v2/reply/reply?type=1&oid=%.0f&root=%s&pn=%d&ps=10", aid, root, page)
 		}
@@ -105,7 +124,7 @@ func (s *Service) Comments(ctx context.Context, bvid, root string, page int, cur
 				}
 			}
 		}
-		if root == "" && page == 1 {
+		if root == "" && page == 1 && order == "hot" {
 			add(object(data["upper"])["top"], true)
 			add(object(data["top"])["upper"], true)
 			for _, raw := range list(data["top_replies"]) {
@@ -125,7 +144,22 @@ func (s *Service) Comments(ctx context.Context, bvid, root string, page int, cur
 			c := object(data["cursor"])
 			total, _ := numeric(c["all_count"])
 			next, _ := numeric(c["next"])
-			hasMore := c["is_end"] == false && len(replies) > 0 && next > 0 && strconv.FormatInt(int64(next), 10) != cursor
+			atEnd := c["is_end"]
+			if order == "oldest" {
+				next, _ = numeric(c["prev"])
+				atEnd = c["is_begin"]
+			}
+			if order != "hot" {
+				slices.SortStableFunc(replies, func(a, b map[string]any) int {
+					first, _ := numeric(a["createdAt"])
+					second, _ := numeric(b["createdAt"])
+					if order == "oldest" {
+						return cmp.Compare(first, second)
+					}
+					return cmp.Compare(second, first)
+				})
+			}
+			hasMore := atEnd == false && len(replies) > 0 && next > 0 && strconv.FormatInt(int64(next), 10) != cursor
 			pages := page
 			if hasMore {
 				pages++

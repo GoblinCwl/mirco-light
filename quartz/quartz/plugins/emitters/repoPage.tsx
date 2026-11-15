@@ -1,3 +1,4 @@
+import ScrollButton from "../../components/ScrollButton"
 import CustomContentMeta from "../../components/CustomContentMeta"
 import { QuartzEmitterPlugin } from "../types"
 import { FullPageLayout } from "../../cfg"
@@ -7,12 +8,12 @@ import { pageResources, renderPage } from "../../components/renderPage"
 import Repo, { RepoSidebar } from "../../components/pages/Repo"
 import Header from "../../components/Header"
 import Body from "../../components/Body"
-import { defaultListPageLayout, sharedPageComponents, standardPageHeading } from "../../../quartz.layout"
+import { defaultContentPageLayout, defaultListPageLayout, sharedPageComponents, standardPageHeading } from "../../../quartz.layout"
 import { write } from "./helpers"
 import { escapeHTML, unescapeHTML } from "../../util/escape"
 
 export const RepoPage: QuartzEmitterPlugin = () => {
-  const layout: FullPageLayout = { ...sharedPageComponents, ...defaultListPageLayout, beforeBody: [...standardPageHeading({ crumbs: [{ displayName: "Home", path: "/" }, { displayName: "Repo", path: "/Repo/" }] }), CustomContentMeta({ showReadingTime: false, datePrefix: "更新于：", includeSeconds: true, placeholder: true })], afterBody: sharedPageComponents.afterBody, right: [RepoSidebar], pageBody: Repo() }
+  const layout: FullPageLayout = { ...sharedPageComponents, ...defaultListPageLayout, beforeBody: [...standardPageHeading({ crumbs: [{ displayName: "Home", path: "/" }, { displayName: "Repo", path: "/Repo/" }] }), CustomContentMeta({ showReadingTime: false, datePrefix: "更新于：", includeSeconds: true, placeholder: true })], afterBody: sharedPageComponents.afterBody, left: defaultContentPageLayout.left, right: [RepoSidebar, ScrollButton()], pageBody: Repo() }
   const emit: NonNullable<ReturnType<QuartzEmitterPlugin>["emit"]> = async function* (ctx, content, resources) {
     const slug = "Repo/index" as FullSlug
     const [tree, file] = defaultProcessedContent({ slug, frontmatter: { title: "星域: Repo", description: "开源项目、代码与版本记录", tags: [] } })

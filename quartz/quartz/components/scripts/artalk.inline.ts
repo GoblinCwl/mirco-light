@@ -1,3 +1,4 @@
+import { commentToolbar, type CommentOrder } from "./commentToolbar"
 import {readSiteSettings} from './siteSettings'
 import { syncArtalkNotificationTheme } from "./artalkNotificationTheme"
 import { commentAvatar, observeArtalkIdenticons } from "./identicon"
@@ -6,7 +7,24 @@ import { observeArtalkAdminLogout, syncArtalkAdminSession, useSiteArtalkAdminVer
 
 // Keep labels consistent after Artalk renders, paginates or updates a vote.
 function observeCommentLabels(root: HTMLElement) {
+  let toolbar: ReturnType<typeof commentToolbar> | undefined
   const update = () => {
+    const header = root.querySelector<HTMLElement>(".atk-list-header")
+    if (header) {
+      if (!toolbar || !header.contains(toolbar.element)) {
+        toolbar = commentToolbar(order => {
+          const index = { newest: 0, oldest: 2, hot: 1 }[order]
+          root.querySelectorAll<HTMLElement>(".atk-comment-count .atk-dropdown-item > span")[index]?.click()
+          toolbar?.setOrder(order)
+        })
+        header.prepend(toolbar.element)
+      }
+      const count = root.querySelector(".atk-comment-count-num")?.textContent?.trim()
+      toolbar.setTotal(count && /^\d+$/.test(count) ? Number(count) : undefined)
+      const active = root.querySelector(".atk-comment-count .atk-dropdown-item.active")?.textContent?.trim()
+      const order: CommentOrder = active === "最早" ? "oldest" : active === "最热" ? "hot" : "newest"
+      toolbar.setOrder(order)
+    }
     if (root.dataset.adminOnly === "true") for (const notice of root.querySelectorAll(".atk-comment-closed")) notice.remove()
     // Draft restoration stays enabled; its informational toast is unnecessary.
     for (const content of root.querySelectorAll<HTMLElement>(".atk-notify-wrap .atk-notify-content")) {
@@ -35,12 +53,20 @@ function observeCommentLabels(root: HTMLElement) {
     for (const nick of root.querySelectorAll<HTMLElement>(".atk-reply-at .atk-nick, .atk-reply-to .atk-nick")) {
       nick.classList.toggle("comment-admin-name", adminNames.has(nick.textContent?.trim()))
     }
-    for (const action of root.querySelectorAll<HTMLElement>(".atk-actions")) {
-      const walker = document.createTreeWalker(action, NodeFilter.SHOW_TEXT)
-      let node: Node | null
-      while ((node = walker.nextNode())) {
-        if (node.textContent?.includes("赞同")) node.textContent = node.textContent.replace(/赞同/g, "共鸣")
-      }
+    for (const action of root.querySelectorAll<HTMLElement>(".atk-actions > .atk-common-action-btn")) {
+      const label = action.textContent?.trim() || ""
+      const reply = ["回复", "回覆", "Reply"].includes(label)
+      const vote = /^(赞同|共鸣|讚同|Vote|Upvote)(?:\s|\(|$)/i.test(label)
+      action.classList.toggle("comment-inline-action", reply || vote)
+      if (reply) action.dataset.commentReply = "true"
+    }
+    for (const content of root.querySelectorAll<HTMLElement>(".atk-comment > .atk-main > .atk-body > .atk-content, .atk-comment > .atk-avatar")) {
+      const reply = content.closest(".atk-comment")?.querySelector(":scope > .atk-main > .atk-footer [data-comment-reply]")
+      if (!reply) continue
+      content.tabIndex = 0
+      content.setAttribute("role", "button")
+      content.setAttribute("aria-label", "回复此评论")
+      content.classList.add("comment-click-reply")
     }
   }
   const observer = new MutationObserver(update)
@@ -48,13 +74,32 @@ function observeCommentLabels(root: HTMLElement) {
   update()
   const preventIdentityNavigation = (event: Event) => {
     if (!(event.target instanceof Element) || !event.target.closest(".atk-avatar, .atk-nick, .atk-reply-at")) return
+    if (event.type === "click" && event.target.closest(".atk-avatar")) replyFromContent(event as MouseEvent)
     event.preventDefault()
     event.stopImmediatePropagation()
   }
+  const replyFromContent = (event: MouseEvent | KeyboardEvent) => {
+    if (!(event.target instanceof Element)) return
+    const content = event.target.closest<HTMLElement>(".comment-click-reply")
+    if (!content) return
+    const avatar = content.classList.contains("atk-avatar")
+    if (!avatar && event.target.closest("a, button, input, textarea, select, img, video, audio, pre, code, [contenteditable]")) return
+    if (event instanceof KeyboardEvent) {
+      if (event.target !== content || !["Enter", " "].includes(event.key)) return
+    } else if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || window.getSelection()?.toString()) return
+    const reply = content.closest(".atk-comment")?.querySelector<HTMLElement>(":scope > .atk-main > .atk-footer [data-comment-reply]")
+    if (!reply) return
+    event.preventDefault()
+    reply.click()
+  }
+  root.addEventListener("click", replyFromContent)
+  root.addEventListener("keydown", replyFromContent)
   root.addEventListener("click", preventIdentityNavigation, true)
   root.addEventListener("auxclick", preventIdentityNavigation, true)
   return () => {
     observer.disconnect()
+    root.removeEventListener("click", replyFromContent)
+    root.removeEventListener("keydown", replyFromContent)
     root.removeEventListener("click", preventIdentityNavigation, true)
     root.removeEventListener("auxclick", preventIdentityNavigation, true)
   }

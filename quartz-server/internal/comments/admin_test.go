@@ -3,8 +3,10 @@ package comments
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -28,7 +30,7 @@ func TestAdminListAndMutations(t *testing.T) {
 			}
 			json.NewEncoder(w).Encode(map[string]any{"count": 21, "comments": []any{map[string]any{"id": 7, "content": "<script>unsafe</script>", "ip": "private", "token": "secret"}}})
 		case r.Method == "GET" && r.URL.Path == "/api/v2/users/all":
-			json.NewEncoder(w).Encode(map[string]any{"count": 2, "users": []any{map[string]any{"id": 1, "name": "Admin", "email": "admin@example.test", "is_admin": true, "password": "secret"}, map[string]any{"id": 2, "name": "Visitor", "email": "visitor@example.test", "is_admin": false}}})
+			json.NewEncoder(w).Encode(map[string]any{"count": 3, "users": []any{map[string]any{"id": 1, "name": "Admin", "email": "admin@example.test", "is_admin": true, "password": "secret"}, map[string]any{"id": 2, "name": "Visitor", "email": "visitor@example.test", "is_admin": false}, map[string]any{"id": 3, "name": "Other Admin", "email": "other-admin@example.test", "is_admin": true}}})
 		case r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/api/v2/comments/"):
 			site := "my-site"
 			if strings.HasSuffix(r.URL.Path, "8") {
@@ -62,8 +64,8 @@ func TestAdminListAndMutations(t *testing.T) {
 		t.Fatal(err)
 	}
 	users := value["items"].([]any)
-	if users[0].(map[string]any)["protected"] != true {
-		t.Fatal("configured user not protected")
+	if len(users) != 1 || users[0].(map[string]any)["id"] != float64(2) || value["total"] != 1 {
+		t.Fatal("administrator accounts must be excluded from rows and count", value)
 	}
 	raw, _ = json.Marshal(value)
 	if strings.Contains(string(raw), "password") {
@@ -77,8 +79,10 @@ func TestAdminListAndMutations(t *testing.T) {
 	}
 	before := mutations
 	for _, kind := range []string{"PUT", "DELETE"} {
-		if err = archive.AdminMutate(ctx, "users", kind, 1, map[string]any{}); err == nil {
-			t.Fatal("configured user was mutable")
+		for _, id := range []int64{1, 3} {
+			if err = archive.AdminMutate(ctx, "users", kind, id, map[string]any{}); err == nil {
+				t.Fatal("administrator was mutable", id)
+			}
 		}
 	}
 	if err = archive.AdminMutate(ctx, "comments", "DELETE", 8, nil); err == nil {
@@ -97,7 +101,69 @@ func TestAdminListAndMutations(t *testing.T) {
 	if updated["name"] != "Visitor" || updated["password"] != "a-long-test-password" {
 		t.Fatal("user update missing fields")
 	}
+	before = mutations
+	user["is_admin"] = true
+	for _, operation := range []string{"POST", "PUT"} {
+		if err = archive.AdminMutate(ctx, "users", operation, 2, user); err == nil {
+			t.Fatal("ordinary-user management allowed administrator creation or promotion")
+		}
+	}
+	if mutations != before {
+		t.Fatal("administrator mutation reached upstream")
+	}
+	user["is_admin"] = false
 	if err = archive.AdminMutate(ctx, "users", "DELETE", 2, nil); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestOrdinaryUsersPaginationSkipsAdministratorOnlyChunks(t *testing.T) {
+	rows := []any{}
+	for id := 1; id <= 137; id++ {
+		rows = append(rows, map[string]any{"id": id, "name": "needle", "email": fmt.Sprintf("user%d@example.test", id), "is_admin": id <= 110})
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v2/auth/email/login" {
+			json.NewEncoder(w).Encode(map[string]any{"token": "token"})
+			return
+		}
+		if r.URL.Query().Get("search") != "needle" {
+			t.Error("search not propagated")
+		}
+		switch r.URL.Path {
+		case "/api/v2/users/admin":
+			json.NewEncoder(w).Encode(map[string]any{"count": 110, "users": []any{}})
+		case "/api/v2/users/all":
+			offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+			start, end := min(offset, len(rows)), min(offset+limit, len(rows))
+			json.NewEncoder(w).Encode(map[string]any{"count": len(rows), "users": rows[start:end]})
+		default:
+			t.Error("unexpected path", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	archive := &Archive{Client: &Client{Settings: func(context.Context) (map[string]any, error) {
+		return map[string]any{"api.artalk.url": server.URL, "api.artalk.email": "admin@example.test", "api.artalk.password": "secret"}, nil
+	}}}
+	for page := 1; page <= 3; page++ {
+		result, err := archive.AdminList(context.Background(), "users", page, "needle", "all")
+		if err != nil {
+			t.Fatal(err)
+		}
+		items := result["items"].([]any)
+		expected := max(0, min(20, 27-(page-1)*20))
+		if result["total"] != 27 || len(items) != expected {
+			t.Fatal("wrong non-admin pagination", page, result)
+		}
+		for i, item := range items {
+			row := item.(map[string]any)
+			if row["is_admin"] != false || row["id"] != float64(111+(page-1)*20+i) {
+				t.Fatal("wrong ordinary user", row)
+			}
+		}
+	}
+	if _, err := archive.AdminList(context.Background(), "users", 1, "", "admin"); err == nil {
+		t.Fatal("administrator listing accepted")
 	}
 }

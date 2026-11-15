@@ -14,10 +14,12 @@ html.pure-mode body {
   }
 
   // Project pages use custom right panels rather than the article TOC.
-  // Hide their whole sidebar, including mobile launchers using display:contents.
+  // Hide custom panels while retaining the shared fixed scroll/theme controls.
   &:is([data-slug^="Share/"], [data-slug^="Repo/"], [data-slug^="Video/"]) {
     #quartz-body > .sidebar.right {
-      display: none !important;
+      display: contents !important;
+      opacity: 1 !important;
+      > :not(.scroll-buttons) { display: none !important; }
     }
   }
 

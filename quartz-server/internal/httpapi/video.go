@@ -48,7 +48,7 @@ func (s *Server) video(mux *http.ServeMux) {
 				}
 				page = parsed
 			}
-			value, err := s.Video.Comments(r.Context(), r.URL.Query().Get("bvid"), r.URL.Query().Get("root"), page, r.URL.Query().Get("cursor"))
+			value, err := s.Video.Comments(r.Context(), r.URL.Query().Get("bvid"), r.URL.Query().Get("root"), page, r.URL.Query().Get("cursor"), r.URL.Query().Get("sort"))
 			if err != nil {
 				fail(w, err)
 				return

@@ -235,7 +235,7 @@ html[data-theme="dark"] .artalk .atk-textarea-wrap .atk-textarea {
   > .atk-main > .atk-body > .atk-content { @include comment.content; }
   > .atk-main > .atk-footer {
     margin-top: 0;
-    .atk-actions { font-size: 0.85rem; color: var(--darkgray); }
+    .atk-actions { @include comment.actions; }
   }
   > .atk-comment-children { grid-column: 1 / -1; }
 }
@@ -390,3 +390,33 @@ body:not([data-slug="index"]):not([data-slug^="Share/"]) .center:has(#artalk-com
 
 .page-footer:has(#artalk-comments[hidden]) { display: none; }
 #artalk-comments[hidden] { display: none !important; }
+
+// Preserve native Artalk reply handling while making the body its entry point.
+#artalk-comments .comment-inline-action { display: none !important; }
+#artalk-comments .comment-click-reply {
+  cursor: pointer;
+  &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; }
+}
+
+// The shared toolbar replaces Artalk’s native counter and sorting dropdown.
+#artalk-comments .atk-comment-count {
+  display: none !important;
+}
+
+#artalk-comments .atk-avatar.comment-click-reply > img { cursor: pointer; }
+
+.page-footer:has(#artalk-comments:not([hidden])) {
+  @include comment.page-end;
+}
+
+@include comment.toolbar;
+
+#artalk-comments .atk-list-header {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  padding: 0;
+  .comment-toolbar { flex: 1; min-width: 0; width: auto; }
+  .atk-right-action { flex: 0 0 auto; width: auto; }
+  .atk-right-action:not(:has(> :not(.atk-hide))) { display: none; }
+}

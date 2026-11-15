@@ -1,3 +1,4 @@
+import ScrollButton from "../../components/ScrollButton"
 import CustomContentMeta from "../../components/CustomContentMeta"
 import { QuartzEmitterPlugin } from "../types"
 import { FullPageLayout } from "../../cfg"
@@ -7,12 +8,12 @@ import { pageResources, renderPage } from "../../components/renderPage"
 import Video, { VideoSidebar } from "../../components/pages/Video"
 import Header from "../../components/Header"
 import Body from "../../components/Body"
-import { defaultListPageLayout, sharedPageComponents, standardPageHeading } from "../../../quartz.layout"
+import { defaultContentPageLayout, defaultListPageLayout, sharedPageComponents, standardPageHeading } from "../../../quartz.layout"
 import { write } from "./helpers"
 import { escapeHTML, unescapeHTML } from "../../util/escape"
 
 export const VideoPage: QuartzEmitterPlugin = () => {
-  const layout: FullPageLayout = { ...sharedPageComponents, ...defaultListPageLayout, beforeBody: [...standardPageHeading({ crumbs: [{ displayName: "Home", path: "/" }, { displayName: "Video", path: "/Video/" }] }), CustomContentMeta({ showReadingTime: false, datePrefix: "更新于：", includeSeconds: true, placeholder: true })], afterBody: [], right: [VideoSidebar], pageBody: Video() }
+  const layout: FullPageLayout = { ...sharedPageComponents, ...defaultListPageLayout, beforeBody: [...standardPageHeading({ crumbs: [{ displayName: "Home", path: "/" }, { displayName: "Video", path: "/Video/" }] }), CustomContentMeta({ showReadingTime: false, datePrefix: "更新于：", includeSeconds: true, placeholder: true })], afterBody: [], left: defaultContentPageLayout.left, right: [VideoSidebar, ScrollButton()], pageBody: Video() }
   const emit: NonNullable<ReturnType<QuartzEmitterPlugin>["emit"]> = async function* (ctx, content, resources) {
     const slug = "Video/index" as FullSlug
     const [tree, file] = defaultProcessedContent({ slug, frontmatter: { title: "星域: Video", description: "视频创作与系列记录", tags: [] } })
