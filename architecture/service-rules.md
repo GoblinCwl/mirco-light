@@ -433,4 +433,4 @@ Artalk 用户回复通知使用 `artalk/templates/reply.html`，Compose 只读�
 
 评论总数与排序由 Artalk、Bilibili 共用 `commentToolbar` 组件及 `commentShared.toolbar` 样式。保留最新／最早／热门三项，不展示原生 Artalk 下拉。Artalk 委托原生 date_desc／date_asc／vote；Bilibili 时间排序使用 mode=2 的 next／prev 游标，最早从 prev=1 开始并反转单页，不先抓取全部评论。热门复用 B 站 mode=3 原生排序；总数取平台 all_count（含回复），切换排序清空旧列表和游标、取消旧请求，各排序独立缓存。
 
-评论头像统一优先检测 Gravatar，再检测 Cravatar（cn.cravatar.com，d=404），均不可用才使用前端生成头像；管理员固定头像不受影响。Artalk 的 SHA-256 邮箱哈希由后端读取用户资料后映射到 MD5，映射通过已有缓存合并并缓存五分钟；公开接口只返回指定用户对应的头像哈希，不返回邮箱或用户列表。各头像在探测和解码完成后展示，远程头像不随主题切换被覆盖；评论区、评论汇总页与管理列表共用 identicon 模块。
+评论头像统一只检测 Cravatar（cn.cravatar.com，d=404，由该服务处理其 Gravatar／QQ 回退），不可用才使用前端生成头像；浏览器不独立请求 Gravatar。管理员固定头像不受影响。Artalk 的 SHA-256 邮箱哈希由后端读取用户资料后映射到 MD5，映射通过已有缓存合并并缓存五分钟；公开接口只返回指定用户对应的头像哈希，不返回邮箱或用户列表。各头像在探测和解码完成后展示，远程头像不随主题切换被覆盖；评论区、评论汇总页与管理列表共用 identicon 模块。

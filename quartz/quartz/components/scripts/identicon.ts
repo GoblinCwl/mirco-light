@@ -1,4 +1,4 @@
-// Prefer Gravatar, then Cravatar; otherwise generate the site-owned avatar.
+// Resolve avatars through Cravatar; otherwise generate the site-owned avatar.
 const avatarCache = new Map<string, string>()
 const avatarChecks = new Map<string, Promise<boolean>>()
 const boundAvatars = new WeakMap<HTMLImageElement, string>()
@@ -17,7 +17,9 @@ export function commentAvatar(seed: string, isAdmin = false): string {
   const hash = seed.trim().toLowerCase()
   if (isAdmin && adminSeeds.has(hash)) return adminAvatar
   return /^(?:[a-f\d]{32}|[a-f\d]{64})$/.test(hash)
-    ? `https://www.gravatar.com/avatar/${hash}?d=404&s=160&r=g`
+    // A transparent seed placeholder avoids both premature remote requests
+    // and showing a generated avatar before the asynchronous check completes.
+    ? avatarPrefix + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" data-avatar-seed="${hash}"/>`)
     : identicon(seed)
 }
 
@@ -65,10 +67,6 @@ async function cravatarSource(seed: string): Promise<string | null> {
   if (!/^[a-f0-9]{32}$/.test(hash)) return null
   const source = `https://cn.cravatar.com/avatar/${hash}?d=404&s=160`
   return await hasRemoteAvatar(source) ? source : null
-}
-
-async function selectAvatar(source: string, seed: string): Promise<string | null> {
-  return await hasRemoteAvatar(source) ? source : cravatarSource(seed)
 }
 
 export function identicon(seed: string): string {
@@ -158,7 +156,7 @@ export function bindIdenticon(image: HTMLImageElement, fallbackSeed: string, exp
   const hash = original.match(/\/avatar\/([a-f\d]{32,64})/i)?.[1]?.toLowerCase()
   const seed = explicitSeed || generatedSeed || hash || image.dataset.identiconSeed || fallbackSeed
   const source = commentAvatar(seed, isAdmin)
-  if (source.startsWith("https://www.gravatar.com/avatar/")) {
+  if (/^(?:[a-f\d]{32}|[a-f\d]{64})$/.test(seed) && source !== adminAvatar) {
     image.dataset.identiconSeed = seed
     image.classList.remove("site-profile-avatar")
     image.removeAttribute("srcset")
@@ -177,7 +175,7 @@ export function bindIdenticon(image: HTMLImageElement, fallbackSeed: string, exp
     selectedAvatars.delete(image)
     const visibility = image.style.visibility
     image.style.visibility = "hidden"
-    void selectAvatar(source, seed).then(async (available) => {
+    void cravatarSource(seed).then(async (available) => {
       if (boundAvatars.get(image) !== binding) return
       selectedAvatars.set(image, available)
       image.src = available || identicon(seed)

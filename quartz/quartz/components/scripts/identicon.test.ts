@@ -11,6 +11,7 @@ test("avatars stay hidden until selected and decoded; missing avatars use local 
     location: { origin: "https://example.com" },
   })
   let requests = 0
+  const sources: string[] = []
   Object.assign(globalThis, { fetch: async (url: string) => ({ ok: true, json: async () => ({ hash: url.includes("e".repeat(64)) ? "c".repeat(32) : "d".repeat(32) }) }) })
   class Probe {
     naturalWidth = 80
@@ -19,6 +20,7 @@ test("avatars stay hidden until selected and decoded; missing avatars use local 
     onerror: (() => void) | null = null
     set src(value: string) {
       requests++
+      sources.push(value)
       queueMicrotask(() => (value.includes("a".repeat(32)) || value.includes("cn.cravatar.com/avatar/" + "c".repeat(32))) ? this.onload?.() : this.onerror?.())
     }
   }
@@ -48,7 +50,8 @@ test("avatars stay hidden until selected and decoded; missing avatars use local 
   assert.equal(registered.style.visibility, "hidden")
   assert.equal(missing.style.visibility, "hidden")
   await new Promise(resolve => setTimeout(resolve, 0))
-  assert.match(registered.src, /^https:\/\/www.gravatar.com\/avatar\//)
+  assert.match(registered.src, /^https:\/\/cn.cravatar.com\/avatar\//)
+  assert.ok(sources.every(source => source.startsWith("https://cn.cravatar.com/avatar/")))
   assert.equal(registered.dataset.identiconSeed, undefined)
   assert.match(missing.src, /^data:image\/svg\+xml,/)
   assert.equal(registered.style.visibility, "")
@@ -60,7 +63,7 @@ test("avatars stay hidden until selected and decoded; missing avatars use local 
   assert.equal(cravatarSha.src, cravatar.src)
   assert.match(cravatar.src, /^https:\/\/cn\.cravatar\.com\/avatar\//)
   assert.equal(cravatar.style.visibility, "")
-  assert.equal(requests, 6)
+  assert.equal(requests, 3)
   // Artalk may regenerate src when its theme changes; preserve the decision.
   missing.src = commentAvatar("b".repeat(64))
   bindIdenticon(missing, "visitor")
@@ -74,7 +77,7 @@ test("avatars stay hidden until selected and decoded; missing avatars use local 
   cravatar.src = commentAvatar("c".repeat(32))
   bindIdenticon(cravatar, "visitor")
   assert.equal(cravatar.src, cravatarSource)
-  assert.equal(requests, 6)
+  assert.equal(requests, 3)
   assert.equal(registered.dataset.identiconSeed, undefined)
   assert.match(missing.src, /^data:image\/svg\+xml,/)
   assert.match(commentAvatar("nickname"), /^data:image\/svg\+xml,/)
