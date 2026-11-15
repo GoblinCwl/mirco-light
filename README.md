@@ -10,6 +10,10 @@ Quartz 相关资源：
 - [官方网站与使用文档](https://quartz.jzhao.xyz/)
 - [上游 MIT 许可证](quartz/LICENSE.txt)，保留于本项目的 Quartz 工程中。
 
+相关链接：
+- [星碑](https://goblincwl.site/about)
+- [微光集模块构成与实现思路](https://goblincwl.site/Memo/MicroLight/%E5%BE%AE%E5%85%89%E9%9B%86%E6%A8%A1%E5%9D%97%E6%9E%84%E6%88%90%E4%B8%8E%E5%AE%9E%E7%8E%B0%E6%80%9D%E8%B7%AF)
+
 本项目新增代码采用 [MIT 许可证](LICENSE)。Quartz 及其他第三方代码、依赖与资源保留各自的版权声明和许可证。
 
 ## 部署
