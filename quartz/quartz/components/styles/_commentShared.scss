@@ -168,6 +168,7 @@
 }
 
 @mixin loading-and-likes {
+  .comment-is-loading .atk-list-no-comment { visibility:hidden; }
   .comment-load-stage { position: relative; overflow-anchor: none; }
   .comment-is-loading > :not(.comment-local-loader) { opacity: .22; pointer-events: none; }
   .comment-local-loader {
@@ -203,4 +204,22 @@
   border: 0;
   border-radius: 3px;
   margin: 0;
+}
+
+@mixin empty {
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ box-sizing:border-box;
+ min-height:150px;
+ height:auto;
+ margin:0;
+ padding:0;
+ text-align:center;
+ word-break:break-word;
+ font-family:var(--bodyFont);
+ font-size:19px;
+ font-weight:400;
+ line-height:1.5;
+ color:var(--darkgray);
 }

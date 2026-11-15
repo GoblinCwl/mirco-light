@@ -462,3 +462,5 @@ body:not([data-slug="index"]):not([data-slug^="Share/"]) .center:has(#artalk-com
 #artalk-comments .atk-main-editor .atk-send-btn { @include comment.send-colors; }
 
 #artalk-comments .atk-header .atk-pinned-badge { @include comment.pinned-badge; }
+
+#artalk-comments .atk-list-no-comment { @include comment.empty; }

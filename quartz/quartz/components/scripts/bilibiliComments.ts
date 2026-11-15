@@ -1,3 +1,4 @@
+import {commentEmpty} from "./commentEmpty"
 import {homeIcons} from "../../home/icons"
 import {commentLoading} from './commentLoading'
 import {setCommentLikes} from './commentLikes'
@@ -94,7 +95,12 @@ export function setupBilibiliComments(root:HTMLElement,bvid:string,signal:AbortS
    for(const reply of value.items){if(shown.has(reply.id))continue;shown.add(reply.id);list.append(renderReply(reply))}
    nextPage=page+1;hasMore=value.hasMore===true;loaded=true
    paging.replaceChildren()
-   if(!shown.size){hasMore=false}
+   if(!shown.size){
+    hasMore=false
+    const empty=await commentEmpty(controller.signal)
+    if(signal.aborted||currentRevision!==revision)return
+    list.replaceChildren(empty)
+   }
    else if(hasMore&&!observer){const more=node('button','加载更多评论');more.type='button';more.onclick=()=>void load(nextPage);paging.append(more)}
    else if(hasMore)paging.append(node('span','继续下滑加载评论','bili-comment-status'))
   }catch(error){
