@@ -1,0 +1,22 @@
+const {chromium}=require('/app/node_modules/playwright');const assert=require('node:assert/strict');const fs=require('fs');
+(async()=>{
+const browser=await chromium.launch({headless:true,executablePath:'/ms-playwright/chromium-1243/chrome-linux64/chrome',args:['--no-sandbox','--enable-unsafe-swiftshader']});
+const browserSession=await browser.newBrowserCDPSession();const system=await browserSession.send('SystemInfo.getInfo');console.log('browser',browser.version(),'gpu',JSON.stringify(system.gpu.devices));
+const context=await browser.newContext({viewport:{width:1920,height:1080}});let blockedVisits=0;
+await context.route('**/api/visitors/visit',route=>{blockedVisits++;return route.fulfill({status:200,contentType:'application/json',body:'{"isNew":false}'})});
+const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto('https://goblincwl.site/',{waitUntil:'domcontentloaded'});await page.locator('.graph-container[data-graph-ready] canvas').first().waitFor({timeout:60000});
+await page.locator('.visitor-comet').first().waitFor();await page.waitForTimeout(3000);
+const mutations=async()=>page.evaluate(()=>new Promise(resolve=>{let n=0;const observer=new MutationObserver(records=>n+=records.length);observer.observe(document.querySelector('[data-visitor-sky]'),{subtree:true,attributes:true});setTimeout(()=>{observer.disconnect();resolve(n)},600)}));
+assert.ok(await mutations()>0,'visible comets animate');
+const gradients=await page.locator('[data-visitor-sky] radialGradient').count();assert.ok(gradients<=6,'identical gradients are reused');
+await page.locator('.global-graph-icon:visible').first().click();await page.locator('.global-graph-container canvas').first().waitFor();await page.waitForTimeout(3000);
+assert.equal(await page.locator('html').getAttribute('data-graph-expanded'),'');assert.equal(await mutations(),0,'covered visitor animation pauses');
+const repo=page.locator('.global-graph-container:visible [data-graph-kind="repo"]');await repo.click();assert.equal(await repo.getAttribute('aria-pressed'),'false');await repo.click();assert.equal(await repo.getAttribute('aria-pressed'),'true');
+const canvas=page.locator('.global-graph-container:visible canvas');const box=await canvas.boundingBox();await page.mouse.move(box.x+box.width*.7,box.y+box.height*.4);await page.mouse.down();await page.mouse.move(box.x+box.width*.7+50,box.y+box.height*.4+40,{steps:12});await page.mouse.up();await page.mouse.wheel(0,-80);await page.waitForTimeout(1000);
+await page.screenshot({path:'/work/verified-light-large.png'});
+await page.emulateMedia({colorScheme:'dark'});await page.waitForTimeout(4000);await page.screenshot({path:'/work/verified-dark-large.png'});
+await page.keyboard.press('Escape');await page.waitForTimeout(1500);assert.equal(await page.locator('html').getAttribute('data-graph-expanded'),null);assert.ok(await mutations()>0,'comets resume after closing');await page.screenshot({path:'/work/verified-dark-small.png'});
+assert.deepEqual(errors,[]);assert.ok(blockedVisits>0);console.log(JSON.stringify({visibleAnimation:true,overlayPauses:true,closingResumes:true,gradients,filter:true,panZoom:true,themes:['light','dark'],errors,blockedVisits}));
+fs.writeFileSync('/work/verification.json',JSON.stringify({passed:true,gradients,errors,blockedVisits},null,2));await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});

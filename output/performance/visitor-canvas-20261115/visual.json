@@ -1,0 +1,60 @@
+[
+  {
+    "theme": "light",
+    "mode": "svg",
+    "errors": [],
+    "box": {
+      "x": 964.5,
+      "y": 730.609375,
+      "width": 413,
+      "height": 276.8125
+    },
+    "nodes": 803,
+    "cometOpacity": {
+      "css": "0.8",
+      "attribute": "0.178"
+    }
+  },
+  {
+    "theme": "light",
+    "mode": "canvas",
+    "errors": [],
+    "box": {
+      "x": 964.5,
+      "y": 730.609375,
+      "width": 413,
+      "height": 276.8125
+    },
+    "nodes": 2,
+    "cometOpacity": null
+  },
+  {
+    "theme": "dark",
+    "mode": "svg",
+    "errors": [],
+    "box": {
+      "x": 964.5,
+      "y": 729.609375,
+      "width": 413,
+      "height": 277.8125
+    },
+    "nodes": 803,
+    "cometOpacity": {
+      "css": "0.8",
+      "attribute": "0.178"
+    }
+  },
+  {
+    "theme": "dark",
+    "mode": "canvas",
+    "errors": [],
+    "box": {
+      "x": 964.5,
+      "y": 729.609375,
+      "width": 413,
+      "height": 277.8125
+    },
+    "nodes": 2,
+    "cometOpacity": null
+  }
+]

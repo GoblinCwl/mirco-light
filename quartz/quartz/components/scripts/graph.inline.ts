@@ -1183,6 +1183,7 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
     for (const container of containers) {
       if (!container.parentElement?.offsetWidth) continue
       expandedGraphOpen = true
+      document.documentElement.setAttribute("data-graph-expanded", "")
       container.classList.add("active")
       const sidebar = container.closest(".sidebar") as HTMLElement
       if (sidebar) {
@@ -1212,6 +1213,7 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
   function hideGlobalGraph() {
     globalOpenRequest++
     expandedGraphOpen = false
+    document.documentElement.removeAttribute("data-graph-expanded")
     cleanupGlobalGraphs()
     for (const container of containers) {
       container.classList.remove("active")
@@ -1262,6 +1264,7 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
   // @ts-ignore
   window.addCleanup(() => {
     expandedGraphOpen = false
+    document.documentElement.removeAttribute("data-graph-expanded")
     document.removeEventListener("keydown", shortcutHandler)
     cleanupLocalGraphs(true)
     cleanupGlobalGraphs()

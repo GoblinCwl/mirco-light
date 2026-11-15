@@ -1784,9 +1784,12 @@ body[data-slug="index"] {
     small { color: var(--gray); font-size: 0.65rem; }
   }
   .home-visitor-sky {
+    // Keep frequent SVG orbit updates isolated from the surrounding dashboard.
+    contain: layout style;
+    > :is(svg, canvas) { will-change: transform; }
     min-height: 10rem;
     position: relative;
-    svg { display: block; width: 100%; height: auto; overflow: visible; }
+    :is(svg, canvas) { display: block; width: 100%; height: auto; overflow: visible; }
     .visitor-comet { cursor: default; opacity: 0.75; }
     .visitor-comet:hover, .visitor-comet:focus-visible { outline: none; }
     .visitor-comet.is-own { opacity: 1; filter: drop-shadow(0 0 3px #83d9ff); }
@@ -1846,7 +1849,7 @@ body[data-slug="index"] {
     flex: 1;
     min-height: 0;
     margin-top: 0.4rem;
-    svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    :is(svg, canvas) { position: absolute; inset: 0; width: 100%; height: 100%; }
     .visitor-comet { opacity: 0.9; }
   }
   @media (max-width: 800px) {
@@ -1915,7 +1918,7 @@ body[data-slug="index"] .home-visitors .home-visitor-sky {
   overflow: visible;
   pointer-events: auto;
   user-select: none;
-  svg {
+  :is(svg, canvas) {
     overflow: hidden;
     pointer-events: auto;
     -webkit-mask-image: radial-gradient(ellipse, #000 48%, transparent 74%);
