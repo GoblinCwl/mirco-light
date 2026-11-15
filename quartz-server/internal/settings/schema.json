@@ -1,5 +1,16 @@
 [
   {
+    "key": "external.favicons",
+    "public": true,
+    "group": "外链",
+    "category": "网站图标",
+    "label": "域名与图标地址",
+    "type": "textarea",
+    "default": "www.travellings.cn=https://www.travellings.cn/assets/favicon.png",
+    "max": 16384,
+    "help": "每行一项：域名=完整图标地址，最多60项。例如 www.travellings.cn=https://www.travellings.cn/assets/favicon.png。精确匹配域名，子域名单独配置；保存后生效。未配置或地址不可用时尝试根目录 favicon.ico、favicon.png。"
+  },
+  {
     "key": "api.jellyfin.url",
     "public": false,
     "group": "服务接入",

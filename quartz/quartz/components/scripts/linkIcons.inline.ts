@@ -1,11 +1,11 @@
 import {readContentCatalog,peekContentCatalog,type ContentCatalog} from "./contentCatalog"
 import {linkIconKind,linkIconSVG,articleLinkRoutes} from '../../util/linkIcons'
 
-const bodySelector='.center article.popover-hint,.center article#content,.center .repo-markdown,.center .drive-metadata,.center .drive-media-overview'
+const bodySelector='body:not([data-slug="index"]) .center article.popover-hint,body:not([data-slug="index"]) .center article#content,.center .repo-markdown,.center .drive-metadata,.center .drive-media-overview'
 
 function decorate(link:HTMLAnchorElement,articles?:ReadonlySet<string>){
  if(!(link instanceof HTMLAnchorElement))return
- if(!link.closest(bodySelector)||link.closest('.sidebar,.backlinks,.toc,.page-header,.page-footer,.popover')){link.querySelectorAll('[data-link-icon]').forEach(icon=>icon.remove());return}
+ if(!link.closest(bodySelector)||link.closest('.sidebar,.backlinks,.toc,.page-header,.page-footer,.popover,.home-tiles,.home-hitokoto')){link.querySelectorAll('[data-link-icon]').forEach(icon=>icon.remove());return}
  const href=link.getAttribute('href')||'',kind=linkIconKind(href,location.href,articles)
  link.querySelectorAll('.external-icon').forEach(icon=>icon.remove())
  const own=link.querySelector<SVGElement>('svg[data-link-icon]')

@@ -500,7 +500,7 @@ document.addEventListener('nav', () => {
   fragment.append(dust)
   const rope=document.createElementNS('http://www.w3.org/2000/svg','svg');rope.classList.add('friends-letter-rope');rope.setAttribute('aria-hidden','true');fragment.append(rope)
   friends.forEach((friend,i)=>{
-   const letter=node('a','','friend-letter');letter.classList.toggle('is-unavailable',(friend.healthFailures||0)>0);if((friend.healthFailures||0)>0)letter.setAttribute('aria-label',`${friend.name}，暂时无法访问`);letter.href=friend.url;letter.target='_blank';letter.rel='noopener noreferrer';letter.dataset.noPopover='true';letter.draggable=false;letter.dataset.tone=String(i%5);letter.dataset.cardNumber=String(friend.number??i+1).padStart(3,'0');letter.id=`friend-card-${letter.dataset.cardNumber}`
+   const letter=node('a','','friend-letter');letter.dataset.externalLinkTitle=friend.name;letter.classList.toggle('is-unavailable',(friend.healthFailures||0)>0);if((friend.healthFailures||0)>0)letter.setAttribute('aria-label',`${friend.name}，暂时无法访问`);letter.href=friend.url;letter.target='_blank';letter.rel='noopener noreferrer';letter.dataset.noPopover='true';letter.draggable=false;letter.dataset.tone=String(i%5);letter.dataset.cardNumber=String(friend.number??i+1).padStart(3,'0');letter.id=`friend-card-${letter.dataset.cardNumber}`
    let mobileSeed=2166136261
    for(const character of friend.id)mobileSeed=Math.imul(mobileSeed^character.charCodeAt(0),16777619)
    const mobileRandom=()=>{mobileSeed|=0;mobileSeed=mobileSeed+0x6D2B79F5|0;let n=Math.imul(mobileSeed^mobileSeed>>>15,1|mobileSeed);n^=n+Math.imul(n^n>>>7,61|n);return ((n^n>>>14)>>>0)/4294967296}

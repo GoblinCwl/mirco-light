@@ -1,3 +1,4 @@
+@use "driveLoading";
 @use "sidebarPanel";
 @use "siteScrollbar";
 @use "formSelect";
@@ -60,7 +61,7 @@
   input::placeholder, textarea::placeholder { color: var(--drive-action-muted); opacity: 1; font-weight: 400; }
   input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]), select { min-height: var(--drive-control-height); }
   textarea { resize: vertical; min-height: 7rem; line-height: 1.6; }
-  button { min-height: var(--drive-control-height); font: inherit; font-size: .875rem; padding: .5rem .8rem; color: var(--secondary); background: transparent; border: 1px solid var(--lightgray); border-radius: 5px; cursor: pointer; overflow-wrap: anywhere; &:hover { background: var(--highlight); } &:disabled { opacity: .5; cursor: not-allowed; } &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; } }
+  button, a.drive-action-submit { min-height: var(--drive-control-height); font: inherit; font-size: .875rem; padding: .5rem .8rem; color: var(--secondary); background: transparent; border: 1px solid var(--lightgray); border-radius: 5px; cursor: pointer; overflow-wrap: anywhere; &:hover { background: var(--highlight); } &:disabled { opacity: .5; cursor: not-allowed; } &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; } }
   .drive-action-note { margin: 0; color: var(--drive-action-muted); font-size: .85rem; line-height: 1.6; }
   .drive-action-footer { display: flex; flex-shrink: 0; justify-content: flex-end; gap: .65rem; padding-top: .9rem; border-top: 1px solid var(--lightgray); }
   .password-visibility-toggle { min-height: 2rem; }
@@ -69,7 +70,8 @@
   .drive-action-body .site-date-field > .site-date-clear { min-height: 2rem; background: transparent; }
   .site-date-picker .site-date-time > .site-date-confirm { min-height: var(--drive-control-height); }
   .drive-action-body .site-date-field:focus-within { outline: 2px solid var(--secondary); outline-offset: -2px; }
-  button.drive-action-submit { background: var(--secondary); color: var(--light); border-color: var(--secondary); &:hover { opacity: .85; } &.is-danger { background: #a55760; border-color: #a55760; color: white; } }
+  a.drive-action-submit { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; text-decoration: none; }
+  :is(button,a).drive-action-submit { background: var(--secondary); color: var(--light); border-color: var(--secondary); &:hover { background: var(--secondary); color: var(--light); opacity: .85; } &.is-danger { background: #a55760; border-color: #a55760; color: white; } }
   .drive-download-list { display: grid; gap: .4rem; > button { text-align: left; } }
 }
 
@@ -399,3 +401,54 @@ dialog.drive-action-dialog .drive-password-field {
 .searchable-tag-select [hidden] {display:none!important;}
 
 .drive-action-dialog select[hidden] {display:none!important;}
+
+// Uses the site's details header, action controls and shared mobile bottom sheet.
+dialog.external-link-dialog {
+  width: min(29rem, calc(100vw - 2rem));
+  padding: 0;
+  form { gap: 0; max-height: min(85dvh, 52rem); }
+  .activity-details-header {
+    > button { min-height: 2rem; min-width: 2rem; padding: .25rem; }
+  }
+  .external-link-body { min-height: 0; overflow-y: auto; padding: 1.25rem; }
+  .external-link-intro { margin: 0 0 .85rem; font-size: .85rem; line-height: 1.6; color: var(--gray); }
+  .external-link-destination {
+    padding: 1rem; border: 1px solid var(--lightgray); border-radius: 8px;
+    background: var(--moreLight); min-width: 0;
+  }
+  .external-link-identity { display: flex; align-items: center; gap: .8rem; min-width: 0; }
+  .external-link-symbol {
+    display: flex; align-items: center; justify-content: center; flex: 0 0 2.65rem; height: 2.65rem;
+    border-radius: 8px; background: var(--highlight); color: var(--secondary);
+    overflow: hidden;
+    svg { width: 100%; height: 100%; }
+    img { display: block; width: 100%; height: 100%; margin: 0; border-radius: inherit; object-fit: contain; }
+    &.has-icon-padding :is(img,svg) { box-sizing: border-box; padding: .45rem; }
+  }
+  .external-link-icon-loading { @include driveLoading.spinner; }
+  .external-link-details {
+    display: grid; gap: .25rem; min-width: 0;
+    strong { color: var(--dark); font: 600 1rem/1.5 var(--bodyFont); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  }
+  .external-link-host { font-size: .8rem; line-height: 1.5; color: var(--gray); overflow-wrap: anywhere; }
+  .external-link-address {
+    margin: .9rem 0 0; padding-top: .8rem; border-top: 1px solid var(--lightgray);
+    max-height: 6rem; overflow-y: auto; overflow-wrap: anywhere; user-select: text;
+    color: var(--gray); font: .8rem/1.7 var(--bodyFont); scrollbar-width: thin;
+  }
+  .drive-action-footer {
+    padding: .85rem 1.25rem; gap: .6rem;
+    > :is(button,a) { min-height: 2.5rem; padding: .5rem 1rem; }
+    > a { gap: .55rem; }
+    > a > span { display: flex; }
+    svg { width: 1rem; height: 1rem; }
+  }
+  @media(max-width:767px) {
+    width: 100%;
+    .external-link-body { padding: 1rem; }
+    .drive-action-footer {
+      padding: .85rem 1rem max(.85rem, env(safe-area-inset-bottom));
+      > :is(button,a) { min-height: 44px; flex: 1; }
+    }
+  }
+}

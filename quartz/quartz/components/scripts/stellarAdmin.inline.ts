@@ -58,6 +58,7 @@ document.addEventListener('nav', () => {
       '告警中心': {id:'alerts',title:'告警',description:'查看服务异常、交互请求的外部接口失败及运行异常。',icon:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/><path d="M12 6v4m0 3h.01"/>'},
       '内容发布': {id:'publishing',title:'内容',description:'控制构建排除与隐藏展示，保存后手动重载生效。',icon:'<path d="M4 4h16v16H4zM8 9h8M8 13h5"/><path d="m16 16 2 2 3-3"/>'},
       '账户安全':{id:'security',title:'账户',description:'管理管理员验证器与恢复码。',icon:'<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/>'},
+      '外链': {id:'external',title:'外链',description:'配置外链弹框使用的网站图标，按域名指定完整图标地址。',icon:'<path d="M14 4h6v6m0-6L10 14M10 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-4"/>'},
       '寻径': {id:'links',title:'寻径',description:'管理寻径链接、显示顺序与备案信息。',icon:'<path d="m9 15 6-6m-5-3 2-2a5 5 0 0 1 7 7l-2 2M7 11l-2 2a5 5 0 0 0 7 7l2-2"/>'},
     }
     const category = (field:Field) => {

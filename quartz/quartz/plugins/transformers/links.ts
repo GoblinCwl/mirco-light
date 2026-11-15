@@ -109,7 +109,7 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                     node.properties["data-video-reference"] = project.slug.slice("Video/".length)
                     node.properties["data-no-popover"] = "true"
                   }
-                  decorateLink(node,project.href,siteOrigin.origin,articleRoutes)
+                  if (file.data.slug !== "index") decorateLink(node,project.href,siteOrigin.origin,articleRoutes)
                   return
                 }
                 // Absolute article links, including alias routes, also participate in the index.
@@ -184,7 +184,7 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                 ) {
                   node.children[0].value = path.basename(node.children[0].value)
                 }
-                decorateLink(node,String(node.properties.href),new URL(file.data.slug!,siteOrigin.origin+"/").href,articleRoutes)
+                if (file.data.slug !== "index") decorateLink(node,String(node.properties.href),new URL(file.data.slug!,siteOrigin.origin+"/").href,articleRoutes)
               }
 
               // transform all other resources that may use links

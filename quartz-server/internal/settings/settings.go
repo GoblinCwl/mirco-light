@@ -121,6 +121,9 @@ func validate(key string, value any) (any, error) {
 		if !ok || utf8.RuneCountInString(v) > max {
 			return nil, errors.New("文本长度不符合要求")
 		}
+		if key == "external.favicons" {
+			return validateFavicons(v)
+		}
 		switch field.Type {
 		case "date":
 			if v != "" {

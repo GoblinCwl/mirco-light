@@ -794,4 +794,5 @@ body:not([data-slug="index"]) .center {
 }
 @media(max-width:767px) {
   dialog.activity-details:is(.activity-voyage,.activity-category-details,.domain-details,.visitor-details,.attendance-details,.qq-contact-dialog,.rss-subscription-dialog) { --site-drawer:1; }
+  dialog.external-link-dialog { --site-drawer:1; }
 }

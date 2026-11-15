@@ -1,4 +1,6 @@
 // @ts-ignore
+import externalLinksScript from "../../components/scripts/externalLinks.inline"
+// @ts-ignore
 import linkIconsScript from "../../components/scripts/linkIcons.inline"
 import { FullSlug, joinSegments } from "../../util/path"
 import { QuartzEmitterPlugin } from "../types"
@@ -83,7 +85,7 @@ async function joinScripts(scripts: string[]): Promise<string> {
 
 function addGlobalPageResources(ctx: BuildCtx, componentResources: ComponentResources) {
   const cfg = ctx.cfg.configuration
-  componentResources.afterDOMLoaded.push(linkIconsScript)
+  componentResources.afterDOMLoaded.push(externalLinksScript, linkIconsScript)
 
   // popovers
   if (cfg.enablePopovers) {

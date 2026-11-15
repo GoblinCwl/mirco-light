@@ -73,3 +73,11 @@ test('leading icons stay with nested link labels rather than creating a separate
  assert.equal((title.children[0] as unknown as Element).tagName,'svg')
  assert.equal(title.children[1].value,'项目标题')
 })
+
+test('homepage navigation never receives body link icons at build time', async () => {
+  const file = new VFile()
+  file.data.slug = 'index' as typeof file.data.slug
+  const processor = unified().use(remarkParse).use(remarkRehype).use(CrawlLinks().htmlPlugins!(ctx))
+  const tree = await processor.run(processor.parse('[篇章](/reading/) [标签](/tags/) [仓库](/Repo/CwlWeb) [外链](https://example.com)'), file)
+  assert.ok(!JSON.stringify(tree).includes('dataLinkIcon'))
+})
