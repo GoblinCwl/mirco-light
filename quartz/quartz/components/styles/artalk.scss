@@ -420,3 +420,45 @@ body:not([data-slug="index"]):not([data-slug^="Share/"]) .center:has(#artalk-com
   .atk-right-action { flex: 0 0 auto; width: auto; }
   .atk-right-action:not(:has(> :not(.atk-hide))) { display: none; }
 }
+
+@include comment.loading-and-likes;
+
+// Sorting uses the shared local loader, without Artalk's full-list overlay or
+// replaying an entrance animation for every newly sorted comment.
+#artalk-comments .atk-list:has(.comment-load-stage) > .atk-loading { display: none !important; }
+#artalk-comments .comment-load-stage :is(.atk-comment, .atk-fade-in) { animation: none !important; }
+
+// Reuse the inline count position, exposing the site's native voting action.
+#artalk-comments .comment-like-button {
+  box-sizing: border-box;
+  min-width: 2.5rem;
+  min-height: 1.5rem;
+  justify-content: center;
+  padding: .15rem .3rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: opacity .15s ease, color .15s ease, background-color .15s ease;
+  &:hover, &:focus-visible { color: var(--secondary); background: var(--highlight); }
+  &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; }
+  &[aria-pressed="true"] { color: var(--secondary); }
+  &[aria-pressed="true"] path { fill: color-mix(in srgb, var(--secondary) 18%, transparent); }
+  &:disabled { cursor: wait; opacity: .6; }
+}
+@media (hover: hover) and (pointer: fine) {
+  #artalk-comments .comment-like-button.is-zero { opacity: 0; }
+  #artalk-comments .atk-comment:is(:hover, :focus-within) > .atk-main > .atk-header .comment-like-button,
+  #artalk-comments .comment-like-button:is(:focus-visible, [aria-pressed="true"], [aria-busy="true"]) { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { #artalk-comments .comment-like-button { transition: none; } }
+
+// Artalk clears native rows before a sort request. Its temporary empty state
+// must stay hidden behind the local loader until the actual response arrives.
+#artalk-comments .atk-list:has(.comment-is-loading) .atk-list-no-comment {
+  visibility: hidden !important;
+}
+
+#artalk-comments .atk-main-editor .atk-send-btn { @include comment.send-colors; }
+
+#artalk-comments .atk-header .atk-pinned-badge { @include comment.pinned-badge; }

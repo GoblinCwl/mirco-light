@@ -123,7 +123,7 @@ body[data-slug^="Video/"] {
   > a.bili-comment-owner {@include comment.admin-name;}
   time {@include comment.metadata;}
  }
- .bili-comment-badge {font-size:11px;color:var(--secondary);background:var(--highlight);padding:.1rem .3rem;border-radius:3px;}
+ .bili-comment-badge {@include comment.pinned-badge;}
  .bili-comment-message {@include comment.content;white-space:pre-wrap;}
  .bili-comment-status {color:var(--gray);font-size:.85rem;}
  .bili-comment-replies {margin-top:.5rem;padding:0;border:0;&:empty{display:none;}}
@@ -139,3 +139,28 @@ body[data-slug^="Video/"] {
 .bili-comments .bili-comment-scroll-status:empty {display:none;}
 
 @include comment.toolbar;
+
+@include comment.loading-and-likes;
+
+.bili-comments .bili-comment-compose {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-sizing: border-box;
+  min-height: 2.75rem;
+  margin-bottom: 1rem;
+  padding: .6rem .85rem;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  @include comment.send-colors;
+  font: 500 .85rem/1.5 var(--bodyFont);
+  text-decoration: none;
+  transition: opacity .15s ease;
+  .bili-comment-compose-label { display: inline-flex; align-items: center; gap: .5rem; }
+  svg { display: block; width: 1rem; height: 1rem; flex-shrink: 0; color: inherit; }
+  > svg { width: .85rem; height: .85rem; color: inherit; }
+  &:hover, &:active { opacity: .9; }
+  &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
+}

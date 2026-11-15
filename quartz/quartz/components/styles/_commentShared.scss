@@ -1,3 +1,4 @@
+@use "driveLoading";
 // Shared presentation for the archive, Artalk and Bilibili comment DOM.
 @mixin row {
   display: grid;
@@ -164,4 +165,42 @@
       &:disabled { opacity: .6; cursor: wait; }
     }
   }
+}
+
+@mixin loading-and-likes {
+  .comment-load-stage { position: relative; overflow-anchor: none; }
+  .comment-is-loading > :not(.comment-local-loader) { opacity: .22; pointer-events: none; }
+  .comment-local-loader {
+    position: absolute; inset-inline: 0; z-index: 2;
+    display: grid; justify-items: center; gap: .65rem;
+    transform: translateY(-50%); color: var(--gray); font: .8rem/1.5 var(--bodyFont);
+  }
+  .comment-local-spinner { @include driveLoading.spinner; }
+  .comment-like-count {
+    display: inline-flex; align-items: center; gap: .25rem;
+    margin-inline-start: auto; flex-shrink: 0;
+    color: var(--gray); font-size: .75rem; line-height: 1.5;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+    svg { display: block; width: .85rem; height: .85rem; }
+  }
+  @keyframes drive-verify-spin { to { transform: rotate(360deg); } }
+}
+
+// Match Artalk's send action in both its light and dark theme.
+@mixin send-colors {
+  background: var(--at-color-main, #0083ff);
+  color: #fff;
+}
+
+@mixin pinned-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--secondary);
+  background: var(--highlight);
+  padding: .1rem .3rem;
+  border: 0;
+  border-radius: 3px;
+  margin: 0;
 }

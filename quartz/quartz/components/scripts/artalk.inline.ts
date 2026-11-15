@@ -1,3 +1,6 @@
+import { showPasswordToast } from "./passwordFeedback"
+import { commentLoading } from "./commentLoading"
+import { setCommentLikes } from "./commentLikes"
 import { commentToolbar, type CommentOrder } from "./commentToolbar"
 import {readSiteSettings} from './siteSettings'
 import { syncArtalkNotificationTheme } from "./artalkNotificationTheme"
@@ -6,24 +9,49 @@ import { alignCommentLayout } from "./commentLayout"
 import { observeArtalkAdminLogout, syncArtalkAdminSession, useSiteArtalkAdminVerifier } from "./artalkAdminSession"
 
 // Keep labels consistent after Artalk renders, paginates or updates a vote.
-function observeCommentLabels(root: HTMLElement) {
+function observeCommentLabels(root: HTMLElement, instance: any) {
+  let localLoading: ReturnType<typeof commentLoading> | undefined
+  let sorting = false
+  let selectedOrder: CommentOrder = "hot"
+  const votes = new Map<HTMLElement, { count: number; active: boolean; pending: boolean; timer?: ReturnType<typeof setTimeout> }>()
+  const finishSorting = () => {
+    if (!sorting) return
+    sorting = false
+    localLoading?.finish()
+    toolbar?.setBusy(false)
+  }
+  instance.on("list-fetched", finishSorting)
   let toolbar: ReturnType<typeof commentToolbar> | undefined
-  const update = () => {
+  const update = (records: MutationRecord[] = []) => {
+    for (const [action, state] of votes) {
+      if (!root.contains(action)) { clearTimeout(state.timer); votes.delete(action) }
+    }
+    const changedActions = new Set<HTMLElement>()
+    for (const record of records) {
+      const element = record.target instanceof Element ? record.target : record.target.parentElement
+      const action = element?.closest<HTMLElement>(".atk-common-action-btn")
+      if (action) changedActions.add(action)
+    }
     const header = root.querySelector<HTMLElement>(".atk-list-header")
     if (header) {
       if (!toolbar || !header.contains(toolbar.element)) {
         toolbar = commentToolbar(order => {
+          if (sorting || instance.ctx?.getData?.().getLoading?.()) return
           const index = { newest: 0, oldest: 2, hot: 1 }[order]
-          root.querySelectorAll<HTMLElement>(".atk-comment-count .atk-dropdown-item > span")[index]?.click()
+          const action = root.querySelectorAll<HTMLElement>(".atk-comment-count .atk-dropdown-item > span")[index]
+          const stage = root.querySelector<HTMLElement>(".atk-list-body")
+          if (!action || !stage) return
+          localLoading ||= commentLoading(stage)
+          localLoading.begin(); sorting = true; toolbar?.setBusy(true)
+          selectedOrder = order
+          action.click()
           toolbar?.setOrder(order)
         })
         header.prepend(toolbar.element)
       }
       const count = root.querySelector(".atk-comment-count-num")?.textContent?.trim()
-      toolbar.setTotal(count && /^\d+$/.test(count) ? Number(count) : undefined)
-      const active = root.querySelector(".atk-comment-count .atk-dropdown-item.active")?.textContent?.trim()
-      const order: CommentOrder = active === "最早" ? "oldest" : active === "最热" ? "hot" : "newest"
-      toolbar.setOrder(order)
+      if (!sorting) toolbar.setTotal(count && /^\d+$/.test(count) ? Number(count) : undefined)
+      toolbar.setOrder(selectedOrder)
     }
     if (root.dataset.adminOnly === "true") for (const notice of root.querySelectorAll(".atk-comment-closed")) notice.remove()
     // Draft restoration stays enabled; its informational toast is unnecessary.
@@ -56,9 +84,39 @@ function observeCommentLabels(root: HTMLElement) {
     for (const action of root.querySelectorAll<HTMLElement>(".atk-actions > .atk-common-action-btn")) {
       const label = action.textContent?.trim() || ""
       const reply = ["回复", "回覆", "Reply"].includes(label)
-      const vote = /^(赞同|共鸣|讚同|Vote|Upvote)(?:\s|\(|$)/i.test(label)
+      const vote = action.dataset.commentVote === "true" || /^(赞同|共鸣|讚同|Vote|Upvote)(?:\s|\(|$)/i.test(label)
       action.classList.toggle("comment-inline-action", reply || vote)
       if (reply) action.dataset.commentReply = "true"
+      if (vote) {
+        action.dataset.commentVote = "true"
+        const header = action.closest(".atk-main")?.querySelector<HTMLElement>(":scope > .atk-header")
+        const raw = label.match(/\(([\d,]+)\)/)?.[1]?.replaceAll(",", "")
+        let state = votes.get(action)
+        if (!state) { state = { count: Number(raw || 0), active: false, pending: false }; votes.set(action, state) }
+        if (state.pending && changedActions.has(action)) {
+          clearTimeout(state.timer); state.pending = false
+          if (raw !== undefined) {
+            const next = Number(raw)
+            state.active = next >= state.count
+          } else { showPasswordToast("点赞失败，请重试", true) }
+        }
+        if (raw !== undefined) state.count = Number(raw)
+        if (header) setCommentLikes(header, state.count, {
+          active: state.active, pending: state.pending,
+          click: () => {
+            const current = votes.get(action)!
+            if (current.pending) return
+            current.pending = true
+            current.timer = setTimeout(() => {
+              current.pending = false
+              showPasswordToast("点赞暂未完成，请重试", true)
+              if (root.isConnected) update()
+            }, 20000)
+            update()
+            action.click()
+          },
+        })
+      }
     }
     for (const content of root.querySelectorAll<HTMLElement>(".atk-comment > .atk-main > .atk-body > .atk-content, .atk-comment > .atk-avatar")) {
       const reply = content.closest(".atk-comment")?.querySelector(":scope > .atk-main > .atk-footer [data-comment-reply]")
@@ -98,6 +156,10 @@ function observeCommentLabels(root: HTMLElement) {
   root.addEventListener("auxclick", preventIdentityNavigation, true)
   return () => {
     observer.disconnect()
+    for (const state of votes.values()) clearTimeout(state.timer)
+    votes.clear()
+    instance.off("list-fetched", finishSorting)
+    localLoading?.dispose()
     root.removeEventListener("click", replyFromContent)
     root.removeEventListener("keydown", replyFromContent)
     root.removeEventListener("click", preventIdentityNavigation, true)
@@ -310,13 +372,14 @@ const tryLoadArtalk = async () => {
         darkMode: isCurrentlyDark,
         useBackendConf: useBackendConf,
         pagination: { readMore: true, autoLoad: true },
+        listFetchParamsModifier: (params: { sort_by?: string }) => { params.sort_by = "vote" },
         avatarURLBuilder: (comment: { email_encrypted?: string; nick?: string; badge_name?: string }) =>
           commentAvatar(comment.email_encrypted?.toLowerCase() || comment.nick || "访客",
             comment.badge_name === "管理员" || comment.badge_name === "拾光者"),
       })
       const stopNotificationTheme = syncArtalkNotificationTheme()
       const stopIdenticons = observeArtalkIdenticons(artalkContainer)
-      const stopLabels = observeCommentLabels(artalkContainer)
+      const stopLabels = observeCommentLabels(artalkContainer, artalkInstance)
       artalkInitializedContainer = artalkContainer
       releaseInitialization()
 

@@ -50,3 +50,46 @@ func TestRSSDefaultPostersByType(t *testing.T) {
 		t.Fatal("unknown poster type accepted")
 	}
 }
+
+func TestArticleRSSFiltersBeforeApplyingLimit(t *testing.T) {
+	records := []Record{}
+	for i := 1; i <= 25; i++ {
+		date := fmt.Sprintf("2026-11-%02dT00:00:00.000Z", i)
+		records = append(records, Record{ID: fmt.Sprintf("article-%02d", i), Type: "article", Published: &date})
+		records = append(records, Record{ID: fmt.Sprintf("video-%02d", i), Type: "video", Published: &date})
+	}
+	date := "2099-01-01T00:00:00.000Z"
+	records = append(records, Record{ID: "private", Type: "article", Published: &date, Encrypted: true})
+	items := rssItems(records, "article")
+	if len(items) != 20 || items[0].ID != "article-25" || items[19].ID != "article-06" {
+		t.Fatal(items)
+	}
+	for _, item := range items {
+		if item.Type != "article" || item.Encrypted {
+			t.Fatal("non-public article in feed", item)
+		}
+	}
+	mixed := rssItems(records)
+	foundVideo := false
+	for _, item := range mixed {
+		if item.Type == "video" {
+			foundVideo = true
+		}
+	}
+	if !foundVideo {
+		t.Fatal("default feed lost mixed content")
+	}
+}
+
+func TestArticleFeedTitlesDoNotAddCategoryEmoji(t *testing.T) {
+	article := Record{Type: "article", Title: "文章标题"}
+	if rssFeedTitle(article, "article") != "文章标题" {
+		t.Fatal("article feed added emoji")
+	}
+	if rssFeedTitle(article) != "✒️ 文章标题" {
+		t.Fatal("default feed lost emoji")
+	}
+	if rssFeedTitle(Record{Type: "share", Title: "分享"}) != "🔗 分享" {
+		t.Fatal("default mixed feed changed")
+	}
+}

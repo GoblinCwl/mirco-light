@@ -15,7 +15,7 @@ export function commentToolbar(onOrder: (order: CommentOrder) => void, hotHint =
   }
   element.append(count, sort)
   const setOrder = (order: CommentOrder) => buttons.forEach((button, key) => button.setAttribute('aria-pressed', String(key === order)))
-  setOrder('newest')
+  setOrder('hot')
   return { element, setOrder,
     setTotal(total: number | undefined) {
       const value = total === undefined ? '—' : String(Math.max(0, total))

@@ -434,3 +434,9 @@ Artalk 用户回复通知使用 `artalk/templates/reply.html`，Compose 只读�
 评论总数与排序由 Artalk、Bilibili 共用 `commentToolbar` 组件及 `commentShared.toolbar` 样式。保留最新／最早／热门三项，不展示原生 Artalk 下拉。Artalk 委托原生 date_desc／date_asc／vote；Bilibili 时间排序使用 mode=2 的 next／prev 游标，最早从 prev=1 开始并反转单页，不先抓取全部评论。热门复用 B 站 mode=3 原生排序；总数取平台 all_count（含回复），切换排序清空旧列表和游标、取消旧请求，各排序独立缓存。
 
 评论头像统一只检测 Cravatar（cn.cravatar.com，d=404，由该服务处理其 Gravatar／QQ 回退），不可用才使用前端生成头像；浏览器不独立请求 Gravatar。管理员固定头像不受影响。Artalk 的 SHA-256 邮箱哈希由后端读取用户资料后映射到 MD5，映射通过已有缓存合并并缓存五分钟；公开接口只返回指定用户对应的头像哈希，不返回邮箱或用户列表。各头像在探测和解码完成后展示，远程头像不随主题切换被覆盖；评论区、评论汇总页与管理列表共用 identicon 模块。
+
+RSS 订阅弹框两行展示「全部／文章」，文章订阅链接为 `/articles.xml`，两行共用复制、打开交互与移动端行布局。文章订阅先按类型和公开权限筛选，再按发布时间取最新 20 篇，不添加分类 emoji；默认 `/index.xml`、首页三篇混合预览及 head 自动发现继续使用原地址，不额外增加自动发现标签。
+
+评论排序局部加载由 Artalk 与 Bilibili 共用 commentLoading 和 commentShared.loading-and-likes，保留列表区域高度并使用现有转圈样式，排序完成后局部替换，不清空整页或滚动到页面头。Bilibili 等新结果成功后再替换旧列表；Artalk 禁用排序后的整组入场闪烁和原生全列表 loading。Video 点赞仅展示计数，零赞隐藏；本站 Artalk 在相同昵称／时间行位置通过按钮代理原生点赞操作，同步原生返回的计数与成功／失败反馈。有赞数常驻，桌面零赞在评论 hover／聚焦时显示，触屏端零赞直接可用；按钮尺寸固定，不恢复正文下的点赞／回复操作行。
+
+Video 评论列表上方用「前往 B 站评论」卡片入口代替本站输入框位置，复用平台 SVG，在新窗口打开对应 bvid 的 Bilibili 视频评论区；不新增 Artalk 编辑器，保留本站显示的只读 Bilibili 评论、排序、计数及按需分页。

@@ -96,7 +96,15 @@ func (s *Server) siteContent(w http.ResponseWriter, r *http.Request, path string
 	}
 }
 func (s *Server) rss(w http.ResponseWriter, r *http.Request) {
-	value, err := (content.Store{DB: s.DB, Origin: s.Origin, ArticleDirectory: s.ArticleDirectory}).RSS(r.Context())
+	if r.URL.Path == "/index.xml" && r.URL.Query().Get("type") == "article" {
+		http.Redirect(w, r, "/articles.xml", http.StatusMovedPermanently)
+		return
+	}
+	kind := ""
+	if r.URL.Path == "/articles.xml" {
+		kind = "article"
+	}
+	value, err := (content.Store{DB: s.DB, Origin: s.Origin, ArticleDirectory: s.ArticleDirectory}).RSS(r.Context(), kind)
 	if err != nil {
 		s.fail(w, err)
 		return

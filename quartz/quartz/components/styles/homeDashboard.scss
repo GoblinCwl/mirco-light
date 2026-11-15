@@ -2789,7 +2789,10 @@ dialog.rss-subscription-dialog {
     > span:nth-child(2) { width: 94%; opacity: .5; }
     > span:nth-child(3) { width: 88%; opacity: .2; }
   }
-  .rss-subscription-footer { flex-shrink: 0; display: flex; align-items: center; gap: .75rem; padding: .85rem 1.25rem; border-top: 1px solid var(--lightgray); }
+  .rss-subscription-footer { flex-shrink: 0; display: flex; flex-direction: column; border-top: 1px solid var(--lightgray); }
+  .rss-subscription-link-row { display: flex; align-items: center; gap: .75rem; padding: .5rem 1.25rem; min-width: 0; }
+  .rss-subscription-link-row + .rss-subscription-link-row { border-top: 1px solid color-mix(in srgb, var(--lightgray) 50%, transparent); }
+  .rss-subscription-label { flex: 0 0 3em; color: var(--gray); font-size: .75rem; }
   .rss-subscription-address { flex: 1; min-width: 0; padding: .4rem 0; color: var(--gray); font: .85rem/1.6 var(--bodyFont); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; user-select: text; }
   .rss-subscription-skeleton {
     > :is(strong,time,p) { display: block; border-radius: 4px; background: linear-gradient(100deg, color-mix(in srgb, var(--lightgray) 45%, transparent) 20%, color-mix(in srgb, var(--lightgray) 80%, transparent) 45%, color-mix(in srgb, var(--lightgray) 45%, transparent) 70%); background-size: 220% 100%; animation: home-skeleton-shimmer 1.8s ease-in-out infinite; }
@@ -2809,7 +2812,8 @@ dialog.rss-subscription-dialog {
   }
   @media(max-width:767px) {
     &.activity-details > .rss-subscription-body { padding: 0 1rem; }
-    .rss-subscription-footer { padding: .6rem 1rem max(.6rem, env(safe-area-inset-bottom)); gap: .25rem; }
+    .rss-subscription-link-row { padding: .35rem 1rem; gap: .25rem; }
+    .rss-subscription-link-row:last-child { padding-bottom: max(.35rem, env(safe-area-inset-bottom)); }
     .rss-subscription-actions { margin-left: auto; }
     .rss-subscription-actions > :is(button,a) { min-height: 44px; padding-inline: .75rem; }
   }

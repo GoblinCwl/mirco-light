@@ -21,27 +21,47 @@ export function setupRSSSubscription() {
   const body = node("div", "", "activity-details-body rss-subscription-body")
   const preview = node("div", "", "rss-subscription-preview")
   preview.setAttribute("aria-live", "polite")
-  const address = node("span", feedURL.href, "rss-subscription-address")
-  address.setAttribute("aria-label", "RSS 订阅地址")
-  const actions = node("div", "", "rss-subscription-actions")
-  const copy = node("button")
   const icon = (path: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`
-  copy.innerHTML = icon('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>')
-  const copyLabel = node("span", "复制")
-  copy.append(copyLabel)
-  copy.setAttribute("aria-label", "复制订阅链接")
-  copy.type = "button"
-  const open = node("a")
-  open.innerHTML = icon('<path d="M14 3h7v7m0-7L10 14"/><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/>')
-  open.append(node("span", "打开"))
-  open.setAttribute("aria-label", "打开 RSS 链接（新窗口）")
-  open.href = feedURL.href
-  open.target = "_blank"
-  open.rel = "noopener noreferrer"
-  open.dataset.routerIgnore = "true"
-  actions.append(copy, open)
+  const subscriptionRow = (url: URL, label: string) => {
+    const row = node("div", "", "rss-subscription-link-row")
+    const address = node("span", url.href, "rss-subscription-address")
+    address.setAttribute("aria-label", `${label} RSS 订阅地址`)
+    const actions = node("div", "", "rss-subscription-actions")
+    const copy = node("button")
+    copy.innerHTML = icon('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>')
+    copy.append(node("span", "复制"))
+    copy.setAttribute("aria-label", `复制${label}订阅链接`)
+    copy.type = "button"
+    copy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(url.href)
+        showPasswordToast("已复制订阅链接")
+      } catch {
+        const range = document.createRange()
+        range.selectNodeContents(address)
+        const selection = window.getSelection()
+        selection?.removeAllRanges()
+        selection?.addRange(range)
+        showPasswordToast("请长按或使用复制快捷键复制链接", true)
+      }
+    }
+    const open = node("a")
+    open.innerHTML = icon('<path d="M14 3h7v7m0-7L10 14"/><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/>')
+    open.append(node("span", "打开"))
+    open.setAttribute("aria-label", `打开${label} RSS 链接（新窗口）`)
+    open.href = url.href
+    open.target = "_blank"
+    open.rel = "noopener noreferrer"
+    open.dataset.routerIgnore = "true"
+    actions.append(copy, open)
+    row.append(node("span", label, "rss-subscription-label"), address, actions)
+    return row
+  }
+  const articlesURL = new URL(feedURL)
+  articlesURL.pathname = articlesURL.pathname.replace(/index\.xml$/, "articles.xml")
+  articlesURL.search = ""
   const footer = node("div", "", "rss-subscription-footer")
-  footer.append(address, actions)
+  footer.append(subscriptionRow(feedURL, "全部"), subscriptionRow(articlesURL, "文章"))
   const more = node("div", "", "rss-subscription-more")
   const layers = node("div", "", "rss-subscription-more-layers")
   layers.setAttribute("aria-hidden", "true")
@@ -115,19 +135,6 @@ export function setupRSSSubscription() {
   }
   trigger.addEventListener("click", show)
   close.onclick = () => void closeSiteDialog(dialog)
-  copy.onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(feedURL.href)
-      showPasswordToast("已复制订阅链接")
-    } catch {
-      const range = document.createRange()
-      range.selectNodeContents(address)
-      const selection = window.getSelection()
-      selection?.removeAllRanges()
-      selection?.addRange(range)
-      showPasswordToast("请长按或使用复制快捷键复制链接", true)
-    }
-  }
   dialog.addEventListener("close", () => {
     if (dialog.open) return
     unlock?.(); unlock = undefined

@@ -535,14 +535,18 @@ func escaped(s string) string {
 	xml.EscapeText(&b, []byte(s))
 	return b.String()
 }
-func (s Store) RSS(ctx context.Context) (string, error) {
+func (s Store) RSS(ctx context.Context, kinds ...string) (string, error) {
 	records, err := readMetadata(ctx, s.DB)
 	if err != nil {
 		return "", err
 	}
-	items := rssItems(records)
+	items := rssItems(records, kinds...)
+	title, description := "微光集", "微光集的文章、分享、仓库与视频"
+	if len(kinds) > 0 && kinds[0] == "article" {
+		title, description = "微光集 · 文章", "微光集的文章"
+	}
 	var b strings.Builder
-	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><title>微光集</title><link>` + escaped(s.Origin) + `</link><description>微光集的文章、分享、仓库与视频</description><language>zh-cn</language>`)
+	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><title>` + escaped(title) + `</title><link>` + escaped(s.Origin) + `</link><description>` + escaped(description) + `</description><language>zh-cn</language>`)
 	var latest string
 	err = s.DB.QueryRowContext(ctx, "SELECT value FROM content_meta WHERE `key`='feed_updated'").Scan(&latest)
 	if err != nil && err != sql.ErrNoRows {
@@ -558,7 +562,7 @@ func (s Store) RSS(ctx context.Context) (string, error) {
 			perma = "true"
 			guid = s.Origin + r.Href
 		}
-		fmt.Fprintf(&b, "<item><title>%s</title><link>%s</link><guid isPermaLink=%q>%s</guid>", escaped(rssTitle(r)), escaped(s.Origin+r.Href), perma, escaped(guid))
+		fmt.Fprintf(&b, "<item><title>%s</title><link>%s</link><guid isPermaLink=%q>%s</guid>", escaped(rssFeedTitle(r, kinds...)), escaped(s.Origin+r.Href), perma, escaped(guid))
 		if r.Published != nil {
 			if p, err := time.Parse(time.RFC3339Nano, *r.Published); err == nil {
 				b.WriteString("<pubDate>" + p.UTC().Format(time.RFC1123Z) + "</pubDate>")
@@ -622,10 +626,14 @@ func NormalizeManagedRow(row map[string]any) error {
 }
 
 // Select the feed by publication time before applying its size limit.
-func rssItems(records []Record) []Record {
+func rssItems(records []Record, kinds ...string) []Record {
+	kind := ""
+	if len(kinds) > 0 {
+		kind = kinds[0]
+	}
 	items := []Record{}
 	for _, r := range records {
-		if !r.Encrypted {
+		if !r.Encrypted && (kind == "" || r.Type == kind) {
 			items = append(items, r)
 		}
 	}
@@ -662,4 +670,11 @@ func rssPosterURL(origin, kind string) string {
 		return strings.TrimRight(origin, "/") + "/static/rss/" + kind + ".png?v=20261114-starlight"
 	}
 	return ""
+}
+
+func rssFeedTitle(r Record, kinds ...string) string {
+	if len(kinds) > 0 && kinds[0] == "article" {
+		return r.Title
+	}
+	return rssTitle(r)
 }
