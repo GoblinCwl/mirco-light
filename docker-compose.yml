@@ -32,6 +32,7 @@ services:
       - 23366:23366
     volumes:
       - ./artalk-data:/data
+      - ./artalk/templates:/templates:ro
     environment:
       - TZ=Asia/Shanghai
       - ATK_LOCALE=zh-CN

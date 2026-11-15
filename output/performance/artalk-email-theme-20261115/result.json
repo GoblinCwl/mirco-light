@@ -1,0 +1,66 @@
+[
+  {
+    "theme": "light",
+    "width": 840,
+    "viewport": 840,
+    "document": 840,
+    "card": 600,
+    "emote": 32,
+    "font": 16,
+    "background": "rgb(255, 255, 255)",
+    "buttons": [
+      {
+        "href": "https://goblincwl.site/Private/about?atk_comment=171",
+        "text": "查看并回复  →"
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "viewport": 390,
+    "document": 390,
+    "card": 370,
+    "emote": 32,
+    "font": 16,
+    "background": "rgb(255, 255, 255)",
+    "buttons": [
+      {
+        "href": "https://goblincwl.site/Private/about?atk_comment=171",
+        "text": "查看并回复  →"
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 840,
+    "viewport": 840,
+    "document": 840,
+    "card": 600,
+    "emote": 32,
+    "font": 16,
+    "background": "rgb(32, 32, 34)",
+    "buttons": [
+      {
+        "href": "https://goblincwl.site/Private/about?atk_comment=171",
+        "text": "查看并回复  →"
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "viewport": 390,
+    "document": 390,
+    "card": 370,
+    "emote": 32,
+    "font": 16,
+    "background": "rgb(32, 32, 34)",
+    "buttons": [
+      {
+        "href": "https://goblincwl.site/Private/about?atk_comment=171",
+        "text": "查看并回复  →"
+      }
+    ]
+  }
+]

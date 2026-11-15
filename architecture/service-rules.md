@@ -426,3 +426,5 @@ RSS 条目标题按类型添加 Emoji 前缀：文章 ✒️、分享 🔗、仓
 RSS 四类内容使用 `static/rss/{article,share,repo,video}.png` 默认海报（1200×630）；输出 Media RSS thumbnail/content，并在 description HTML 顶部提供封面以兼容常见阅读器。标题 Emoji、按发布时间取20条及条目 GUID 保持原规则。
 
 四类 RSS 默认封面统一为无文字的头像插画、淡边框、少量星光与低透明度视界同类线稿背景；文章持书、分享持文件夹、仓库用电脑、视频用播放屏。封面 URL 带设计版本标记，避免阅读器沿用旧版本缓存。
+
+Artalk 用户回复通知使用 `artalk/templates/reply.html`，Compose 只读挂载至 `/templates`，运行配置 `email.mail_tpl=/templates/reply.html`。模板采用微光集的蓝灰／浅绿配色、细边框、少量星光和紧凑回复入口；使用表格布局及内联基础样式，提供窄屏与支持 prefers-color-scheme 的邮件客户端暗色适配，不依赖外部字体、脚本或装饰图片。`atk-emoticon` 属性／类标记的表情固定为正文 2em 高度、按比例宽度并垂直居中；普通图片保持原比例，仅约束为正文可用宽度。邮件主题、SMTP、管理员通知开关与正文处理保持原配置。修改模板后重启 Artalk，使启动时缓存的模板更新；验证只渲染本地预览，不发送测试邮件。

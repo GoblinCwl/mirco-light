@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="supported-color-schemes" content="light dark" />
+  <title>微光集 · 评论回复</title>
+  <!-- Artalk template variables; upstream license is in LICENSE. -->
+  <style type="text/css">
+    body { margin: 0; padding: 0; }
+    table { border-collapse: collapse; }
+    .mail-reply { overflow-wrap: anywhere; word-break: break-word; }
+    .mail-reply p { margin: 0 0 12px; }
+    .mail-reply p:last-child { margin-bottom: 0; }
+    .mail-reply a { color: #284b63; text-decoration: underline; }
+    .mail-reply img { max-width: 100%; height: auto; }
+    .mail-reply pre { white-space: pre-wrap; word-break: break-word; }
+    .artalk-mail-content img[atk-emoticon],
+    .artalk-mail-content img.atk-emoticon {
+      font-size: inherit !important;
+      display: inline-block !important;
+      height: 2em !important;
+      max-height: 2em !important;
+      width: auto !important;
+      max-width: none !important;
+      vertical-align: middle !important;
+      margin: 0 0.1em !important;
+    }
+    @media only screen and (max-width: 480px) {
+      .mail-surround { padding: 16px 10px !important; }
+      .mail-padding { padding-right: 22px !important; padding-left: 22px !important; }
+      .mail-heading { font-size: 21px !important; }
+      .mail-reply-padding { padding: 16px !important; }
+    }
+    @media (prefers-color-scheme: dark) {
+      body, .mail-canvas { background-color: #161618 !important; }
+      .mail-card { background-color: #202022 !important; border-color: #393639 !important; }
+      .mail-heading { color: #ebebec !important; }
+      .mail-text, .mail-reply { color: #d4d4d4 !important; }
+      .mail-muted { color: #aaa7ad !important; }
+      .mail-brand, .mail-link, .mail-reply a { color: #7b97aa !important; }
+      .mail-rule { border-color: #393639 !important; }
+      .mail-reply-panel { background-color: #161618 !important; }
+      .mail-button { background-color: #7b97aa !important; color: #161618 !important; border-color: #7b97aa !important; }
+    }
+  </style>
+</head>
+<body class="mail-canvas" style="margin:0;padding:0;background-color:#faf8f8;">
+  <div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;" aria-hidden="true">{{reply_nick}} 回复了你在「{{page_title}}」的评论。</div>
+  <table class="artalk-mail-content mail-canvas" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#faf8f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',Arial,sans-serif;">
+    <tr><td class="mail-surround" align="center" style="padding:40px 16px;">
+      <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0"><tr><td><![endif]-->
+      <table class="mail-card" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid #e5e5e5;border-radius:8px;border-collapse:separate;">
+        <tr><td class="mail-padding" style="padding:28px 32px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="font-size:18px;font-weight:600;line-height:28px;"><a class="mail-brand" href="{{site_url}}" target="_blank" style="color:#284b63;text-decoration:none;">微光集<span aria-hidden="true" style="color:#84a59d;font-size:12px;vertical-align:3px;">&nbsp;✦</span></a></td>
+              <td class="mail-muted" align="right" style="font-size:12px;line-height:28px;color:#8c8c8c;">评论回复</td>
+            </tr>
+          </table>
+          <div class="mail-rule" style="border-top:1px solid #e5e5e5;margin-top:20px;height:0;line-height:0;"></div>
+        </td></tr>
+        <tr><td class="mail-padding" style="padding:28px 32px 0;">
+          <p class="mail-text" style="margin:0 0 10px;color:#4e4e4e;font-size:14px;line-height:24px;">{{nick}}，你好。</p>
+          <h1 class="mail-heading" style="margin:0 0 10px;color:#2b2b2b;font-size:23px;font-weight:600;line-height:1.5;">你收到了新的回复</h1>
+          <p class="mail-muted" style="margin:0;color:#8c8c8c;font-size:13px;line-height:23px;overflow-wrap:anywhere;">在「<a class="mail-link" href="{{link_to_reply}}" target="_blank" style="color:#284b63;text-decoration:none;">{{page_title}}</a>」的评论下</p>
+        </td></tr>
+        <tr><td class="mail-padding" style="padding:24px 32px 0;">
+          <table class="mail-reply-panel" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#faf8f8;border-left:2px solid #84a59d;">
+            <tr><td class="mail-reply-padding" style="padding:18px 20px;">
+              <p class="mail-brand" style="margin:0 0 12px;color:#284b63;font-size:14px;font-weight:600;line-height:24px;">{{reply_nick}}</p>
+              <div class="mail-reply mail-text" style="color:#4e4e4e;font-size:16px;line-height:1.8;overflow-wrap:anywhere;word-break:break-word;">{{reply_content}}</div>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td class="mail-padding" style="padding:24px 32px 28px;">
+          <a class="mail-button" href="{{link_to_reply}}" target="_blank" style="display:inline-block;padding:10px 18px;background-color:#284b63;border:1px solid #284b63;border-radius:5px;color:#ffffff;font-size:14px;font-weight:500;line-height:22px;text-decoration:none;mso-padding-alt:10px 18px;">查看并回复&nbsp; →</a>
+        </td></tr>
+        <tr><td class="mail-padding mail-rule" style="border-top:1px solid #e5e5e5;padding:16px 32px 18px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td class="mail-muted" style="color:#8c8c8c;font-size:11px;line-height:20px;"><span aria-hidden="true" style="color:#84a59d;">✦&nbsp;</span> <a class="mail-muted" href="{{site_url}}" target="_blank" style="color:#8c8c8c;text-decoration:none;">{{site_name}}</a></td>
+              <td class="mail-muted" align="right" style="color:#8c8c8c;font-size:11px;line-height:20px;">Artalk</td>
+            </tr>
+          </table>
+        </td></tr>
+      </table>
+      <!--[if mso]></td></tr></table><![endif]-->
+    </td></tr>
+  </table>
+</body>
+</html>

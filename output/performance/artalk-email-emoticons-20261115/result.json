@@ -1,0 +1,47 @@
+[
+  {
+    "font": 18,
+    "square": {
+      "width": 36,
+      "height": 36
+    },
+    "wide": {
+      "width": 72,
+      "height": 36
+    },
+    "ordinary": {
+      "width": 180,
+      "height": 120
+    }
+  },
+  {
+    "font": 16,
+    "square": {
+      "width": 32,
+      "height": 32
+    },
+    "wide": {
+      "width": 64,
+      "height": 32
+    },
+    "ordinary": {
+      "width": 180,
+      "height": 120
+    }
+  },
+  {
+    "font": 24,
+    "square": {
+      "width": 48,
+      "height": 48
+    },
+    "wide": {
+      "width": 96,
+      "height": 48
+    },
+    "ordinary": {
+      "width": 180,
+      "height": 120
+    }
+  }
+]
