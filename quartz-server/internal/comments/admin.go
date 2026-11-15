@@ -29,7 +29,7 @@ func adminUser(value map[string]any) map[string]any {
 	out["avatarSeed"] = hex.EncodeToString(hash[:])
 	return out
 }
-func (a *Archive) AdminList(ctx context.Context, kind string, page int, search, filter string) (map[string]any, error) {
+func (a *Service) AdminList(ctx context.Context, kind string, page int, search, filter string) (map[string]any, error) {
 	if page < 1 || page > 5000 || len(search) > 500 {
 		return nil, errors.New("查询条件无效")
 	}
@@ -76,7 +76,7 @@ func (a *Archive) AdminList(ctx context.Context, kind string, page int, search, 
 
 // Artalk has no non-admin filter. Read bounded chunks until the requested
 // ordinary-user page is full; subtract matching admins from the upstream total.
-func (a *Archive) ordinaryUsers(ctx context.Context, page int, search string) (map[string]any, error) {
+func (a *Service) ordinaryUsers(ctx context.Context, page int, search string) (map[string]any, error) {
 	const chunk = 100
 	start, seen, total := (page-1)*adminPageSize, 0, 0
 	items := []any{}
@@ -126,7 +126,7 @@ func (a *Archive) ordinaryUsers(ctx context.Context, page int, search string) (m
 	}
 	return map[string]any{"items": items, "total": total, "page": page, "pageSize": adminPageSize}, nil
 }
-func (a *Archive) findUser(ctx context.Context, id int64) (map[string]any, error) {
+func (a *Service) findUser(ctx context.Context, id int64) (map[string]any, error) {
 	for offset := 0; offset < 100000; offset += 100 {
 		value, err := a.Client.Do(ctx, fmt.Sprintf("/api/v2/users/all?limit=100&offset=%d", offset), true, "GET", nil)
 		if err != nil {
@@ -182,7 +182,7 @@ func userInput(input map[string]any) (map[string]any, error) {
 	}
 	return out, nil
 }
-func (a *Archive) AdminMutate(ctx context.Context, kind, method string, id int64, input map[string]any) error {
+func (a *Service) AdminMutate(ctx context.Context, kind, method string, id int64, input map[string]any) error {
 	if kind != "comments" && kind != "users" {
 		return errors.New("管理类型无效")
 	}

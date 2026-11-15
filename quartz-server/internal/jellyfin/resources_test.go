@@ -26,7 +26,7 @@ func fixtureService(t *testing.T) *Service {
 		case r.URL.Path == "/api/fs/get":
 			respond(map[string]any{"code": 200, "data": map[string]any{"name": "test.mkv", "is_dir": false}})
 		case r.URL.Path == "/Users":
-			respond([]any{map[string]any{"Id": "user", "Policy": map[string]any{"IsAdministrator": true}}})
+			respond([]any{map[string]any{"Id": "user", "Name": "viewer", "Policy": map[string]any{"IsAdministrator": true}}})
 		case r.URL.Path == "/Items/"+item+"/PlaybackInfo":
 			if r.Method == "GET" && r.URL.Query().Get("UserId") != "user" {
 				t.Error("lookup must use Jellyfin user preferences")
@@ -87,7 +87,7 @@ func fixtureService(t *testing.T) *Service {
 	}))
 	t.Cleanup(server.Close)
 	settings := func(context.Context) (map[string]any, error) {
-		return map[string]any{"openlist.url": server.URL, "api.jellyfin.url": server.URL, "api.jellyfin.token": "private-token", "api.jellyfin.publicUrl": "https://media.test", "api.fontinass.url": server.URL}, nil
+		return map[string]any{"openlist.url": server.URL, "api.jellyfin.url": server.URL, "api.jellyfin.token": "private-token", "api.jellyfin.username": "viewer", "api.jellyfin.publicUrl": "https://media.test", "api.fontinass.url": server.URL}, nil
 	}
 	olDB, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "openlist.db"))
 	if err != nil {

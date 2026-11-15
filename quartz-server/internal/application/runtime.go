@@ -22,7 +22,6 @@ import (
 	"goblincwl/quartz-server/internal/video"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -163,47 +162,7 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	controller.Social = runtime.videoSocial.Refresh
 	app.Video = &video.Service{Store: store, Client: client, Controller: controller, Social: runtime.videoSocial, Changed: runtime.requestVideoIndex}
 	artalk := &comments.Client{Settings: read}
-	app.Comments = &comments.Archive{Client: artalk, Site: "GoblinCwl 的微光集", Origin: app.Origin, Pages: func(ctx context.Context) (map[string]comments.Page, error) {
-		raw, err := os.ReadFile(filepath.Join(options.PublicDirectory, "static/contentIndex.json"))
-		if err != nil {
-			return nil, err
-		}
-		pages, err := comments.DecodeStaticPages(raw)
-		if err != nil {
-			return nil, err
-		}
-		entries, err := app.OpenList.Entries(ctx)
-		if err != nil {
-			return nil, err
-		}
-		for _, entry := range entries {
-			if entry.Kind == "share" {
-				key := comments.ShareKey(entry.ID)
-				pages[key] = comments.Page{Slug: key, Title: entry.ID, PublicPath: key}
-			}
-		}
-		rows, err := app.DB.QueryContext(ctx, "SELECT slug,title,href FROM content WHERE type='repo' AND encrypted=0")
-		if err != nil {
-			return nil, err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var slug, title, href string
-			if err := rows.Scan(&slug, &title, &href); err != nil {
-				return nil, err
-			}
-			u, err := url.Parse(href)
-			if err != nil {
-				return nil, err
-			}
-			key := u.EscapedPath()
-			pages[key] = comments.Page{Slug: slug, Title: title, PublicPath: key}
-		}
-		if err := rows.Err(); err != nil {
-			return nil, err
-		}
-		return pages, nil
-	}}
+	app.Comments = &comments.Service{Client: artalk, Site: "GoblinCwl 的微光集"}
 	app.Shares = &openlist.Shares{Adapter: app.OpenList, Artalk: artalk, Settings: read, Site: app.Comments.Site, Changed: func(_ context.Context, before, after string) {
 		app.Comments.Cache.Invalidate()
 		app.Shares.IndexCache.Invalidate()

@@ -15,7 +15,7 @@ import (
 
 func TestActualJellyfinAuthorizationLookupAndMetadata(t *testing.T) {
 	library, olPath, jfOrigin, olOrigin := os.Getenv("TEST_JELLYFIN_DB"), os.Getenv("TEST_OPENLIST_DB"), os.Getenv("TEST_JELLYFIN_URL"), os.Getenv("TEST_OPENLIST_URL")
-	if library == "" || olPath == "" || jfOrigin == "" || olOrigin == "" {
+	if library == "" || olPath == "" || jfOrigin == "" || olOrigin == "" || os.Getenv("TEST_JELLYFIN_USERNAME") == "" {
 		t.Skip("native media fixtures not supplied")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
@@ -26,7 +26,7 @@ func TestActualJellyfinAuthorizationLookupAndMetadata(t *testing.T) {
 	}
 	defer entries.DB.Close()
 	read := func(context.Context) (map[string]any, error) {
-		return map[string]any{"api.jellyfin.url": jfOrigin, "openlist.url": olOrigin, "api.fontinass.url": "http://127.0.0.1:8012", "api.jellyfin.publicUrl": "https://media.goblincwl.site"}, nil
+		return map[string]any{"api.jellyfin.url": jfOrigin, "api.jellyfin.username": os.Getenv("TEST_JELLYFIN_USERNAME"), "openlist.url": olOrigin, "api.fontinass.url": "http://127.0.0.1:8012", "api.jellyfin.publicUrl": "https://media.goblincwl.site"}, nil
 	}
 	backend, err := NewBackend(ctx, library, entries, &openlist.Shares{Settings: read}, read)
 	if err != nil {
@@ -122,7 +122,7 @@ func TestActualSubtitleDeliveryAndPGSResume(t *testing.T) {
 		t.Skip("native playback probe not enabled")
 	}
 	library, olPath, jfOrigin, olOrigin := os.Getenv("TEST_JELLYFIN_DB"), os.Getenv("TEST_OPENLIST_DB"), os.Getenv("TEST_JELLYFIN_URL"), os.Getenv("TEST_OPENLIST_URL")
-	if library == "" || olPath == "" || jfOrigin == "" || olOrigin == "" {
+	if library == "" || olPath == "" || jfOrigin == "" || olOrigin == "" || os.Getenv("TEST_JELLYFIN_USERNAME") == "" {
 		t.Fatal("native media fixtures required")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Minute)
@@ -133,7 +133,7 @@ func TestActualSubtitleDeliveryAndPGSResume(t *testing.T) {
 	}
 	defer entries.DB.Close()
 	read := func(context.Context) (map[string]any, error) {
-		return map[string]any{"api.jellyfin.url": jfOrigin, "openlist.url": olOrigin, "api.fontinass.url": "http://127.0.0.1:8012", "api.jellyfin.publicUrl": "https://media.goblincwl.site"}, nil
+		return map[string]any{"api.jellyfin.url": jfOrigin, "api.jellyfin.username": os.Getenv("TEST_JELLYFIN_USERNAME"), "openlist.url": olOrigin, "api.fontinass.url": "http://127.0.0.1:8012", "api.jellyfin.publicUrl": "https://media.goblincwl.site"}, nil
 	}
 	backend, err := NewBackend(ctx, library, entries, &openlist.Shares{Settings: read}, read)
 	if err != nil {

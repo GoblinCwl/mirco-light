@@ -26,7 +26,7 @@ func TestAvatarHashMappingIsCachedAndContainsNoEmails(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]any{"count": 1, "users": []any{map[string]any{"email": " Visitor@Example.test ", "name": "Visitor"}}})
 	}))
 	defer upstream.Close()
-	a := &Archive{Client: &Client{Settings: func(context.Context) (map[string]any, error) {
+	a := &Service{Client: &Client{Settings: func(context.Context) (map[string]any, error) {
 		return map[string]any{"api.artalk.url": upstream.URL, "api.artalk.email": "admin@example.test", "api.artalk.password": "secret"}, nil
 	}}}
 	sha := sha256.Sum256([]byte("visitor@example.test"))

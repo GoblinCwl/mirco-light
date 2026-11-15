@@ -49,7 +49,7 @@ func TestAdminListAndMutations(t *testing.T) {
 	client := &Client{Settings: func(context.Context) (map[string]any, error) {
 		return map[string]any{"api.artalk.url": server.URL, "api.artalk.email": "admin@example.test", "api.artalk.password": "secret"}, nil
 	}}
-	archive := &Archive{Client: client, Site: "my-site"}
+	archive := &Service{Client: client, Site: "my-site"}
 	ctx := context.Background()
 	value, err := archive.AdminList(ctx, "comments", 2, "text", "pending")
 	if err != nil {
@@ -143,7 +143,7 @@ func TestOrdinaryUsersPaginationSkipsAdministratorOnlyChunks(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	archive := &Archive{Client: &Client{Settings: func(context.Context) (map[string]any, error) {
+	archive := &Service{Client: &Client{Settings: func(context.Context) (map[string]any, error) {
 		return map[string]any{"api.artalk.url": server.URL, "api.artalk.email": "admin@example.test", "api.artalk.password": "secret"}, nil
 	}}}
 	for page := 1; page <= 3; page++ {

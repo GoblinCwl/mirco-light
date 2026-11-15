@@ -91,7 +91,7 @@ func (s *Server) gateway(next http.Handler) http.Handler {
 }
 func publicRead(path string) bool {
 	switch path {
-	case "/api/hitokoto", "/api/activitywatch", "/api/qq-status", "/api/attendance", "/api/activity-status", "/api/activity-status/details", "/api/comments", "/api/bilibili", "/api/visitors", "/api/visitors/records":
+	case "/api/hitokoto", "/api/activitywatch", "/api/qq-status", "/api/attendance", "/api/activity-status", "/api/activity-status/details", "/api/bilibili", "/api/visitors", "/api/visitors/records":
 		return true
 	}
 	return strings.HasPrefix(path, "/api/repo/") || strings.HasPrefix(path, "/api/video/")

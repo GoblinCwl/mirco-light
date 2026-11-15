@@ -66,7 +66,7 @@ func TestRepoCommentDefaultAndArtalkPermissionPersistence(t *testing.T) {
 		}
 	}))
 	defer upstream.Close()
-	app := &Server{DB: db, Comments: &comments.Archive{Site: "site", Client: &comments.Client{HTTP: upstream.Client(), Settings: func(context.Context) (map[string]any, error) {
+	app := &Server{DB: db, Comments: &comments.Service{Site: "site", Client: &comments.Client{HTTP: upstream.Client(), Settings: func(context.Context) (map[string]any, error) {
 		return map[string]any{"api.artalk.url": upstream.URL, "api.artalk.email": "admin@test", "api.artalk.password": "fixture"}, nil
 	}}}}
 	call := func(method, body string) map[string]any {

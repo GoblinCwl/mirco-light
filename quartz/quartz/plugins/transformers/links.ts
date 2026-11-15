@@ -9,6 +9,7 @@ import {
   splitAnchor,
   transformLink,
 } from "../../util/path"
+import { contentLinkKind } from "../../util/linkPolicy"
 import { projectReference } from "../../util/projectReference"
 import path from "path"
 import { visit } from "unist-util-visit"
@@ -67,6 +68,7 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                 }
                 const project = projectReference(dest, ctx.cfg.configuration.baseUrl)
                 if (project) {
+                  if (!Object.hasOwn(node.properties, "download")) delete node.properties.target
                   outgoing.add(project.slug as SimpleSlug)
                   node.properties.href = project.href
                   node.properties["data-slug"] = project.slug
@@ -78,7 +80,8 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                   }
                   return
                 }
-                const isExternal = isAbsoluteUrl(dest, { httpOnly: false })
+                const linkKind = contentLinkKind(dest, ctx.cfg.configuration.baseUrl)
+                const isExternal = linkKind === "external"
                 classes.push(isExternal ? "external" : "internal")
 
                 if (isExternal && opts.externalLinkIcon) {
@@ -115,13 +118,19 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                 }
                 node.properties.className = classes
 
-                if (isExternal && opts.openLinksInNewTab) {
-                  node.properties.target = "_blank"
+                if (!Object.hasOwn(node.properties, "download")) {
+                  if (isExternal && opts.openLinksInNewTab) {
+                    node.properties.target = "_blank"
+                    const rel = String(node.properties.rel ?? "").split(/\s+/).filter(Boolean)
+                    node.properties.rel = [...new Set([...rel, "noopener", "noreferrer"])]
+                  } else if (linkKind === "internal" || linkKind === "special") {
+                    delete node.properties.target
+                  }
                 }
 
                 // don't process external links or intra-document anchors
                 const isInternal = !(
-                  isAbsoluteUrl(dest, { httpOnly: false }) || dest.startsWith("#")
+                  isAbsoluteUrl(dest, { httpOnly: false }) || dest.startsWith("//") || dest.startsWith("#")
                 )
                 if (isInternal) {
                   dest = node.properties.href = transformLink(

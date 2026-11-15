@@ -5,28 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync/atomic"
 	"testing"
 )
 
-func TestPublicCommentVisibilityOriginAndDate(t *testing.T) {
-	item := map[string]any{"id": float64(1), "is_pending": false, "visible": true, "nick": "Visitor", "email_encrypted": strings.Repeat("A", 32), "content_marked": "<b>message</b>", "date": "2026-11-10 08:00:00", "rid": float64(0)}
-	page := Page{Slug: "Memo/note", Title: "笔记"}
-	value := PublicComment(item, page, "https://goblincwl.site", map[string]any{"mirror": "https://avatar.example/avatar", "params": "d=identicon"})
-	if value["createdAt"] != "2026-11-10T00:00:00.000Z" || value["avatarSeed"] != strings.Repeat("a", 32) || value["url"] != "https://goblincwl.site/Memo/note#atk-comment-1" {
-		t.Fatal(value)
-	}
-	page.PublicPath = "https://evil.example/"
-	if PublicComment(item, page, "https://goblincwl.site", nil) != nil {
-		t.Fatal("external link published")
-	}
-	page.PublicPath = ""
-	item["is_pending"] = true
-	if PublicComment(item, page, "https://goblincwl.site", nil) != nil {
-		t.Fatal("pending comment exposed")
-	}
-}
 func TestClient401RetryAndConfigurationChange(t *testing.T) {
 	var logins, reads atomic.Int32
 	password := "first"

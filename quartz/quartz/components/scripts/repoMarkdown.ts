@@ -1,3 +1,4 @@
+import {applyContentLinkPolicy} from "../../util/linkPolicy"
 import {renderRepoMermaid} from './repoMermaid'
 import {sharedState} from "./sharedRequest"
 import {repoMarkdownLink,type RepoInfo} from "./repoShared"
@@ -31,7 +32,7 @@ export async function markdown(host: HTMLElement, text: string, filename: string
     const target = repoMarkdownLink(anchor.getAttribute("href") || "", filename, info.name, ref)
     anchor.href = target || "#"
     anchor.dataset.noPopover = "true"
-    if (/^https?:/i.test(target)) { anchor.target = "_blank"; anchor.rel = "noopener noreferrer"; anchor.dataset.routerIgnore = "true" }
+    applyContentLinkPolicy(anchor)
   }
   const ids = new Map<string, number>()
   for (const heading of host.querySelectorAll<HTMLElement>("h1,h2,h3,h4,h5,h6")) {

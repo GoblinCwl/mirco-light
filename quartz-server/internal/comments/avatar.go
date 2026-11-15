@@ -13,7 +13,7 @@ import (
 
 // Artalk exposes SHA-256, while Cravatar requires MD5. Keep email addresses
 // inside the authenticated backend; only resolve hashes of existing users.
-func (a *Archive) AvatarHash(ctx context.Context, hash string) (string, error) {
+func (a *Service) AvatarHash(ctx context.Context, hash string) (string, error) {
 	hash = strings.ToLower(hash)
 	if !emailHash.MatchString(hash) {
 		return "", errors.New("头像哈希无效")

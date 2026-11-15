@@ -1,3 +1,4 @@
+import {applyContentLinkPolicy} from "../../util/linkPolicy"
 // Preserve simple metadata formatting without executing HTML/scripts or inline styles.
 export function renderDriveMetadata(target: HTMLElement, source?: string) {
   target.replaceChildren()
@@ -14,7 +15,7 @@ export function renderDriveMetadata(target: HTMLElement, source?: string) {
     if (element instanceof HTMLAnchorElement && child.hasAttribute("href")) {
       try {
         const url = new URL(child.getAttribute("href") || "", "https://drive.goblincwl.site/")
-        if (["https:", "http:"].includes(url.protocol)) { element.href = url.href; element.target = "_blank"; element.rel = "noopener noreferrer" }
+        if (["https:", "http:"].includes(url.protocol)) { element.href = url.href; applyContentLinkPolicy(element) }
       } catch { /* Invalid metadata links remain plain text. */ }
     }
     for (const node of child.childNodes) append(element, node)

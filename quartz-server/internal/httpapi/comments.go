@@ -5,11 +5,9 @@ import (
 	"goblincwl/quartz-server/internal/openlist"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
-var commentPage = regexp.MustCompile(`^[1-9]\d{0,5}$`)
 var commentAvatarHash = regexp.MustCompile(`(?i)^[a-f0-9]{32}(?:[a-f0-9]{32})?$`)
 
 func (s *Server) comments(mux *http.ServeMux) {
@@ -27,23 +25,6 @@ func (s *Server) comments(mux *http.ServeMux) {
 			}
 			w.Header().Set("Cache-Control", "public, max-age=300")
 			JSON(w, 200, map[string]string{"hash": value})
-		})
-		mux.HandleFunc("GET /api/comments", func(w http.ResponseWriter, r *http.Request) {
-			page := r.URL.Query().Get("page")
-			if page == "" {
-				page = "1"
-			}
-			if !commentPage.MatchString(page) {
-				JSON(w, 400, map[string]string{"error": "页码无效"})
-				return
-			}
-			number, _ := strconv.Atoi(page)
-			value, err := s.Comments.Load(r.Context(), number)
-			if err != nil {
-				JSON(w, 503, map[string]string{"error": "评论暂时不可用"})
-				return
-			}
-			JSON(w, 200, value)
 		})
 	}
 	if s.Shares == nil {

@@ -31,7 +31,7 @@ type Server struct {
 	CredentialChanged func(string)
 	DataChanged       func(string)
 	FriendJobsChanged func()
-	Comments          *comments.Archive
+	Comments          *comments.Service
 	Shares            *openlist.Shares
 	Monitoring        *monitoring.Manager
 	Adapters          *adapters.Manager

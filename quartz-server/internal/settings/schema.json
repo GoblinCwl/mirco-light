@@ -21,6 +21,17 @@
     "help": "留空沿用服务器原有凭据；仅管理员可读取和修改。"
   },
   {
+    "key": "api.jellyfin.username",
+    "public": false,
+    "group": "服务接入",
+    "category": "Jellyfin",
+    "label": "播放用户名",
+    "type": "text",
+    "default": "",
+    "max": 256,
+    "help": "填写已有且未禁用的 Jellyfin 用户名，准确匹配；固定使用该用户的媒体权限、音轨和字幕设置，无需密码。未填写或用户不可用时停止播放接入，不自动选择其他用户。"
+  },
+  {
     "key": "api.jellyfin.publicUrl",
     "public": true,
     "group": "服务接入",

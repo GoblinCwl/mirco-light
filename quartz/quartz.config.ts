@@ -81,7 +81,7 @@ const config: QuartzConfig = {
       // 与 Obsidian 阅读视图一致：段落内的单换行也保留为换行。
       Plugin.HardLineBreaks(),
       Plugin.TableOfContents(),
-      Plugin.CrawlLinks({ markdownLinkResolution: "shortest" }),
+      Plugin.CrawlLinks({ markdownLinkResolution: "shortest", openLinksInNewTab: true }),
       Plugin.Description(),
       Plugin.Latex({ renderEngine: "katex" }),
         // 日语注音
@@ -104,7 +104,6 @@ const config: QuartzConfig = {
       Plugin.FolderPage(),
       Plugin.TagPage(),
       Plugin.ArchivePage(),
-      Plugin.CommentsPage(),
       Plugin.SiteMap({
         enableSiteMap: true,
         enableRSS: true,

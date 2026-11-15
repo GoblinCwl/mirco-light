@@ -90,7 +90,7 @@ Quartz 容器内由主进程管理编译与源码监听，由一份受控子进�
 | 媒体播放 | Jellyfin、Fontinass | API、只读媒体目录查询、受限资源代理 |
 | 仓库与版本 | Gitea、GitHub | Gitea API 和现有 Git 存储；GitHub 提供镜像来源、Release 和用户活动 |
 | 视频 | Bilibili | 后台同步资料；浏览器使用官方播放器 |
-| 评论 | Artalk | 原生评论组件，Go 提供归档和权限同步 |
+| 评论 | Artalk | 原生评论组件，Go 提供评论管理、头像适配和权限同步 |
 | 状态与活动 | Beszel、ActivityWatch、AstrBot、NapCat | 实时指标、API 和必要的只读数据 |
 | 日历 | 私有日记 | 仅提取限定统计标记 |
 | 一言 | 公开一言 API | Go 合并请求并共享缓存 |

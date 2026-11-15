@@ -330,7 +330,7 @@ export async function renderPage(
             </div>
         </div>}
         {content}
-        {slug !== "comments/index" && slug !== "friends/index" && slug !== "reading/index" && !slug.startsWith("observatory/") && <hr/>}
+        {slug !== "friends/index" && slug !== "reading/index" && !slug.startsWith("observatory/") && <hr/>}
         {ArticleGraph && <ArticleGraph {...componentData} displayClass="mobile-only" articleMobileGraph />}
         {hasEmbeddedGraph && <div class="mobile-page-graph" data-mobile-page-graph />}
     </>

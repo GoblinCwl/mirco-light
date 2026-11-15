@@ -30,6 +30,7 @@ type Backend struct {
 	HTTP                    *http.Client
 	userMu                  sync.Mutex
 	user, userConfiguration string
+	userAt                  time.Time
 }
 
 func NewBackend(ctx context.Context, libraryPath string, entries *openlist.Adapter, shares *openlist.Shares, settings func(context.Context) (map[string]any, error)) (*Backend, error) {
@@ -264,43 +265,42 @@ func (b *Backend) requestJSON(ctx context.Context, method, endpoint string, body
 	return value, nil
 }
 func (b *Backend) UserID(ctx context.Context) (string, error) {
-	base, token, _, err := b.configuration(ctx)
+	base, token, values, err := b.configuration(ctx)
 	if err != nil {
 		return "", err
 	}
-	key := base + token
+	username := strings.TrimSpace(text(values["api.jellyfin.username"]))
+	if username == "" {
+		return "", errors.New("请先在 Jellyfin 配置中填写播放用户名")
+	}
+	key := base + "\x00" + token + "\x00" + username
 	b.userMu.Lock()
 	defer b.userMu.Unlock()
-	if b.user != "" && b.userConfiguration == key {
+	if b.user != "" && b.userConfiguration == key && time.Since(b.userAt) < time.Minute {
 		return b.user, nil
 	}
 	value, err := b.requestJSON(ctx, "GET", "/Users", nil)
 	if err != nil {
 		return "", err
 	}
-	fallback, admin := "", ""
 	for _, raw := range list(value) {
 		user := object(raw)
-		policy := object(user["Policy"])
-		if policy["IsDisabled"] == true {
+		if text(user["Name"]) != username {
 			continue
 		}
-		if fallback == "" {
-			fallback = text(user["Id"])
+		if object(user["Policy"])["IsDisabled"] == true {
+			return "", errors.New("配置的 Jellyfin 播放用户已禁用")
 		}
-		if policy["IsAdministrator"] == true && admin == "" {
-			admin = text(user["Id"])
+		id := text(user["Id"])
+		if id == "" {
+			return "", errors.New("配置的 Jellyfin 播放用户信息无效")
 		}
+		b.user, b.userConfiguration, b.userAt = id, key, time.Now()
+		return id, nil
 	}
-	if admin != "" {
-		fallback = admin
-	}
-	if fallback == "" {
-		return "", errors.New("Jellyfin 没有可用的播放账号")
-	}
-	b.user, b.userConfiguration = fallback, key
-	return fallback, nil
+	return "", errors.New("未找到配置的 Jellyfin 播放用户，请检查用户名")
 }
+
 func NormalizeID(value string) string { return strings.ToLower(strings.ReplaceAll(value, "-", "")) }
 func (b *Backend) FindItem(ctx context.Context, physical string) (string, error) {
 	var id string
