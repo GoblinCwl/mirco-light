@@ -23,11 +23,11 @@ export function readingBands(blocks:ReadingBlock[]):ReadingBand[]{
    if(mosaics[choice].length>blocks.length-i)choice=choice%2
    previous=choice
    const shape=mosaics[choice],indices=shape.map((_,offset)=>i+offset)
-   // Give long excerpts the narrow spanning cells; keep DOM and keyboard order chronological.
-   const ranked=indices.slice().sort((a,b)=>weight(b)-weight(a))
-   const slots=shape.map((cell,slot)=>({cell,slot})).sort((a,b)=>(b.cell[3]/b.cell[2])-(a.cell[3]/a.cell[2]))
-   const cells:ReadingCell[]=slots.map(({cell},rank)=>{
-    const [x,y,width,height]=cell,index=ranked[rank]
+   // Visual order must match the API/DOM order, including on wide mosaics.
+   // Keep the shape, but assign chronological entries by top edge then left edge.
+   const slots=shape.slice().sort((a,b)=>a[1]-b[1]||a[0]-b[0])
+   const cells:ReadingCell[]=slots.map((cell,offset)=>{
+    const [x,y,width,height]=cell,index=indices[offset]
     return {index,column:x+1,row:y+1,width,height,lines:Math.max(3,Math.min(18,Math.ceil(units(blocks[index].opening)/Math.max(14,width*9))))}
    })
    result.push({indices,left:50,cells});i+=shape.length;continue
@@ -36,9 +36,12 @@ export function readingBands(blocks:ReadingBlock[]):ReadingBand[]{
   for(const count of [4,3]){
    if(i+count>blocks.length)continue
    const indices=Array.from({length:count},(_,offset)=>i+offset),ranked=indices.slice().sort((a,b)=>weight(b)-weight(a)),long=ranked[0],short=ranked.slice(1).reduce((sum,index)=>sum+weight(index),0)
+   // A spanning card begins on the top row. Only the first two entries can
+   // occupy it without moving older content above newer content.
+   if(long!==indices[0]&&long!==indices[1])continue
    const enough=units(blocks[long].opening)>=(count===4?240:150)
    if(enough&&weight(long)>=short*(count===4?.55:.36)){
-    const tallLeft=(result.length+long)%2===0,width=Math.max(24,Math.min(34,Math.round(30-(weight(long)/short-.6)*7)))
+    const tallLeft=long===indices[0],width=Math.max(24,Math.min(34,Math.round(30-(weight(long)/short-.6)*7)))
     const adjacentHeight=ranked.slice(1).reduce((sum,index)=>sum+148+Math.max(1,Math.ceil(units(blocks[index].title)/26))*32+Math.min(4,Math.max(1,Math.ceil(units(blocks[index].opening)/36)))*30,0)
     const lines=Math.max(5,Math.min(28,Math.round((adjacentHeight-148-Math.max(1,Math.ceil(units(blocks[long].title)/14))*32)/30)))
     result.push({indices,tall:long,tallLeft,lines,left:tallLeft?width:100-width});i+=count;stacked=true;break

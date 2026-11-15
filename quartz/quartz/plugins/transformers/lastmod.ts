@@ -3,6 +3,7 @@ import { Repository } from "@napi-rs/simple-git"
 import { QuartzTransformerPlugin } from "../types"
 import path from "path"
 import { styleText } from "util"
+import { parseNoteDate } from "../../util/noteDate"
 
 export interface Options {
   priority: ("frontmatter" | "git" | "filesystem")[]
@@ -12,18 +13,8 @@ const defaultOptions: Options = {
   priority: ["frontmatter", "git", "filesystem"],
 }
 
-// YYYY-MM-DD
-const iso8601DateOnlyRegex = /^\d{4}-\d{2}-\d{2}$/
-
 function coerceDate(fp: string, d: any): Date {
-  // check ISO8601 date-only format
-  // we treat this one as local midnight as the normal
-  // js date ctor treats YYYY-MM-DD as UTC midnight
-  if (typeof d === "string" && iso8601DateOnlyRegex.test(d)) {
-    d = `${d}T00:00:00`
-  }
-
-  const dt = new Date(d)
+  const dt = parseNoteDate(d)
   const invalidDate = isNaN(dt.getTime()) || dt.getTime() === 0
   if (invalidDate && d !== undefined) {
     console.log(

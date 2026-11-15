@@ -23,7 +23,7 @@ test('full-length prose can fill a vertical block rather than forcing uniform ro
  assert.equal(bands.length,1);assert.equal(bands[0].indices.length,3);assert.notEqual(bands[0].tall,undefined)
 })
 
-test('mosaic cells tile every row exactly once and give long prose a vertical slot',()=>{
+test('mosaic cells tile every row exactly once and retain chronological visual order',()=>{
  const items=Array.from({length:60},(_,i)=>({title:'Project '+i,opening:'a'.repeat(80+(i*37)%320)}))
  const bands=readingBands(items)
  assert.deepEqual(bands.flatMap(band=>band.indices),items.map((_,i)=>i))
@@ -38,7 +38,20 @@ test('mosaic cells tile every row exactly once and give long prose a vertical sl
   }
   const height=Math.max(...band.cells.map(cell=>cell.row+cell.height-1))
   assert.equal(occupied.size,6*height,'no empty cells')
-  const longest=band.indices.slice().sort((a,b)=>items[b].opening.length-items[a].opening.length)[0]
-  assert.ok(band.cells.find(cell=>cell.index===longest)!.height>1)
+  assert.deepEqual(band.cells.slice().sort((a,b)=>a.row-b.row||a.column-b.column).map(cell=>cell.index),band.indices)
+ }
+})
+
+function visualOrder(band:ReturnType<typeof readingBands>[number]){
+ if(band.cells)return band.cells.slice().sort((a,b)=>a.row-b.row||a.column-b.column).map(cell=>cell.index)
+ if(band.tall===undefined)return band.indices
+ let short=0
+ return band.indices.map(index=>index===band.tall?{index,row:1,column:band.tallLeft?1:2}:{index,row:++short,column:band.tallLeft?2:1}).sort((a,b)=>a.row-b.row||a.column-b.column).map(cell=>cell.index)
+}
+test('short latest entries and later long prose never trade chronological positions',()=>{
+ for(let length=1;length<=36;length++)for(let longest=0;longest<length;longest++){
+  const items=Array.from({length},(_,i)=>({title:'按时间排序 '+i,opening:i===longest?'长正文'.repeat(600):'短文'.repeat(i%3)}))
+  const bands=readingBands(items)
+  assert.deepEqual(bands.flatMap(visualOrder),items.map((_,i)=>i),`count=${length}, long=${longest}`)
  }
 })
