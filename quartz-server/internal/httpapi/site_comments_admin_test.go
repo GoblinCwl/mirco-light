@@ -9,7 +9,7 @@ import (
 func TestCommentManagementAuthorization(t *testing.T) {
 	app := &Server{Origin: "https://site.test"}
 	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
-		for _, kind := range []string{"comments", "users"} {
+		for _, kind := range []string{"comments", "users", "pages"} {
 			path := "/api/site/admin/comments/" + kind
 			if method == "PUT" || method == "DELETE" {
 				path += "/7"

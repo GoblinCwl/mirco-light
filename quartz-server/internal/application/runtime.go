@@ -162,7 +162,9 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	controller.Social = runtime.videoSocial.Refresh
 	app.Video = &video.Service{Store: store, Client: client, Controller: controller, Social: runtime.videoSocial, Changed: runtime.requestVideoIndex}
 	artalk := &comments.Client{Settings: read}
-	app.Comments = &comments.Service{Client: artalk, Site: "GoblinCwl 的微光集"}
+	app.Comments = &comments.Service{Client: artalk, Site: "GoblinCwl 的微光集", ResolvePage: func(_ context.Context, route string) (comments.PageTarget, error) {
+		return comments.ResolveArticle(options.PublicDirectory, app.Origin, route)
+	}}
 	app.Shares = &openlist.Shares{Adapter: app.OpenList, Artalk: artalk, Settings: read, Site: app.Comments.Site, Changed: func(_ context.Context, before, after string) {
 		app.Comments.Cache.Invalidate()
 		app.Shares.IndexCache.Invalidate()

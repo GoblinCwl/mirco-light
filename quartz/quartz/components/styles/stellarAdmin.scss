@@ -526,3 +526,8 @@
   .comment-admin-user-number { color: var(--gray); font-size: .75rem; font-variant-numeric: tabular-nums; }
   .comment-admin-meta { margin: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.5; }
 }
+
+.comment-admin .comment-admin-page {
+ .comment-admin-page-heading {display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;min-width:0;>strong{overflow-wrap:anywhere;} .is-error{color:var(--error,#c75d5d);}}
+ .comment-admin-meta {margin:.3rem 0 0;}
+}

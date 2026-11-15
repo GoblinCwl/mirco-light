@@ -8,17 +8,18 @@ import { commentContent } from './commentContent'
 
 type Request = (path: string, init?: RequestInit) => Promise<any>
 type Comment = { id:number; nick:string; content:string; content_marked?:string; date:string; page_key:string; page_url?:string; rid:number; is_pending:boolean; is_pinned:boolean; is_collapsed:boolean; avatarSeed?:string; isAdmin?:boolean }
+type CommentPage = {id:number;key:string;title:string;comment_count:number;normal:boolean;status:string;url?:string;expected_key?:string}
 type User = { id:number; name:string; email:string; link:string; is_admin:boolean; receive_email:boolean; badge_name:string; badge_color:string; avatarSeed?:string }
 const button = (title:string, action:()=>void) => { const el=node('button',title);el.type='button';el.onclick=action;return el }
 
 export function setupCommentManager(root:HTMLElement, signal:AbortSignal, request:Request) {
- let kind:'comments'|'users'='comments',page=1,revision=0,mutating=false
+ let kind:'comments'|'users'|'pages'='comments',page=1,revision=0,mutating=false
  const editorHost=node('div');editorHost.hidden=true
  const tabs=node('div','','data-admin-tabs'),toolbar=node('form','','comment-admin-toolbar'),search=node('input'),filter=node('select'),list=node('div','','comment-admin-list'),footer=node('div','','stellar-admin-pagination')
  search.type='search';search.placeholder='搜索评论内容、昵称或邮箱';search.setAttribute('aria-label','搜索评论或用户')
- filter.setAttribute('aria-label','筛选评论或用户')
- const commentTab=button('评论',()=>select('comments')),userTab=button('用户',()=>select('users')),query=button('搜索',()=>void load(1)),refresh=button('刷新',()=>void load())
- query.type='submit';query.onclick=null;tabs.append(commentTab,userTab);toolbar.append(search,filter,query,refresh);root.append(tabs,toolbar,list,footer,editorHost)
+ filter.setAttribute('aria-label','筛选记录状态')
+ const commentTab=button('评论',()=>select('comments')),userTab=button('用户',()=>select('users')),pageTab=button('文章',()=>select('pages')),query=button('搜索',()=>void load(1)),refresh=button('刷新',()=>void load())
+ query.type='submit';query.onclick=null;tabs.append(commentTab,userTab,pageTab);toolbar.append(search,filter,query,refresh);root.append(tabs,toolbar,list,footer,editorHost)
  const closeEditor=()=>{editorHost.hidden=true;editorHost.replaceChildren();for(const el of [tabs,toolbar,list,footer])el.hidden=false}
  const editForm=(title:string)=>{
   const form=node('form','','friend-admin-form'),heading=node('header','','friend-admin-heading'),back=button('返回列表',()=>{if(!mutating)closeEditor()}),fields=node('div','','friend-admin-fields'),actions=node('div','','friend-admin-footer'),submit=node('button','保存')
@@ -88,6 +89,21 @@ export function setupCommentManager(root:HTMLElement, signal:AbortSignal, reques
    card.append(header,meta,text);list.append(card)
   }
  }
+ const editPage=(item:CommentPage)=>{
+  const form=editForm('调整文章路由'),old=form.field('原评论路由',item.key),route=form.field('新文章路由',item.expected_key||'')
+  old.readOnly=true;route.required=true;route.maxLength=2000;route.placeholder='/Memo/新的目录/文章名'
+  form.note(`共 ${item.comment_count} 条评论。填写本站文章路径或完整地址；保存时校验已发布页面，并迁移评论到该页实际使用的评论路由。`)
+  form.note('评论编号、回复关系及审核状态保留。目标已有评论时会一并显示；此操作只迁移评论，不移动笔记文件。')
+  form.run(()=>mutate(`/admin/comments/pages/${item.id}`,{method:'PUT',body:JSON.stringify({old_key:item.key,route:route.value.trim()})}))
+ }
+ const renderPages=(items:CommentPage[])=>{
+  for(const item of items){
+   const card=node('section','','comment-admin-card comment-admin-page'),header=node('header'),copy=node('div','','comment-admin-author-copy'),heading=node('div','','comment-admin-page-heading'),title=node('strong',item.title||item.key),status=node('span',item.status,'stellar-admin-badge'),actions=node('div','','comment-admin-actions')
+   status.classList.toggle('is-error',!item.normal);heading.append(title,status);copy.append(heading,node('p',`#${item.id} · ${item.comment_count} 条评论 · ${item.key}`,'comment-admin-meta'))
+   if(item.url){const a=node('a','查看文章','comment-admin-article-link');a.href=item.url;a.target='_blank';a.rel='noopener noreferrer';a.dataset.noPopover='true';a.dataset.routerIgnore='true';actions.append(a)}
+   actions.append(button('调整路由',()=>editPage(item)));header.append(copy,actions);card.append(header);list.append(card)
+  }
+ }
  const renderUsers=(items:User[])=>{
   for(const item of items){
    const card=node('section','','comment-admin-card comment-admin-user'),header=node('header'),title=node('strong',item.name),role=node('span',item.is_admin?'管理员':'普通用户','stellar-admin-badge'),actions=node('div','','comment-admin-actions'),edit=button('编辑',()=>editUser(item)),del=button('删除',()=>remove(item))
@@ -107,17 +123,17 @@ export function setupCommentManager(root:HTMLElement, signal:AbortSignal, reques
    if(signal.aborted||own!==revision)return
    page=result.page;list.replaceChildren()
    if(!result.items.length)showAdminListMessage(list,'暂无匹配记录','尝试其他搜索词或筛选条件。')
-   else if(current==='comments')renderComments(result.items);else renderUsers(result.items)
+   else if(current==='comments')renderComments(result.items);else if(current==='pages')renderPages(result.items);else renderUsers(result.items)
    renderAdminPagination(footer,page,Math.max(1,Math.ceil(result.total/result.pageSize)),result.total,value=>void load(value))
   }catch(error){if(!signal.aborted&&own===revision)showAdminListMessage(list,'加载失败',error instanceof Error?error.message:'请稍后重试',()=>void load(next))}
   finally{if(own===revision)root.removeAttribute('aria-busy')}
  }
- function select(value:'comments'|'users'){
+ function select(value:'comments'|'users'|'pages'){
   if(mutating)return
-  kind=value;page=1;search.value='';commentTab.setAttribute('aria-pressed',String(kind==='comments'));userTab.setAttribute('aria-pressed',String(kind==='users'))
+  kind=value;page=1;search.value='';commentTab.setAttribute('aria-pressed',String(kind==='comments'));userTab.setAttribute('aria-pressed',String(kind==='users'));pageTab.setAttribute('aria-pressed',String(kind==='pages'));search.placeholder=kind==='pages'?'搜索文章标题或路由':kind==='users'?'搜索昵称或邮箱':'搜索评论内容、昵称或邮箱';search.setAttribute('aria-label',search.placeholder)
   filter.hidden=kind==='users'
   filter.replaceChildren()
-  for(const [value,title] of kind==='comments'?[['all','全部评论'],['pending','待审核']]:[['all','普通用户']]){const option=node('option',title);option.value=value;filter.append(option)}
+  for(const [value,title] of kind==='comments'?[['all','全部评论'],['pending','待审核']]:kind==='pages'?[['all','全部文章'],['normal','正常'],['abnormal','异常']]:[['all','普通用户']]){const option=node('option',title);option.value=value;filter.append(option)}
   void load(1)
  }
  signal.addEventListener('abort',()=>{revision++},{once:true})

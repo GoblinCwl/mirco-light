@@ -1,15 +1,19 @@
 package comments
 
 import (
+	"context"
 	"goblincwl/quartz-server/internal/cache"
 	"regexp"
+	"sync"
 )
 
 // Service supports comment administration and private avatar-hash resolution.
 type Service struct {
-	Client *Client
-	Site   string
-	Cache  cache.Cache
+	ResolvePage func(context.Context, string) (PageTarget, error)
+	pageMu      sync.Mutex
+	Client      *Client
+	Site        string
+	Cache       cache.Cache
 }
 
 var emailHash = regexp.MustCompile(`(?i)^[a-f\d]{32}(?:[a-f\d]{32})?$`)

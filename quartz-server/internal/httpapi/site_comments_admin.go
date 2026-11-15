@@ -13,7 +13,7 @@ func (s *Server) siteCommentsAdmin(w http.ResponseWriter, r *http.Request, path 
 		return
 	}
 	parts := strings.Split(strings.TrimPrefix(path, "/admin/comments/"), "/")
-	if len(parts) < 1 || len(parts) > 2 || (parts[0] != "comments" && parts[0] != "users") {
+	if len(parts) < 1 || len(parts) > 2 || (parts[0] != "comments" && parts[0] != "users" && parts[0] != "pages") {
 		JSON(w, 404, map[string]string{"error": "接口不存在"})
 		return
 	}
@@ -28,7 +28,13 @@ func (s *Server) siteCommentsAdmin(w http.ResponseWriter, r *http.Request, path 
 			}
 			page = n
 		}
-		value, err := s.Comments.AdminList(r.Context(), kind, page, r.URL.Query().Get("search"), r.URL.Query().Get("filter"))
+		var value map[string]any
+		var err error
+		if kind == "pages" {
+			value, err = s.Comments.AdminPages(r.Context(), page, r.URL.Query().Get("search"), r.URL.Query().Get("filter"))
+		} else {
+			value, err = s.Comments.AdminList(r.Context(), kind, page, r.URL.Query().Get("search"), r.URL.Query().Get("filter"))
+		}
 		if err != nil {
 			s.fail(w, err)
 			return
@@ -56,7 +62,17 @@ func (s *Server) siteCommentsAdmin(w http.ResponseWriter, r *http.Request, path 
 			return
 		}
 	}
-	if err := s.Comments.AdminMutate(r.Context(), kind, r.Method, id, input); err != nil {
+	var operationErr error
+	if kind == "pages" {
+		if len(parts) != 2 || r.Method != "PUT" {
+			JSON(w, 405, map[string]string{"error": "请求方式不支持"})
+			return
+		}
+		operationErr = s.Comments.MovePage(r.Context(), id, input)
+	} else {
+		operationErr = s.Comments.AdminMutate(r.Context(), kind, r.Method, id, input)
+	}
+	if err := operationErr; err != nil {
 		s.fail(w, err)
 		return
 	}

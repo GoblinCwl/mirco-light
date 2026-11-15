@@ -22,7 +22,7 @@ export default {
       quote: "引用",
     },
     backlinks: {
-      title: "反向链接",
+      title: "反链",
       noBacklinksFound: "无法找到反向链接",
     },
     themeToggle: {
