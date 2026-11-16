@@ -27,6 +27,11 @@ body[data-slug="index"] .home-profile-card img.site-profile-avatar {
 }
 .folder-mark { margin-right: 0.25em; letter-spacing: normal; }
 // Markdown tables share one treatment in articles and their hover previews.
+@media screen {
+  // These wrappers already clip overflow. Paint containment lets the browser
+  // discard offscreen table painting while retaining the full document layout.
+  #content[data-large-document] .table-container { contain: paint; }
+}
 .table-container {
   width: 100%;
   max-width: 100%;

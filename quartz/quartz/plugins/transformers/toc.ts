@@ -40,7 +40,9 @@ export const TableOfContents: QuartzTransformerPlugin<Partial<Options>> = (userO
               let highestDepth: number = opts.maxDepth
               visit(tree, "heading", (node) => {
                 if (node.depth <= opts.maxDepth) {
-                  const text = toString(node)
+                  // Raw inline HTML is markup, not part of the heading label
+                  // or its anchor. Keep actual text, including inline code.
+                  const text = toString(node, { includeHtml: false })
                   highestDepth = Math.min(highestDepth, node.depth)
                   toc.push({
                     depth: node.depth,

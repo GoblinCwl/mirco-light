@@ -1,4 +1,3 @@
-import { setupTocTracking } from "./tocTracking"
 import {normalizeRelativeURLs} from '../../util/path'
 import {rememberReadingUnlock} from './readingUnlock'
 import { unlockedIcon } from "../../util/encryptedIcon"
@@ -184,17 +183,69 @@ function error(code: string) {
   )
 }
 
+function revealTocEntry(tocEntry: Element) {
+  const tocContent = tocEntry.closest(".toc-content") as HTMLElement | null
+  if (!tocContent || tocContent.scrollHeight <= tocContent.clientHeight) return
+
+  const entryBounds = tocEntry.getBoundingClientRect()
+  const contentBounds = tocContent.getBoundingClientRect()
+  if (entryBounds.top >= contentBounds.top && entryBounds.bottom <= contentBounds.bottom) return
+
+  tocContent.scrollTo({
+    top: Math.max(
+      0,
+      tocContent.scrollTop + entryBounds.top - contentBounds.top -
+        (tocContent.clientHeight - entryBounds.height) / 2,
+    ),
+    behavior: "smooth",
+  })
+}
+
 function setupDecryptedTocTracking() {
   decryptedTocTrackingCleanup?.()
+
   const toc = document.getElementById("decrypted-toc")
   if (!toc) return
+
   const headers = Array.from(document.querySelectorAll<HTMLElement>("h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]"))
-  const entries = new Map<string, HTMLAnchorElement[]>()
-  toc.querySelectorAll<HTMLAnchorElement>("a[data-for]").forEach(entry => {
-    const id = entry.dataset.for
-    if (id) entries.set(id, [...(entries.get(id) || []), entry])
+  const tocEntries = new Map<string, HTMLAnchorElement>()
+  toc.querySelectorAll<HTMLAnchorElement>("a[data-for]").forEach((entry) => {
+    const slug = entry.dataset.for
+    if (slug) tocEntries.set(slug, entry)
   })
-  decryptedTocTrackingCleanup = setupTocTracking(headers, entries)
+
+  let animationFrame: number | undefined
+  const update = () => {
+    animationFrame = undefined
+    let latestVisibleEntry: HTMLAnchorElement | undefined
+
+    // Keep layout reads together before writing TOC highlight classes.
+    const states = headers.flatMap((header) => {
+      const tocEntry = tocEntries.get(header.id)
+      return tocEntry ? [{ tocEntry, isInView: header.getBoundingClientRect().top < window.innerHeight }] : []
+    })
+    for (const { tocEntry, isInView } of states) {
+      tocEntry.classList.toggle("in-view", isInView)
+      if (isInView) latestVisibleEntry = tocEntry
+    }
+
+    if (latestVisibleEntry) revealTocEntry(latestVisibleEntry)
+  }
+  const scheduleUpdate = () => {
+    if (animationFrame === undefined) animationFrame = requestAnimationFrame(update)
+  }
+
+  window.addEventListener("scroll", scheduleUpdate, { passive: true })
+  window.addEventListener("resize", scheduleUpdate)
+  window.addEventListener("hashchange", scheduleUpdate)
+  update()
+
+  decryptedTocTrackingCleanup = () => {
+    if (animationFrame !== undefined) cancelAnimationFrame(animationFrame)
+    window.removeEventListener("scroll", scheduleUpdate)
+    window.removeEventListener("resize", scheduleUpdate)
+    window.removeEventListener("hashchange", scheduleUpdate)
+  }
 }
 
 async function loadEncryptedPayload(version: number) {
@@ -258,6 +309,9 @@ async function decrypt() {
     }
 
     article.innerHTML = contentHtml
+    // Bound painting work in table-heavy documents without skipping layout or
+    // estimating heights; headings and browser find keep their real positions.
+    article.toggleAttribute("data-large-document", article.querySelectorAll("table").length >= 64)
     if(document.body.dataset.contentBase)normalizeRelativeURLs(article,new URL(document.body.dataset.contentBase,location.origin))
     rememberReadingUnlock(document.body.dataset.contentBase||location.pathname,article.textContent||"")
     // Decryption can be retried or completed by more than one pending callback.
