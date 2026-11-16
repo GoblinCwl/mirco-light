@@ -3,16 +3,20 @@ package community
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"goblincwl/quartz-server/internal/friendavatar"
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
 )
 
 func TestRefreshAvatarRetainsStateAndConcurrentEdits(t *testing.T) {
+	if err := sqlite.RegisterDeterministicScalarFunction("JSON_UNQUOTE", 1, func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) { return args[0], nil }); err != nil {
+		t.Fatal(err)
+	}
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "friends.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -27,6 +31,19 @@ func TestRefreshAvatarRetainsStateAndConcurrentEdits(t *testing.T) {
 	_, err = db.Exec(`INSERT INTO friends VALUES ('fixture',1,'Fixture','https://site.test','','',?,'https://site.test/avatar.gif','2026-11-14','',0,'待审核','unchanged','',2,'','')`, old)
 	if err != nil {
 		t.Fatal(err)
+	}
+	for _, ddl := range []string{
+		"CREATE TABLE settings (`key` TEXT,value TEXT)",
+		"ALTER TABLE friends ADD COLUMN email TEXT DEFAULT ''",
+		"ALTER TABLE friends ADD COLUMN processing_failures INTEGER DEFAULT 0",
+		"ALTER TABLE friends ADD COLUMN failure_notified INTEGER DEFAULT 0",
+		"ALTER TABLE friends ADD COLUMN failure_mail_sent INTEGER DEFAULT 0",
+		"ALTER TABLE friends ADD COLUMN review_ready INTEGER DEFAULT 0",
+		"ALTER TABLE friends ADD COLUMN inspection_failed_on TEXT DEFAULT ''; ALTER TABLE friends ADD COLUMN inspection_failures INTEGER DEFAULT 0",
+	} {
+		if _, err = db.Exec(ddl); err != nil {
+			t.Fatal(err)
+		}
 	}
 	ctx := context.Background()
 	s := Store{DB: db}

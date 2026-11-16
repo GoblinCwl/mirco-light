@@ -92,7 +92,8 @@ func (s *Server) siteCommunity(w http.ResponseWriter, r *http.Request, path stri
 			s.fail(w, err)
 			return
 		}
-		_, value, err := communityStore.CreateFriend(r.Context(), input, false)
+		input.Status="待审核"
+        _, value, err := communityStore.CreateFriend(r.Context(), input, false)
 		if err != nil {
 			s.fail(w, err)
 			return
@@ -139,7 +140,7 @@ func (s *Server) siteCommunity(w http.ResponseWriter, r *http.Request, path stri
 			return
 		}
 		if action == "auto-review" && r.Method == "PUT" {
-			if err := communityStore.EnqueueFriend(r.Context(), parts[0]); err != nil {
+			if err := communityStore.EnqueueFriendReview(r.Context(), parts[0]); err != nil {
 				s.fail(w, err)
 				return
 			}

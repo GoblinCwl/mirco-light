@@ -22,7 +22,7 @@ func TestAutoReviewPublishesOnlyVerifiedPendingFriends(t *testing.T) {
 	store := community.Store{DB: db}
 	ids := map[string]string{}
 	for _, name := range []string{"a", "b", "c", "d"} {
-		f, _, err := store.CreateFriend(ctx, community.Friend{Name: name, URL: "https://" + name + ".example/", BacklinkURL: "https://" + name + ".example/friends", Status: "待审核", ReviewResult: "spoofed", ReviewCheckedAt: "2099-01-01"}, false)
+		f, _, err := store.CreateFriend(ctx, community.Friend{Email: "fixture@example.test", Name: name, URL: "https://" + name + ".example/", BacklinkURL: "https://" + name + ".example/friends", Status: "待审核", ReviewResult: "spoofed", ReviewCheckedAt: "2099-01-01"}, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -46,6 +46,7 @@ func TestAutoReviewPublishesOnlyVerifiedPendingFriends(t *testing.T) {
 		}
 		return community.BacklinkResult{Found: true, Message: "自动审核通过"}, nil
 	}
+	db.Exec("UPDATE friends SET review_ready=1")
 	f, err := store.AutoReviewFriend(ctx, ids["a"])
 	if err != nil || f.Status != "展示中" || f.ReviewCheckedAt == "" {
 		t.Fatal(f, err)
@@ -86,6 +87,7 @@ func TestAutoReviewPublishesOnlyVerifiedPendingFriends(t *testing.T) {
 	store.CheckBacklink = func(context.Context, community.Friend) (community.BacklinkResult, error) {
 		return community.BacklinkResult{Found: true, Message: "passed retry"}, nil
 	}
+	db.Exec("UPDATE friends SET review_ready=1")
 	result, err := store.RefreshLinks(ctx)
 	if err != nil || result.Approved != 2 {
 		t.Fatal("daily retry failed", result, err)
@@ -99,7 +101,7 @@ func TestAutoReviewPublishesOnlyVerifiedPendingFriends(t *testing.T) {
 func TestPublicApplicationOnlySavesAndQueues(t *testing.T) {
 	db := testDB(t)
 	app := &httpapi.Server{DB: db, Origin: "https://site.test", Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
-	input := community.Friend{Name: "申请站点", URL: "https://127.0.0.1:1/", BacklinkURL: "https://127.0.0.1:1/friends", Avatar: "https://example.com/avatar.png", RSSURL: "https://127.0.0.1:1/feed", Description: "简介"}
+	input := community.Friend{Email: "fixture@example.test", Name: "申请站点", URL: "https://127.0.0.1:1/", BacklinkURL: "https://127.0.0.1:1/friends", Avatar: "https://example.com/avatar.png", RSSURL: "https://127.0.0.1:1/feed", Description: "简介"}
 	raw, _ := json.Marshal(input)
 	req := httptest.NewRequest(http.MethodPost, "/api/site/friends/apply", bytes.NewReader(raw))
 	req.Header.Set("Origin", "https://site.test")

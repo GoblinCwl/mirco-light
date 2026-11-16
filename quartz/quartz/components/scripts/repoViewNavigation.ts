@@ -30,6 +30,7 @@ export function createRepoViewNavigation(initial: URL, callbacks: Callbacks) {
         const readyUrl = controller.url
         if (readyUrl.hash) callbacks.anchor(readyUrl)
         callbacks.ready?.(readyUrl)
+        if(typeof document!=="undefined")document.dispatchEvent(new Event("content-route-changed"))
       }).catch(error => { if (!request.signal.aborted) console.error("Repo navigation failed", error) })
       callbacks.updateDirectory()
     },

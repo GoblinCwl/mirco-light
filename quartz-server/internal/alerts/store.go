@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"goblincwl/quartz-server/internal/notifications"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -84,15 +86,27 @@ func RecordTx(ctx context.Context, tx *sql.Tx, event Event, now time.Time) error
 	stamp := now.UTC().Format("2006-01-02T15:04:05.000Z")
 	cutoff := now.Add(-10 * time.Minute).UTC().Format("2006-01-02T15:04:05.000Z")
 	var id int64
-	err = tx.QueryRowContext(ctx, "SELECT id FROM alerts WHERE fingerprint=? AND last_seen>=? ORDER BY id DESC LIMIT 1 FOR UPDATE", fingerprint[:], cutoff).Scan(&id)
+	var oldLevel string
+	err = tx.QueryRowContext(ctx, "SELECT id,level FROM alerts WHERE fingerprint=? AND last_seen>=? ORDER BY id DESC LIMIT 1 FOR UPDATE", fingerprint[:], cutoff).Scan(&id, &oldLevel)
 	if err == nil {
 		_, err = tx.ExecContext(ctx, "UPDATE alerts SET last_seen=GREATEST(last_seen,?),occurrences=occurrences+1,level=?,message=? WHERE id=?", stamp, event.Level, event.Message, id)
+		if err == nil && oldLevel != "error" && event.Level == "error" {
+			err = notifications.EnqueueTx(ctx, tx, notifications.Event{Kind: "alerts", RecordID: strconv.FormatInt(id, 10), Title: event.Title, Summary: event.Source + "：" + event.Message, Level: event.Level, Status: "级别升级"})
+		}
 		return err
 	}
 	if err != sql.ErrNoRows {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO alerts(fingerprint,kind,level,source,title,message,target,status_code,first_seen,last_seen,occurrences) VALUES(?,?,?,?,?,?,?,?,?,?,1)", fingerprint[:], event.Kind, event.Level, event.Source, event.Title, event.Message, event.Target, event.Code, stamp, stamp); err != nil {
+	result, err := tx.ExecContext(ctx, "INSERT INTO alerts(fingerprint,kind,level,source,title,message,target,status_code,first_seen,last_seen,occurrences) VALUES(?,?,?,?,?,?,?,?,?,?,1)", fingerprint[:], event.Kind, event.Level, event.Source, event.Title, event.Message, event.Target, event.Code, stamp, stamp)
+	if err != nil {
+		return err
+	}
+	id, err = result.LastInsertId()
+	if err != nil {
+		return err
+	}
+	if err = notifications.EnqueueTx(ctx, tx, notifications.Event{Kind: "alerts", RecordID: strconv.FormatInt(id, 10), Title: event.Title, Summary: event.Source + "：" + event.Message, Level: event.Level, Status: "新告警"}); err != nil {
 		return err
 	}
 	// Retention is performed only when an incident is inserted, with no cleanup timer.
@@ -126,7 +140,7 @@ func (s Store) List(ctx context.Context, page int, kind, query string) (map[stri
 	if page > 100000 {
 		page = 100000
 	}
-	where := " WHERE kind<>'task'"
+	where := " WHERE 1=1"
 	args := []any{}
 	if kind != "" {
 		if kind != "api" && kind != "service" && kind != "task" && kind != "runtime" {

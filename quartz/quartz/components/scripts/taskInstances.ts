@@ -3,7 +3,7 @@ import {showPasswordToast} from './passwordFeedback'
 import {renderAdminPagination} from './adminPagination'
 import {showSiteDialog} from './siteDialog'
 type Run={id:number;startedAt:string;finishedAt:string;status:string;durationMs:number;error:string;logs:string}
-type Task={key:string;name:string;kind:string;periodKey?:string;hasQueue:boolean;retryable?:boolean;schedule:string;lastRun:Run|null;remaining:number;waiting:number;running:number}
+type Task={key:string;name:string;kind:string;periodKey?:string;hasQueue:boolean;retryable?:boolean;triggerable?:boolean;schedule:string;lastRun:Run|null;remaining:number;waiting:number;running:number}
 type Item={id:string;label:string;state:string;attempts:number;availableAt:string;error:string}
 type Detail={task:Task;runs:Run[];queue:{items:Item[];total:number;waiting:number;running:number;page:number;pages:number}}
 const status:Record<string,string>={success:'成功',failed:'失败',running:'执行中',interrupted:'已中断',pending:'等待执行',retry:'等待重试'}
@@ -16,7 +16,7 @@ export function setupTaskInstances(root:HTMLElement,signal:AbortSignal,request:(
  refresh.type='button';refresh.className='stellar-action-button';toolbar.append(hint,refresh);dialog.setAttribute('aria-label','任务执行日志');dialog.tabIndex=-1;dialog.append(detail);root.append(toolbar,state,list,dialog)
  const settings=new Map<string,HTMLElement>()
  for(const row of configuration?.querySelectorAll<HTMLElement>('[data-setting-key]')??[])settings.set(row.dataset.settingKey!,row)
- const assigned=new Set<string>(),groups=new Map<string,HTMLElement>(),cards=new Map<string,{card:HTMLElement;schedule:HTMLElement;time:HTMLElement;result:HTMLElement;error:HTMLElement;queue:HTMLElement;retry:HTMLButtonElement}>()
+ const assigned=new Set<string>(),groups=new Map<string,HTMLElement>(),cards=new Map<string,{card:HTMLElement;schedule:HTMLElement;time:HTMLElement;result:HTMLElement;error:HTMLElement;queue:HTMLElement;retry:HTMLButtonElement;trigger:HTMLButtonElement}>()
  const cell=(row:HTMLElement,text:string,className='')=>{const td=node('td',text,className);row.append(td);return td}
  const table=(heads:string[])=>{const wrap=node('div','','task-table-wrap'),table=node('table','','task-table'),head=node('thead'),row=node('tr'),body=node('tbody');for(const title of heads){const th=node('th',title);th.scope='col';row.append(th)};head.append(row);table.append(head,body);wrap.append(table);return {wrap,body}}
  const loadDetail=async()=>{
@@ -30,6 +30,12 @@ export function setupTaskInstances(root:HTMLElement,signal:AbortSignal,request:(
   try{await request(`/admin/tasks/${encodeURIComponent(key)}/retry`,{method:'POST',body:'{}'});showPasswordToast('已提交重试');button.hidden=true;await load()}
   catch(error){showPasswordToast(error instanceof Error?error.message:'重试失败',true)}
   finally{button.disabled=false;button.textContent='重试'}
+ }
+ const triggerTask=async(key:string,button:HTMLButtonElement)=>{
+  if(button.disabled)return;button.disabled=true;button.setAttribute('aria-busy','true')
+  try{await request(`/admin/tasks/${encodeURIComponent(key)}/run`,{method:'POST',body:'{}'});if(signal.aborted)return;showPasswordToast('已提交执行');await load()}
+  catch(error){if(!signal.aborted){showPasswordToast(error instanceof Error?error.message:'触发失败',true);button.disabled=false}}
+  finally{button.removeAttribute('aria-busy')}
  }
  const select=(key:string)=>{selected=key;page=1;opened.clear();version++;detailBusy=false;detail.replaceChildren(node('p','正在读取执行记录…'));if(!dialog.open)showSiteDialog(dialog);void loadDetail()}
  dialog.addEventListener('close',()=>{selected='';version++;detailBusy=false})
@@ -46,14 +52,13 @@ export function setupTaskInstances(root:HTMLElement,signal:AbortSignal,request:(
     let view=cards.get(task.key)
     if(!view){
      const card=node('section','','stellar-setting-card task-merged-card'),heading=node('header','','task-merged-heading'),title=node('h3',task.name),identity=node('div','','task-identity'),result=node('span','','task-heading-status'),description=node('p','','task-description'),logs=node('button',task.hasQueue?'日志 / 队列':'执行日志'),summary=node('dl','','task-instance-summary')
-     card.dataset.task=task.key;logs.type='button';logs.className='task-detail-button';logs.onclick=()=>select(task.key);identity.append(title,result);const actions=node('div','','task-heading-actions'),retry=node('button','重试');retry.type='button';retry.className='task-detail-button';retry.hidden=true;retry.onclick=()=>void retryTask(task.key,retry);actions.append(retry,logs);heading.append(identity,actions);card.append(heading,description,summary)
+     card.dataset.task=task.key;logs.type='button';logs.className='task-detail-button';logs.onclick=()=>select(task.key);identity.append(title,result);const actions=node('div','','task-heading-actions'),retry=node('button','重试');retry.type='button';retry.className='task-detail-button';retry.hidden=true;retry.onclick=()=>void retryTask(task.key,retry);const trigger=node('button','立即执行');trigger.type='button';trigger.className='task-detail-button';trigger.onclick=()=>void triggerTask(task.key,trigger);actions.append(trigger,retry,logs);heading.append(identity,actions);card.append(heading,description,summary)
      const entry=(label:string)=>{const row=node('div'),name=node('dt',label),value=node('dd');row.append(name,value);summary.append(row);return value}
-     view={card,retry,schedule:entry('执行安排'),time:entry('上次运行'),result,error:entry('错误'),queue:entry('剩余项目')};cards.set(task.key,view);group.append(card)
+     view={card,retry,trigger,schedule:entry('执行安排'),time:entry('上次运行'),result,error:entry('错误'),queue:entry('剩余项目')};cards.set(task.key,view);group.append(card)
      const period=task.periodKey||task.key
      const keys=[`tasks.${period}Seconds`]
      if(task.key==='video-sync')keys.push('tasks.video-retrySeconds')
-     if(task.key==='friends-refresh')keys.push('tasks.friendsEveryDays','tasks.friendsTime')
-     if(task.key==='friend-jobs')keys.push('tasks.friend-retrySeconds','tasks.friend-retry-maxSeconds')
+     if(task.key==='friends-refresh')keys.push('tasks.friendsEveryDays','tasks.friendsTime','tasks.friendsGrayDays','tasks.friendsRemoveDays')
      if(task.key==='attendance-refresh')keys.push('tasks.attendance-quietSeconds')
      if(task.key==='video-index')keys.push('tasks.video-index-retrySeconds')
      attachSettings(card,keys)
@@ -64,7 +69,7 @@ export function setupTaskInstances(root:HTMLElement,signal:AbortSignal,request:(
      }
      description.hidden=!description.textContent
     }
-    view.retry.hidden=!task.retryable;view.schedule.textContent=task.kind==='event'?`启动时初始化；${task.schedule}`:task.schedule;view.time.textContent=date(task.lastRun?.startedAt||'')
+    view.trigger.disabled=!task.triggerable;view.trigger.title=task.key==='friend-jobs'?'处理待审核及已入队友链；全站巡检请执行友链巡检任务':task.triggerable?'立即提交一次执行':'当前正在执行、已排队或不支持主动执行';view.retry.hidden=!task.retryable;view.schedule.textContent=task.kind==='event'?`启动时初始化；${task.schedule}`:task.schedule;view.time.textContent=date(task.lastRun?.startedAt||'')
     view.result.replaceChildren(badge(task.lastRun?.status||''));view.error.textContent=task.lastRun?.error||'—'
     view.error.parentElement!.hidden=!task.lastRun?.error;view.queue.parentElement!.hidden=!task.hasQueue;view.error.className='task-error';view.queue.textContent=task.hasQueue?`${task.remaining}（等待 ${task.waiting} · 执行中 ${task.running}）`:'—'
    }
@@ -73,7 +78,7 @@ export function setupTaskInstances(root:HTMLElement,signal:AbortSignal,request:(
   if(remaining.length){const shared=node('section','','stellar-setting-card task-shared-settings');shared.append(node('h3','共用配置'));attachSettings(shared,remaining);list.append(shared)}
  }
  const renderDetail=(value:Detail)=>{
-  detail.replaceChildren();const top=node('header','','task-detail-heading'),title=node('h3',`${value.task.name} · 执行日志`),close=node('button','关闭');close.type='button';close.className='task-detail-button';close.onclick=()=>dialog.close();const actions=node('div','','task-heading-actions');if(value.task.retryable){const retry=node('button','重试');retry.type='button';retry.className='task-detail-button';retry.onclick=()=>void retryTask(value.task.key,retry);actions.append(retry)}actions.append(close);top.append(title,actions);detail.append(top)
+  detail.replaceChildren();const top=node('header','','task-detail-heading'),title=node('h3',`${value.task.name} · 执行日志`),close=node('button','关闭');close.type='button';close.className='task-detail-button';close.onclick=()=>dialog.close();const actions=node('div','','task-heading-actions'),trigger=node('button','立即执行');trigger.type='button';trigger.className='task-detail-button';trigger.disabled=!value.task.triggerable;trigger.onclick=()=>void triggerTask(value.task.key,trigger);actions.append(trigger);if(value.task.retryable){const retry=node('button','重试');retry.type='button';retry.className='task-detail-button';retry.onclick=()=>void retryTask(value.task.key,retry);actions.append(retry)}actions.append(close);top.append(title,actions);detail.append(top)
   if(value.task.hasQueue){
    const queue=node('section'),title=node('h4',`队列项目 · ${value.queue.total}`),{wrap,body}=table(['项目','状态','失败次数','下次可执行','错误']);queue.append(title,wrap);detail.append(queue)
    if(!value.queue.items.length){const row=node('tr'),td=cell(row,'当前队列为空');td.setAttribute('colspan','5');body.append(row)}

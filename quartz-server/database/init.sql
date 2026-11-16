@@ -102,6 +102,29 @@ CREATE TABLE `feedback` (
   CONSTRAINT `feedback_status` CHECK ((`status` in (_utf8mb4'待处理',_utf8mb4'已解决')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='访客问题反馈、联系邮箱、浏览器信息及处理状态';
 
+CREATE TABLE `friend_avatar_cache` (
+  `cache_key` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'æºå¤´åƒ SHA-256ã€åŽ‹ç¼©ç‰ˆæœ¬ã€é…ç½®ä¸Žå­˜å‚¨åœ°å€çš„ç»„åˆå“ˆå¸Œ',
+  `filename` varchar(70) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'å·²å­˜å‚¨çš„åŽ‹ç¼©ç»“æžœæ–‡ä»¶å',
+  PRIMARY KEY (`cache_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='å¤´åƒæºæ–‡ä»¶å“ˆå¸Œä¸ŽåŽ‹ç¼©ç»“æžœçš„å¯é‡å»ºç¼“å­˜';
+
+CREATE TABLE `friend_mail_outbox` (
+  `id` char(36) COLLATE utf8mb4_bin NOT NULL COMMENT 'é‚®ä»¶äº‹ä»¶ UUID',
+  `friend_id` char(36) COLLATE utf8mb4_bin NOT NULL COMMENT 'å…³è”ä¸šåŠ¡ UUIDï¼Œè®°å½•åˆ é™¤åŽä»å¯å‘é€é€šçŸ¥',
+  `recipient` varchar(254) COLLATE utf8mb4_bin NOT NULL COMMENT 'å®¡æ ¸ç»“æžœæŽ¥æ”¶é‚®ç®±',
+  `name` varchar(80) COLLATE utf8mb4_bin NOT NULL COMMENT 'ç”³è¯·ç½‘ç«™åç§°',
+  `accepted` tinyint(1) NOT NULL COMMENT 'æ˜¯å¦å®¡æ ¸é€šè¿‡',
+  `reason` text COLLATE utf8mb4_bin NOT NULL COMMENT 'é‚®ä»¶é€šçŸ¥æ­£æ–‡ï¼šå®¡æ ¸è¯´æ˜Žæˆ–åŽŸå§‹åé¦ˆ',
+  `state` varchar(16) COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending' COMMENT 'pending å¾…æŠ•é€’ã€sent å·²å‘é€ã€failed å¤±è´¥',
+  `attempts` int NOT NULL DEFAULT '0' COMMENT 'é‚®ä»¶å‘é€å°è¯•æ¬¡æ•°',
+  `available_at` bigint NOT NULL DEFAULT '0' COMMENT 'ä¸‹æ¬¡æŠ•é€’æ—¶é—´ï¼ŒUnix æ¯«ç§’',
+  `created_at` varchar(40) COLLATE utf8mb4_bin NOT NULL COMMENT 'å…¥é˜Ÿæ—¶é—´ï¼ŒUTC ISO 8601',
+  `last_error` varchar(255) COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT 'ä¸å«å‡­æ®çš„å‘é€é”™è¯¯è¯´æ˜Ž',
+  `kind` varchar(16) COLLATE utf8mb4_bin NOT NULL DEFAULT 'friends' COMMENT 'é‚®ä»¶ä¸šåŠ¡ç±»åˆ«ï¼šfriends å‹é“¾å®¡æ ¸ã€feedback åé¦ˆå¤„ç†',
+  PRIMARY KEY (`id`),
+  KEY `delivery` (`state`,`available_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='ç«™ç‚¹ä¸šåŠ¡é‚®ä»¶é˜Ÿåˆ—ï¼šå‹é“¾å®¡æ ¸ä¸Žåé¦ˆå¤„ç†ï¼Œä¸Žä¸šåŠ¡çŠ¶æ€åŒäº‹åŠ¡ä¿å­˜';
+
 CREATE TABLE `friends` (
   `id` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '友链唯一标识',
   `number` int unsigned NOT NULL AUTO_INCREMENT COMMENT '友链固定编号，用于卡片编号，不随 RSS 排序变化',
@@ -121,6 +144,13 @@ CREATE TABLE `friends` (
   `health_checked_on` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '最近首页检查日期，北京时间 YYYY-MM-DD，同日不重复计数',
   `health_error` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '最近首页检查失败原因',
   `url_hash` binary(32) GENERATED ALWAYS AS (unhex(sha2(`url`,256))) STORED COMMENT 'URL 的 SHA-256 二进制生成列，用于唯一约束',
+  `email` varchar(254) COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT 'ç”³è¯·é€šçŸ¥é‚®ç®±ï¼Œä¸å…¬å¼€',
+  `processing_failures` int NOT NULL DEFAULT '0' COMMENT 'å¤„ç†ç´¯è®¡å¤±è´¥æ¬¡æ•°ï¼Œä¸å› é‡æ–°å…¥é˜Ÿæ¸…é›¶',
+  `failure_notified` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'æ˜¯å¦å·²æŠ•é€’ç´¯è®¡å¤±è´¥é˜ˆå€¼é€šçŸ¥',
+  `failure_mail_sent` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'æ˜¯å¦å·²ç”Ÿæˆå¤±è´¥é‚®ä»¶ä»»åŠ¡ï¼Œé¿å…é‡å¤å‘é€',
+  `review_ready` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'é¦–é¡µã€RSSåŠå¤´åƒé¢„æ£€æŸ¥å…¨éƒ¨é€šè¿‡ï¼Œæ‰å…è®¸å®¡æ ¸é€šè¿‡',
+  `inspection_failures` int NOT NULL DEFAULT '0' COMMENT '巡检累计失败天数，同一北京时间日期最多累计一天',
+  `inspection_failed_on` varchar(10) COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '最近计入巡检失败天数的北京时间日期，同日不重复累计',
   PRIMARY KEY (`id`),
   UNIQUE KEY `friends_number` (`number`),
   UNIQUE KEY `friends_url_hash` (`url_hash`),
@@ -152,6 +182,27 @@ CREATE TABLE `journal` (
   KEY `journal_completed` (`completed_at` DESC,`id` DESC),
   CONSTRAINT `journal_kind` CHECK ((`kind` in (_utf8mb4'content',_utf8mb4'site',_utf8mb4'service')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='运行纪事，保留最近十条内容更新、站点更新及服务恢复事件';
+
+CREATE TABLE `notification_outbox` (
+  `id` varchar(36) COLLATE utf8mb4_bin NOT NULL COMMENT 'æŠ•é€’äº‹ä»¶UUIDï¼Œé‡è¯•ä¿æŒä¸å˜',
+  `kind` varchar(32) COLLATE utf8mb4_bin NOT NULL COMMENT 'alertsã€feedbackæˆ–friendsé€šçŸ¥åˆ†ç±»',
+  `record_id` varchar(191) COLLATE utf8mb4_bin NOT NULL COMMENT 'å…³è”ä¸šåŠ¡è®°å½•ç¼–å·',
+  `payload` json NOT NULL COMMENT 'ç‰ˆæœ¬åŒ–é€šçŸ¥æ‘˜è¦ï¼Œä¸åŒ…å«åé¦ˆé‚®ç®±',
+  `state` varchar(16) COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending' COMMENT 'pendingå¾…æŠ•é€’ã€deliveredæ’ä»¶å·²æŽ¥æ”¶ã€failedéœ€é‡è¯•',
+  `attempts` int NOT NULL DEFAULT '0' COMMENT 'è‡ªä¸Šæ¬¡æ‰‹åŠ¨é‡è¯•ä»¥æ¥çš„æŠ•é€’å°è¯•æ¬¡æ•°',
+  `available_at` bigint NOT NULL COMMENT 'ä¸‹æ¬¡å¯æŠ•é€’çš„UTCæ¯«ç§’æ—¶é—´æˆ³',
+  `created_at` varchar(40) COLLATE utf8mb4_bin NOT NULL COMMENT 'äº‹ä»¶åˆ›å»ºæ—¶é—´UTC ISO 8601',
+  `last_error` varchar(255) COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT 'æœ€è¿‘å¤±è´¥è¯´æ˜Žï¼Œä¸è®°å½•ç›®æ ‡åœ°å€å’Œè®¤è¯ä¿¡æ¯',
+  PRIMARY KEY (`id`),
+  KEY `notification_due` (`state`,`available_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='Goåˆ°AstrBotçš„æŒä¹…é€šçŸ¥æŠ•é€’é˜Ÿåˆ—';
+
+CREATE TABLE `notification_tokens` (
+  `id` tinyint NOT NULL COMMENT 'å›ºå®šä¸º1çš„é€šçŸ¥å‡­æ®è®°å½•',
+  `envelope` json NOT NULL COMMENT 'ä½¿ç”¨å‡­æ®ä¸»å¯†é’¥åŠ å¯†çš„æœ¬ç«™API Tokenä¿¡å°',
+  `created_at` varchar(40) COLLATE utf8mb4_bin NOT NULL COMMENT 'æœ€è¿‘ç”Ÿæˆæ—¶é—´UTC ISO 8601',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='æœ¬ç«™APIä¸ŽAstrBoté€šçŸ¥é›†æˆå‡­æ®ï¼Œä»…ç”Ÿæˆæ—¶è¿”å›žæ˜Žæ–‡';
 
 CREATE TABLE `provider_credentials` (
   `provider` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '平台名称，如 GitHub、Bilibili',
@@ -344,3 +395,20 @@ CREATE TABLE IF NOT EXISTS friend_avatar_cache (
  filename varchar(70) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '已存储的压缩结果文件名',
  PRIMARY KEY(cache_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='头像源文件哈希与压缩结果的可重建缓存';
+CREATE TABLE IF NOT EXISTS notification_tokens (
+ id tinyint NOT NULL PRIMARY KEY,
+ envelope json NOT NULL,
+ created_at varchar(40) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+CREATE TABLE IF NOT EXISTS notification_outbox (
+ id varchar(36) NOT NULL PRIMARY KEY,
+ kind varchar(32) NOT NULL,
+ record_id varchar(191) NOT NULL,
+ payload json NOT NULL,
+ state varchar(16) NOT NULL DEFAULT 'pending',
+ attempts int NOT NULL DEFAULT 0,
+ available_at bigint NOT NULL,
+ created_at varchar(40) NOT NULL,
+ last_error varchar(255) NOT NULL DEFAULT '',
+ KEY notification_due (state,available_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

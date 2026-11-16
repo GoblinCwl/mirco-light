@@ -104,6 +104,7 @@ services:
       TZ: Asia/Shanghai
     volumes:
       - ./runtime/server:/data:rw
+      - ./artalk-data/artalk.yml:/sources/artalk/artalk.yml:ro
       - ./runtime/events:/run/quartz-events:rw
       - ./runtime/chronicle:/snapshots:ro
       - ./public:/public:ro

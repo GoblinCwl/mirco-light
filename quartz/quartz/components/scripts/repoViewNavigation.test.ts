@@ -68,3 +68,21 @@ test("back/forward restores a view without pushing history; same-view anchors do
   assert.equal(pushes, 1)
   navigation.dispose()
 })
+
+test("video list-to-detail navigation signals backlink refresh only after the active view is ready", async () => {
+  const descriptor=Object.getOwnPropertyDescriptor(globalThis,"document")
+  const events=new EventTarget(),seen:string[]=[]
+  events.addEventListener("content-route-changed",()=>seen.push("ready"))
+  Object.defineProperty(globalThis,"document",{configurable:true,value:events})
+  try {
+    let finish!:()=>void
+    const navigation=createRepoViewNavigation(new URL("https://example.com/Video/"),{
+      render:()=>new Promise<void>(resolve=>{finish=resolve}),busy:()=>{},push:()=>{},anchor:()=>{},updateDirectory:()=>{},
+    })
+    navigation.navigate(new URL("https://example.com/Video/BVfixture/"))
+    assert.equal(seen.length,0)
+    finish();await tick()
+    assert.equal(seen.length,1)
+    navigation.dispose()
+  } finally {if(descriptor)Object.defineProperty(globalThis,"document",descriptor);else Reflect.deleteProperty(globalThis,"document")}
+})

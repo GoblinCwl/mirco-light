@@ -1,6 +1,6 @@
 # 本站库表设计
 
-数据库：`quartz`；MySQL 8.4；共 29 张表。
+数据库：`quartz`；MySQL 8.4；共 33 张表。
 
 本文描述本站 MySQL，不包含 OpenList、Jellyfin、Beszel、Gitea、Artalk 自有库。字段、默认值、索引和约束从已应用结构生成；不读取或导出业务行、账号密码、Token、Cookie 或密钥。完整建表语句见 [初始化 SQL](../quartz-server/database/init.sql)。
 
@@ -42,6 +42,8 @@ flowchart LR
 | 内容发现 | [`share_identities`](#share_identities) | OpenList分享来源与本站稳定内容标识的映射 |
 | 友链与反馈 | [`friends`](#friends) | 友链资料、固定编号及审核状态 |
 | 友链与反馈 | [`friend_jobs`](#friend_jobs) | 友链头像、RSS 和自动审核持久化队列 |
+| 友链与反馈 | [`friend_avatar_cache`](#friend_avatar_cache) | å¤´åƒæºæ–‡ä»¶å“ˆå¸Œä¸ŽåŽ‹ç¼©ç»“æžœçš„å¯é‡å»ºç¼“å­˜ |
+| 友链与反馈 | [`friend_mail_outbox`](#friend_mail_outbox) | ç«™ç‚¹ä¸šåŠ¡é‚®ä»¶é˜Ÿåˆ—ï¼šå‹é“¾å®¡æ ¸ä¸Žåé¦ˆå¤„ç†ï¼Œä¸Žä¸šåŠ¡çŠ¶æ€åŒäº‹åŠ¡ä¿å­˜ |
 | 友链与反馈 | [`feedback`](#feedback) | 访客问题反馈、联系邮箱、浏览器信息及处理状态 |
 | 访客统计 | [`visitors`](#visitors) | 彗星来访者身份、首次及最近访问、地区与浏览器信息 |
 | 访客统计 | [`daily_visitors`](#daily_visitors) | 按日期和访客身份去重的每日来访明细 |
@@ -59,6 +61,8 @@ flowchart LR
 | 认证与配置 | [`auth_attempts`](#auth_attempts) | 管理员认证失败次数及限流过期状态 |
 | 认证与配置 | [`provider_credentials`](#provider_credentials) | 平台访问凭据的加密信封、检查状态及最近检查时间 |
 | 认证与配置 | [`service_credentials`](#service_credentials) | 服务状态检测专用认证，与平台接入凭据独立 |
+| 消息通知 | [`notification_tokens`](#notification_tokens) | æœ¬ç«™APIä¸ŽAstrBoté€šçŸ¥é›†æˆå‡­æ®ï¼Œä»…ç”Ÿæˆæ—¶è¿”å›žæ˜Žæ–‡ |
+| 消息通知 | [`notification_outbox`](#notification_outbox) | Goåˆ°AstrBotçš„æŒä¹…é€šçŸ¥æŠ•é€’é˜Ÿåˆ— |
 | 运行状态 | [`monitored_services`](#monitored_services) | 可增删、启停和排序的公开服务状态列表 |
 | 运行状态 | [`alerts`](#alerts) | 本站告警记录；连续同类异常合并，事件写入时保留最近1000条 |
 | 运行状态 | [`task_runs`](#task_runs) | 后台任务最近十次真实执行记录 |
@@ -187,6 +191,13 @@ OpenList分享来源与本站稳定内容标识的映射。
 | `health_checked_on` | `varchar(10)` | 否 | `` | 最近首页检查日期，北京时间 YYYY-MM-DD，同日不重复计数 |
 | `health_error` | `varchar(255)` | 否 | `` | 最近首页检查失败原因 |
 | `url_hash` | `binary(32)` | 是 | 生成列：``unhex(sha2(`url`,256))`` | URL 的 SHA-256 二进制生成列，用于唯一约束 |
+| `email` | `varchar(254)` | 否 | `` | ç”³è¯·é€šçŸ¥é‚®ç®±ï¼Œä¸å…¬å¼€ |
+| `processing_failures` | `int` | 否 | `0` | å¤„ç†ç´¯è®¡å¤±è´¥æ¬¡æ•°ï¼Œä¸å› é‡æ–°å…¥é˜Ÿæ¸…é›¶ |
+| `failure_notified` | `tinyint(1)` | 否 | `0` | æ˜¯å¦å·²æŠ•é€’ç´¯è®¡å¤±è´¥é˜ˆå€¼é€šçŸ¥ |
+| `failure_mail_sent` | `tinyint(1)` | 否 | `0` | æ˜¯å¦å·²ç”Ÿæˆå¤±è´¥é‚®ä»¶ä»»åŠ¡ï¼Œé¿å…é‡å¤å‘é€ |
+| `review_ready` | `tinyint(1)` | 否 | `0` | é¦–é¡µã€RSSåŠå¤´åƒé¢„æ£€æŸ¥å…¨éƒ¨é€šè¿‡ï¼Œæ‰å…è®¸å®¡æ ¸é€šè¿‡ |
+| `inspection_failures` | `int` | 否 | `0` | 巡检累计失败天数，同一北京时间日期最多累计一天 |
+| `inspection_failed_on` | `varchar(10)` | 否 | `` | 最近计入巡检失败天数的北京时间日期，同日不重复累计 |
 
 索引与约束：
 
@@ -221,6 +232,51 @@ OpenList分享来源与本站稳定内容标识的映射。
 - 主键 `PRIMARY`：`friend_id`。
 - CHECK `friend_jobs_state`：``((`state` in (_utf8mb4'pending',_utf8mb4'running')))``。
 - 外键 `friend_jobs_friend`：`friend_id` → `friends.id`；删除 CASCADE，更新 NO ACTION。
+
+<a id="friend_avatar_cache"></a>
+
+### friend_avatar_cache
+
+å¤´åƒæºæ–‡ä»¶å“ˆå¸Œä¸ŽåŽ‹ç¼©ç»“æžœçš„å¯é‡å»ºç¼“å­˜。
+
+引擎：`InnoDB`；排序规则：`utf8mb4_bin`。
+
+| 字段 | 类型 | 可空 | 默认值 / 自动值 | 含义 |
+| --- | --- | --- | --- | --- |
+| `cache_key` | `char(64)` | 否 | — | æºå¤´åƒ SHA-256ã€åŽ‹ç¼©ç‰ˆæœ¬ã€é…ç½®ä¸Žå­˜å‚¨åœ°å€çš„ç»„åˆå“ˆå¸Œ |
+| `filename` | `varchar(70)` | 否 | — | å·²å­˜å‚¨çš„åŽ‹ç¼©ç»“æžœæ–‡ä»¶å |
+
+索引与约束：
+
+- 主键 `PRIMARY`：`cache_key`。
+
+<a id="friend_mail_outbox"></a>
+
+### friend_mail_outbox
+
+ç«™ç‚¹ä¸šåŠ¡é‚®ä»¶é˜Ÿåˆ—ï¼šå‹é“¾å®¡æ ¸ä¸Žåé¦ˆå¤„ç†ï¼Œä¸Žä¸šåŠ¡çŠ¶æ€åŒäº‹åŠ¡ä¿å­˜。
+
+引擎：`InnoDB`；排序规则：`utf8mb4_bin`。
+
+| 字段 | 类型 | 可空 | 默认值 / 自动值 | 含义 |
+| --- | --- | --- | --- | --- |
+| `id` | `char(36)` | 否 | — | é‚®ä»¶äº‹ä»¶ UUID |
+| `friend_id` | `char(36)` | 否 | — | å…³è”ä¸šåŠ¡ UUIDï¼Œè®°å½•åˆ é™¤åŽä»å¯å‘é€é€šçŸ¥ |
+| `recipient` | `varchar(254)` | 否 | — | å®¡æ ¸ç»“æžœæŽ¥æ”¶é‚®ç®± |
+| `name` | `varchar(80)` | 否 | — | ç”³è¯·ç½‘ç«™åç§° |
+| `accepted` | `tinyint(1)` | 否 | — | æ˜¯å¦å®¡æ ¸é€šè¿‡ |
+| `reason` | `text` | 否 | — | é‚®ä»¶é€šçŸ¥æ­£æ–‡ï¼šå®¡æ ¸è¯´æ˜Žæˆ–åŽŸå§‹åé¦ˆ |
+| `state` | `varchar(16)` | 否 | `pending` | pending å¾…æŠ•é€’ã€sent å·²å‘é€ã€failed å¤±è´¥ |
+| `attempts` | `int` | 否 | `0` | é‚®ä»¶å‘é€å°è¯•æ¬¡æ•° |
+| `available_at` | `bigint` | 否 | `0` | ä¸‹æ¬¡æŠ•é€’æ—¶é—´ï¼ŒUnix æ¯«ç§’ |
+| `created_at` | `varchar(40)` | 否 | — | å…¥é˜Ÿæ—¶é—´ï¼ŒUTC ISO 8601 |
+| `last_error` | `varchar(255)` | 否 | `` | ä¸å«å‡­æ®çš„å‘é€é”™è¯¯è¯´æ˜Ž |
+| `kind` | `varchar(16)` | 否 | `friends` | é‚®ä»¶ä¸šåŠ¡ç±»åˆ«ï¼šfriends å‹é“¾å®¡æ ¸ã€feedback åé¦ˆå¤„ç† |
+
+索引与约束：
+
+- 普通索引 `delivery`：`state`, `available_at`。
+- 主键 `PRIMARY`：`id`。
 
 <a id="feedback"></a>
 
@@ -574,6 +630,51 @@ GitHub用户资料、活动及仓库相关公开快照缓存。
 - 主键 `PRIMARY`：`id`。
 - CHECK `service_auth_type`：``((`auth_type` in (_utf8mb4'basic',_utf8mb4'bearer',_utf8mb4'header')))``。
 
+## 消息通知
+
+<a id="notification_tokens"></a>
+
+### notification_tokens
+
+æœ¬ç«™APIä¸ŽAstrBoté€šçŸ¥é›†æˆå‡­æ®ï¼Œä»…ç”Ÿæˆæ—¶è¿”å›žæ˜Žæ–‡。
+
+引擎：`InnoDB`；排序规则：`utf8mb4_bin`。
+
+| 字段 | 类型 | 可空 | 默认值 / 自动值 | 含义 |
+| --- | --- | --- | --- | --- |
+| `id` | `tinyint` | 否 | — | å›ºå®šä¸º1çš„é€šçŸ¥å‡­æ®è®°å½• |
+| `envelope` | `json` | 否 | — | ä½¿ç”¨å‡­æ®ä¸»å¯†é’¥åŠ å¯†çš„æœ¬ç«™API Tokenä¿¡å° |
+| `created_at` | `varchar(40)` | 否 | — | æœ€è¿‘ç”Ÿæˆæ—¶é—´UTC ISO 8601 |
+
+索引与约束：
+
+- 主键 `PRIMARY`：`id`。
+
+<a id="notification_outbox"></a>
+
+### notification_outbox
+
+Goåˆ°AstrBotçš„æŒä¹…é€šçŸ¥æŠ•é€’é˜Ÿåˆ—。
+
+引擎：`InnoDB`；排序规则：`utf8mb4_bin`。
+
+| 字段 | 类型 | 可空 | 默认值 / 自动值 | 含义 |
+| --- | --- | --- | --- | --- |
+| `id` | `varchar(36)` | 否 | — | æŠ•é€’äº‹ä»¶UUIDï¼Œé‡è¯•ä¿æŒä¸å˜ |
+| `kind` | `varchar(32)` | 否 | — | alertsã€feedbackæˆ–friendsé€šçŸ¥åˆ†ç±» |
+| `record_id` | `varchar(191)` | 否 | — | å…³è”ä¸šåŠ¡è®°å½•ç¼–å· |
+| `payload` | `json` | 否 | — | ç‰ˆæœ¬åŒ–é€šçŸ¥æ‘˜è¦ï¼Œä¸åŒ…å«åé¦ˆé‚®ç®± |
+| `state` | `varchar(16)` | 否 | `pending` | pendingå¾…æŠ•é€’ã€deliveredæ’ä»¶å·²æŽ¥æ”¶ã€failedéœ€é‡è¯• |
+| `attempts` | `int` | 否 | `0` | è‡ªä¸Šæ¬¡æ‰‹åŠ¨é‡è¯•ä»¥æ¥çš„æŠ•é€’å°è¯•æ¬¡æ•° |
+| `available_at` | `bigint` | 否 | — | ä¸‹æ¬¡å¯æŠ•é€’çš„UTCæ¯«ç§’æ—¶é—´æˆ³ |
+| `created_at` | `varchar(40)` | 否 | — | äº‹ä»¶åˆ›å»ºæ—¶é—´UTC ISO 8601 |
+| `last_error` | `varchar(255)` | 否 | `` | æœ€è¿‘å¤±è´¥è¯´æ˜Žï¼Œä¸è®°å½•ç›®æ ‡åœ°å€å’Œè®¤è¯ä¿¡æ¯ |
+
+索引与约束：
+
+- 普通索引 `notification_due`：`state`, `available_at`。
+- 主键 `PRIMARY`：`id`。
+
 ## 运行状态
 
 <a id="monitored_services"></a>
@@ -730,7 +831,3 @@ GitHub用户资料、活动及仓库相关公开快照缓存。
 cd /home/goblincwl/docker/quartz4
 python3 quartz-server/tools/schema_docs.py
 ```
-
-### friend_avatar_cache
-
-可重建的头像压缩缓存。`cache_key` 为源文件 SHA-256、压缩版本、目标大小、内存限制和存储地址的组合 SHA-256（主键）；`filename` 为已成功存储的内容哈希文件名。读取命中还需验证 OpenList 文件存在；源图片及配置未变时跳过压缩。初始化见 `database/init.sql`，已有数据库使用 `20261114_friend_avatar_cache.sql`。

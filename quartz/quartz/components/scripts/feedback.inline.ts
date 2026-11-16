@@ -1,3 +1,4 @@
+import {showSiteDialog,closeSiteDialog} from './siteDialog'
 import { showPasswordToast } from './passwordFeedback'
 
 document.addEventListener('nav',()=>{
@@ -12,6 +13,11 @@ document.addEventListener('nav',()=>{
  }
  const releaseToast=()=>{const notice=dialog?.querySelector('.decrypt-toast');if(notice){notice.classList.remove('visible');document.body.append(notice)}}
  dialog?.addEventListener('close',releaseToast,{signal});window.addCleanup(releaseToast)
+ const success=root.querySelector<HTMLDialogElement>('[data-feedback-success]')!
+ for(const button of success.querySelectorAll('[data-feedback-success-close]'))button.addEventListener('click',()=>void closeSiteDialog(success),{signal})
+ success.addEventListener('click',event=>{if(event.target!==success)return;const rect=success.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)void closeSiteDialog(success)},{signal})
+ dialog?.addEventListener('close',()=>{if(success.open)success.close()},{signal})
+ window.addCleanup(()=>{if(success.open)success.close()})
  const ua=navigator.userAgent
  const candidates:[string,RegExp][]=[['微信',/MicroMessenger\/([\d.]+)/],['Edge',/Edg(?:e|A|iOS)?\/([\d.]+)/],['Opera',/(?:OPR|Opera)\/([\d.]+)/],['Firefox',/(?:Firefox|FxiOS)\/([\d.]+)/],['Chrome',/(?:Chrome|CriOS)\/([\d.]+)/],['Safari',/Version\/([\d.]+).*Safari/]]
  const found=candidates.map(([name,pattern])=>({name,version:pattern.exec(ua)?.[1]})).find(item=>item.version)
@@ -27,7 +33,8 @@ document.addEventListener('nav',()=>{
   try{
    const response=await fetch('/api/site/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.value.trim(),browser:browser.value,description:description.value.trim()}),signal})
    const result=await response.json();if(!response.ok)throw new Error(result.error||'提交失败，请稍后重试')
-   email.value='';description.value='';toast('问题反馈已提交。')
+   if(signal.aborted)return
+   email.value='';description.value='';showSiteDialog(success)
   }catch(error){if(!signal.aborted)toast(error instanceof Error?error.message:'提交失败，请稍后重试',true)}
   finally{if(!signal.aborted){busy=false;form.removeAttribute('aria-busy');label.textContent='提交反馈';sync()}}
  },{signal})

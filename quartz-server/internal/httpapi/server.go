@@ -51,6 +51,7 @@ type Server struct {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	s.site(mux)
+	s.microLightAPI(mux)
 	s.visitors(mux)
 	s.openlist(mux)
 	s.repo(mux)

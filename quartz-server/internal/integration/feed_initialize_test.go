@@ -12,7 +12,7 @@ func TestInitialFeedFetchPopulatesDateWithoutLosingSavedFriend(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
 	store := community.Store{DB: db}
-	f, _, err := store.CreateFriend(ctx, community.Friend{Name: "new", URL: "https://new.example/", BacklinkURL: "https://new.example/friends", RSSURL: "https://new.example/feed.xml"}, false)
+	f, _, err := store.CreateFriend(ctx, community.Friend{Email: "fixture@example.test", Name: "new", URL: "https://new.example/", BacklinkURL: "https://new.example/friends", RSSURL: "https://new.example/feed.xml"}, false)
 	if err != nil {
 		t.Fatal(err)
 	}

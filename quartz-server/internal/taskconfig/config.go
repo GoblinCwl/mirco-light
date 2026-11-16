@@ -31,8 +31,6 @@ var Definitions = []Definition{
 	{"event-retry", "文章、权限及凭据事件重试", "失败重试", "事件处理失败后的等待时间；新事件仍会立即唤醒。", 15, 1, 3600},
 	{"video-index-retry", "视频索引失败重试", "失败重试", "视频索引处理失败后的等待时间。", 15, 1, 3600},
 	{"friend-recovery", "友链队列数据库重试", "失败重试", "队列恢复、领取或完成记录写入失败后的等待时间。", 5, 1, 3600},
-	{"friend-retry", "友链队列首次重试", "失败重试", "头像、RSS 或审核失败后的首次等待时间，后续指数退避并受最长等待限制。已排队任务沿用已记录的重试时间。", 60, 1, 3600},
-	{"friend-retry-max", "友链队列最长重试等待", "失败重试", "限制友链处理失败后的退避等待时间；低于首次等待时优先使用本上限。", 3600, 1, 86400},
 	{"container-observer", "容器状态观察", "日志与清理", "宿主观察器检查容器状态的周期。", 10, 1, 3600},
 }
 
@@ -42,8 +40,14 @@ func Schema() []map[string]any {
 	for _, d := range Definitions {
 		out = append(out, map[string]any{"key": Key(d.Key), "group": "任务管理", "category": d.Category, "label": d.Label, "help": d.Help, "type": "number", "default": d.Default, "min": d.Min, "max": d.Max, "step": 1, "public": false})
 	}
-	out = append(out, map[string]any{"key": "tasks.friendsEveryDays", "group": "任务管理", "category": "友链巡检", "label": "巡检间隔", "help": "默认每天一次；调整间隔后，首页失败的七次重试也按新巡检间隔执行。日期按固定日历周期安排，重启不会推迟日程。", "type": "number", "default": 1, "min": 1, "max": 30, "step": 1, "public": false})
-	return append(out, map[string]any{"key": "tasks.friendsTime", "group": "任务管理", "category": "友链巡检", "label": "执行时间", "help": "北京时间；检查首页可用性、头像和 RSS，并补入待审核队列。同日最多重试一次，连续失败七次停用。", "type": "time", "default": "06:00", "public": false})
+	for _, d := range []struct {
+		Key, Label string
+		Default    int
+	}{{"tasks.friendsGrayDays", "巡检置灰天数", 3}, {"tasks.friendsRemoveDays", "巡检移除天数", 7}} {
+		out = append(out, map[string]any{"key": d.Key, "group": "任务管理", "category": "友链巡检", "label": d.Label, "help": "累计发生巡检失败的天数，北京时间同一天最多计一天。", "type": "number", "default": d.Default, "min": 1, "max": 365, "step": 1, "public": false})
+	}
+	out = append(out, map[string]any{"key": "tasks.friendsEveryDays", "group": "任务管理", "category": "友链巡检", "label": "巡检间隔", "help": "默认每天一次；处理友链并继续处理上次失败的友链，失败仅累计次数。日期按固定日历周期安排，重启不会推迟日程。", "type": "number", "default": 1, "min": 1, "max": 30, "step": 1, "public": false})
+	return append(out, map[string]any{"key": "tasks.friendsTime", "group": "任务管理", "category": "友链巡检", "label": "执行时间", "help": "北京时间；将友链加入一次性处理队列，检查首页、头像、RSS 和待审核申请。失败等待下个周期，不自动弃用。", "type": "time", "default": "06:00", "public": false})
 }
 
 type Config struct {

@@ -21,23 +21,31 @@ type Store struct {
 	CheckHomepage func(context.Context, string) error
 }
 type Friend struct {
-	ID              string `json:"id"`
-	Number          int64  `json:"number"`
-	Name            string `json:"name"`
-	URL             string `json:"url"`
-	BacklinkURL     string `json:"backlinkUrl"`
-	RSSURL          string `json:"rssUrl"`
-	Avatar          string `json:"avatar"`
-	AvatarSource    string `json:"avatarSource"`
-	LatestUpdate    string `json:"latestUpdate"`
-	Description     string `json:"description"`
-	Example         bool   `json:"example,omitempty"`
-	Status          string `json:"status"`
-	ReviewResult    string `json:"reviewResult"`
-	ReviewCheckedAt string `json:"reviewCheckedAt"`
-	HealthFailures  int    `json:"healthFailures"`
-	HealthCheckedOn string `json:"healthCheckedOn"`
-	HealthError     string `json:"healthError"`
+	ID                 string `json:"id"`
+	Email              string `json:"email,omitempty"`
+	ProcessingFailures int    `json:"processingFailures,omitempty"`
+	FailureNotified    bool   `json:"failureNotified,omitempty"`
+	FailureMailSent    bool   `json:"failureMailSent,omitempty"`
+	FailureLimit       int    `json:"failureLimit,omitempty"`
+	ReviewReady        bool   `json:"reviewReady,omitempty"`
+	InspectionGrayDays int    `json:"inspectionGrayDays"`
+	InspectionFailures int    `json:"inspectionFailures"`
+	Number             int64  `json:"number"`
+	Name               string `json:"name"`
+	URL                string `json:"url"`
+	BacklinkURL        string `json:"backlinkUrl"`
+	RSSURL             string `json:"rssUrl"`
+	Avatar             string `json:"avatar"`
+	AvatarSource       string `json:"avatarSource"`
+	LatestUpdate       string `json:"latestUpdate"`
+	Description        string `json:"description"`
+	Example            bool   `json:"example,omitempty"`
+	Status             string `json:"status"`
+	ReviewResult       string `json:"reviewResult"`
+	ReviewCheckedAt    string `json:"reviewCheckedAt"`
+	HealthFailures     int    `json:"healthFailures"`
+	HealthCheckedOn    string `json:"healthCheckedOn"`
+	HealthError        string `json:"healthError"`
 }
 
 func uuid() (string, error) {
@@ -119,6 +127,10 @@ func validFriend(f Friend, application bool) (Friend, error) {
 			}
 		}
 	}
+	f.Email = strings.TrimSpace(f.Email)
+	if (application || f.Email != "") && (len(f.Email) > 254 || !email.MatchString(f.Email)) {
+		return f, errors.New("请填写有效的邮箱地址")
+	}
 	if application {
 		f.Status = "待审核"
 		f.Example = false
@@ -151,7 +163,7 @@ type queryer interface {
 }
 
 func readFriends(ctx context.Context, q queryer, public bool) ([]Friend, error) {
-	query := "SELECT id,number,name,url,backlink_url,rss_url,avatar,avatar_source,latest_update,description,example,status,review_result,review_checked_at,health_failures,health_checked_on,health_error FROM friends"
+	query := "SELECT id,number,name,url,backlink_url,rss_url,avatar,avatar_source,latest_update,description,example,status,review_result,review_checked_at,health_failures,health_checked_on,health_error,email,processing_failures,failure_notified,failure_mail_sent,COALESCE((SELECT CAST(JSON_UNQUOTE(value) AS UNSIGNED) FROM settings WHERE `key`='friends.failureLimit'),5),review_ready,inspection_failures,COALESCE((SELECT CAST(JSON_UNQUOTE(value) AS UNSIGNED) FROM settings WHERE `key`='tasks.friendsGrayDays'),3) FROM friends"
 	if public {
 		query += " WHERE status='展示中'"
 	}
@@ -164,8 +176,16 @@ func readFriends(ctx context.Context, q queryer, public bool) ([]Friend, error) 
 	friends := []Friend{}
 	for rows.Next() {
 		var f Friend
-		if err = rows.Scan(&f.ID, &f.Number, &f.Name, &f.URL, &f.BacklinkURL, &f.RSSURL, &f.Avatar, &f.AvatarSource, &f.LatestUpdate, &f.Description, &f.Example, &f.Status, &f.ReviewResult, &f.ReviewCheckedAt, &f.HealthFailures, &f.HealthCheckedOn, &f.HealthError); err != nil {
+		if err = rows.Scan(&f.ID, &f.Number, &f.Name, &f.URL, &f.BacklinkURL, &f.RSSURL, &f.Avatar, &f.AvatarSource, &f.LatestUpdate, &f.Description, &f.Example, &f.Status, &f.ReviewResult, &f.ReviewCheckedAt, &f.HealthFailures, &f.HealthCheckedOn, &f.HealthError, &f.Email, &f.ProcessingFailures, &f.FailureNotified, &f.FailureMailSent, &f.FailureLimit, &f.ReviewReady, &f.InspectionFailures, &f.InspectionGrayDays); err != nil {
 			return nil, err
+		}
+		if public {
+			f.Email = ""
+			f.ProcessingFailures = 0
+			f.FailureNotified = false
+			f.FailureMailSent = false
+			f.FailureLimit = 0
+			f.ReviewReady = false
 		}
 		friends = append(friends, f)
 	}
@@ -220,7 +240,7 @@ func (s Store) CreateFriend(ctx context.Context, f Friend, application bool) (Fr
 	if duplicates > 0 {
 		return f, nil, errors.New("该站点已展示或已提交申请，请勿重复提交")
 	}
-	result, err := tx.ExecContext(ctx, "INSERT INTO friends(id,name,url,backlink_url,rss_url,avatar,avatar_source,latest_update,description,example,status,review_result,review_checked_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", f.ID, f.Name, f.URL, f.BacklinkURL, f.RSSURL, f.Avatar, f.AvatarSource, f.LatestUpdate, f.Description, f.Example, f.Status, f.ReviewResult, f.ReviewCheckedAt)
+	result, err := tx.ExecContext(ctx, "INSERT INTO friends(id,name,url,backlink_url,rss_url,avatar,avatar_source,latest_update,description,example,status,review_result,review_checked_at,email) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", f.ID, f.Name, f.URL, f.BacklinkURL, f.RSSURL, f.Avatar, f.AvatarSource, f.LatestUpdate, f.Description, f.Example, f.Status, f.ReviewResult, f.ReviewCheckedAt, f.Email)
 	if err != nil {
 		return f, nil, err
 	}
@@ -231,6 +251,7 @@ func (s Store) CreateFriend(ctx context.Context, f Friend, application bool) (Fr
 	if err = EnqueueFriendTx(ctx, tx, f.ID); err != nil {
 		return f, nil, err
 	}
+
 	friends, err := readFriends(ctx, tx, false)
 	if err != nil {
 		return f, nil, err
@@ -260,7 +281,44 @@ func (s Store) UpdateFriend(ctx context.Context, id string, f Friend, action str
 	if index < 0 {
 		return nil, errors.New("友链记录不存在，请刷新列表")
 	}
+
+	if (action == "review" || action == "update") && f.Status == "展示中" && friends[index].Status != "展示中" {
+		var ready bool
+		if err = tx.QueryRowContext(ctx, "SELECT review_ready FROM friends WHERE id=? FOR UPDATE", id).Scan(&ready); err != nil {
+			return nil, err
+		}
+		if !ready {
+			return nil, errors.New("首页检查、RSS 拉取或头像处理尚未全部通过，不能审核通过，请先执行后台检查")
+		}
+		if action == "update" && (f.URL != friends[index].URL || f.RSSURL != friends[index].RSSURL || f.Avatar != friends[index].Avatar || f.AvatarSource != friends[index].AvatarSource) {
+			return nil, errors.New("请先保存变更并等待后台检查，再审核通过")
+		}
+	}
+	friendsBeforeStatus := friends[index].Status
 	switch action {
+	case "abandon":
+		current := friends[index]
+		if current.ProcessingFailures < current.FailureLimit {
+			return nil, errors.New("尚未达到失败次数阈值，不能弃用")
+		}
+		if current.Email == "" {
+			return nil, errors.New("该友链未填写通知邮箱，无法发送弃用邮件；如需直接删除，请使用移除操作")
+		}
+		if err = EnqueueFriendMailTx(ctx, tx, current, false, "友链多次处理失败，本站已停止处理并移除该申请。"); err != nil {
+			return nil, err
+		}
+		_, err = tx.ExecContext(ctx, "DELETE FROM friends WHERE id=?", id)
+	case "failure-mail":
+		current := friends[index]
+		if current.Email == "" {
+			return nil, errors.New("该友链未填写通知邮箱")
+		}
+		if !current.FailureMailSent {
+			if err = EnqueueFriendMailTx(ctx, tx, current, false, "友链申请未通过审核，请检查站点和包含本站友链的页面。"); err != nil {
+				return nil, err
+			}
+			_, err = tx.ExecContext(ctx, "UPDATE friends SET failure_mail_sent=1 WHERE id=?", id)
+		}
 	case "delete":
 		_, err = tx.ExecContext(ctx, "DELETE FROM friends WHERE id=?", id)
 	case "review":
@@ -277,6 +335,7 @@ func (s Store) UpdateFriend(ctx context.Context, id string, f Friend, action str
 		_, err = tx.ExecContext(ctx, "UPDATE friends SET status=?,review_result=?,review_checked_at=?,health_failures=?,health_checked_on=?,health_error=? WHERE id=?", current.Status, "人工审核："+current.Status, time.Now().UTC().Format("2006-01-02T15:04:05.000Z"), current.HealthFailures, current.HealthCheckedOn, current.HealthError, id)
 	case "update":
 		f.ID = id
+		f.Email = friends[index].Email
 		f.Example = friends[index].Example
 
 		f.LatestUpdate = friends[index].LatestUpdate
@@ -327,6 +386,15 @@ func (s Store) UpdateFriend(ctx context.Context, id string, f Friend, action str
 	friends, err = readFriends(ctx, tx, false)
 	if err != nil {
 		return nil, err
+	}
+	for _, updated := range friends {
+		if updated.ID == id && (action == "review" || action == "update") && updated.Status != friendsBeforeStatus {
+			if updated.Status == "展示中" {
+				if err = EnqueueFriendMailTx(ctx, tx, updated, updated.Status == "展示中", "人工审核："+updated.Status); err != nil {
+					return nil, err
+				}
+			}
+		}
 	}
 	if err = tx.Commit(); err != nil {
 		return nil, err

@@ -1,3 +1,4 @@
+import {setupNotifications,setupAPIToken} from './notificationManager'
 import {setupTaskInstances} from "./taskInstances"
 import { setupSecurityManager } from "./stellarSecurity"
 import {setupServiceManager} from './serviceManager'
@@ -57,7 +58,7 @@ document.addEventListener('nav', () => {
       '评论管理': {id:'comments',title:'评论',description:'管理 Artalk 评论与用户，支持审核、编辑及账号维护。',icon:'<path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 9h10M7 13h6"/>'},
       '告警中心': {id:'alerts',title:'告警',description:'查看服务异常、交互请求的外部接口失败及运行异常。',icon:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/><path d="M12 6v4m0 3h.01"/>'},
       '内容发布': {id:'publishing',title:'内容',description:'控制构建排除与隐藏展示，保存后手动重载生效。',icon:'<path d="M4 4h16v16H4zM8 9h8M8 13h5"/><path d="m16 16 2 2 3-3"/>'},
-      '账户安全':{id:'security',title:'账户',description:'管理管理员验证器与恢复码。',icon:'<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/>'},
+      '账户安全':{id:'security',title:'账户',description:'管理管理员密码、验证器、恢复码与本站 API 凭据。',icon:'<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/>'},
       '外链': {id:'external',title:'外链',description:'配置外链弹框使用的网站图标，按域名指定完整图标地址。',icon:'<path d="M14 4h6v6m0-6L10 14M10 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-4"/>'},
       '寻径': {id:'links',title:'寻径',description:'管理寻径链接、显示顺序与备案信息。',icon:'<path d="m9 15 6-6m-5-3 2-2a5 5 0 0 1 7 7l-2 2M7 11l-2 2a5 5 0 0 0 7 7l2-2"/>'},
     }
@@ -97,7 +98,7 @@ document.addEventListener('nav', () => {
       intro.className='stellar-admin-module-intro';title.textContent=design.title;description.textContent=design.description
       const moduleIcon=document.createElement('span'),introCopy=document.createElement('div');moduleIcon.className='stellar-admin-module-icon';moduleIcon.innerHTML=tab.querySelector('svg')!.outerHTML;moduleIcon.setAttribute('aria-hidden','true');introCopy.append(title,description);intro.append(moduleIcon,introCopy);panel.append(intro)
       const index=tabs.length;tabs.push(tab);panels.push(panel);navigation.append(tab);fields.append(panel);tab.onclick=()=>selectModule(index)
-      if(name==='账户安全'){setupSecurityManager(panel,signal,request);continue}
+      if(name==='账户安全'){setupSecurityManager(panel,signal,request);const api=document.createElement('section');api.className='stellar-setting-card';const title=document.createElement('h3');title.textContent='本站 API';api.append(title);panel.append(api);setupAPIToken(api,signal,request);continue}
       if(name==='评论管理'){
         const content=document.createElement('div');content.className='comment-admin';panel.append(content)
         let started=false
@@ -165,7 +166,7 @@ document.addEventListener('nav', () => {
         input.id=`stellar-setting-${field.key.replaceAll('.','-')}`;label.htmlFor=input.id;input.setAttribute('aria-describedby',status.id);save.type='submit';save.textContent='保存';save.disabled=true
         copy.append(label)
         if(field.help){const help=document.createElement('small');help.textContent=field.help;help.id=`${input.id}-help`;input.setAttribute('aria-describedby',`${help.id} ${status.id}`);copy.append(help)}
-        const unit=percentage?'%':field.key.endsWith('Size')?'px':field.key.endsWith('Speed')?'秒':field.key==='graph.newDays'||field.key==='tasks.friendsEveryDays'?'天':field.key.startsWith('tasks.')&&field.key.endsWith('Seconds')?'秒':''
+        const unit=percentage?'%':field.key.endsWith('Size')?'px':field.key.endsWith('Speed')?'秒':field.key==='graph.newDays'||['tasks.friendsEveryDays','tasks.friendsGrayDays','tasks.friendsRemoveDays'].includes(field.key)?'天':field.key.startsWith('tasks.')&&field.key.endsWith('Seconds')?'秒':''
         if(unit){const wrapper=document.createElement('div'),suffix=document.createElement('span');wrapper.className='stellar-input-with-unit';suffix.textContent=unit;suffix.setAttribute('aria-hidden','true');wrapper.append(input,suffix);controls.append(wrapper,save);input.setAttribute('aria-label',`${field.label}（${unit}）`)}else controls.append(passwordField||input,save)
         row.append(copy,controls,status);card.append(row)
         let switchLabel:HTMLElement|undefined
@@ -194,7 +195,7 @@ document.addEventListener('nav', () => {
         let refresh:(()=>void)|undefined
         activators[index]=()=>{if(!refresh)refresh=setupTaskInstances(target,signal,request,configuration);else refresh()}
       }
-      if(name==='服务接入')setupUpstreamManager(settingsContent,signal,request,cards)
+      if(name==='服务接入'){setupUpstreamManager(settingsContent,signal,request,cards);const astrbot=cards.get('AstrBot');if(astrbot)setupNotifications(astrbot,signal,request)}
       if(name==='内容发布')setupContentPublishing(panel,signal,request)
     }
     navigation.addEventListener('keydown',event=>{

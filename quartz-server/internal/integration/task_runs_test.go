@@ -55,7 +55,7 @@ func TestTaskRunHistoryRetentionRecoveryAndQueueDetails(t *testing.T) {
 		t.Fatal(detail, err)
 	}
 	store := community.Store{DB: db}
-	f, _, err := store.CreateFriend(ctx, community.Friend{Name: "queued", URL: "https://queued.example/", BacklinkURL: "https://queued.example/friends"}, false)
+	f, _, err := store.CreateFriend(ctx, community.Friend{Email: "fixture@example.test", Name: "queued", URL: "https://queued.example/", BacklinkURL: "https://queued.example/friends"}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,11 +210,13 @@ func TestAuthenticatedTaskInstancesAndQueuePagination(t *testing.T) {
 		}
 		return items
 	})
+	triggered := 0
+	tracker.RegisterRetry("index-repo", func(context.Context) error { triggered++; return nil })
 	api := (&httpapi.Server{DB: db, Auth: service, Origin: "https://site.test", TaskRuns: tracker}).Handler()
 	for _, fixture := range []struct {
 		method, path string
 		status       int
-	}{{"GET", "/api/site/admin/tasks", 200}, {"GET", "/api/site/admin/tasks/article-index?page=3", 200}, {"GET", "/api/site/admin/tasks/unknown", 404}, {"GET", "/api/site/admin/tasks/article-index?page=-1", 400}, {"POST", "/api/site/admin/tasks", 405}} {
+	}{{"POST", "/api/site/admin/tasks/index-repo/run", 202}, {"POST", "/api/site/admin/tasks/index-repo/run", 409}, {"GET", "/api/site/admin/tasks", 200}, {"GET", "/api/site/admin/tasks/article-index?page=3", 200}, {"GET", "/api/site/admin/tasks/unknown", 404}, {"GET", "/api/site/admin/tasks/article-index?page=-1", 400}, {"POST", "/api/site/admin/tasks", 405}} {
 		request := httptest.NewRequest(fixture.method, fixture.path, nil)
 		request.Header.Set("Origin", "https://site.test")
 		request.AddCookie(&http.Cookie{Name: "quartz_stellar_session", Value: logged["token"].(string)})
@@ -240,4 +242,15 @@ func TestAuthenticatedTaskInstancesAndQueuePagination(t *testing.T) {
 			}
 		}
 	}
+	if triggered != 1 {
+		t.Fatal("manual trigger duplicated", triggered)
+	}
+	req := httptest.NewRequest("POST", "/api/site/admin/tasks/index-repo/run", nil)
+	req.Header.Set("Origin", "https://site.test")
+	res := httptest.NewRecorder()
+	api.ServeHTTP(res, req)
+	if res.Code != 401 {
+		t.Fatal("unauthenticated manual trigger accepted", res.Code)
+	}
+
 }

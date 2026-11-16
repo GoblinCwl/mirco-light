@@ -48,9 +48,6 @@ func Emit(event Event) {
 	}
 }
 func (r *Recorder) Emit(event Event) {
-	if event.Kind == "task" {
-		return
-	}
 	event, err := normalize(event)
 	if err != nil {
 		return

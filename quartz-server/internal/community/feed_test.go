@@ -25,7 +25,7 @@ func TestFeedArticleDates(t *testing.T) {
 	}
 }
 func TestAvatarSourceAutomaticallyPreservedFromSubmission(t *testing.T) {
-	base := Friend{Name: "网站", URL: "https://example.com", BacklinkURL: "https://example.com/friends", Avatar: "https://example.com/avatar.png", AvatarSource: "https://other.example/wrong.png"}
+	base := Friend{Email: "fixture@example.test", Name: "网站", URL: "https://example.com", BacklinkURL: "https://example.com/friends", Avatar: "https://example.com/avatar.png", AvatarSource: "https://other.example/wrong.png"}
 	f, err := ValidateFriend(base)
 	if err != nil || f.AvatarSource != base.Avatar {
 		t.Fatal(f, err)

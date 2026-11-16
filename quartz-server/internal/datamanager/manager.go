@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"goblincwl/quartz-server/internal/community"
 	"goblincwl/quartz-server/internal/journal"
+	"goblincwl/quartz-server/internal/notifications"
 	"strconv"
 	"strings"
 	"time"
@@ -380,8 +381,27 @@ func (m Manager) Save(ctx context.Context, id string, values, key map[string]any
 			}
 		}
 	}
+	oldStatus := fmt.Sprint(row["status"])
+	if id == "friends" && values["status"] == "展示中" && oldStatus != "展示中" {
+		var ready bool
+		if key == nil {
+			return nil, errors.New("新增友链须先保存为待审核并完成预检查")
+		}
+		if err = tx.QueryRowContext(ctx, "SELECT review_ready FROM friends WHERE id=?", row["id"]).Scan(&ready); err != nil {
+			return nil, err
+		}
+		if !ready {
+			return nil, errors.New("首页、RSS 和头像预检查尚未全部通过，不能审核通过")
+		}
+		for _, field := range []string{"url", "rss_url", "avatar", "avatar_source"} {
+			if value, present := values[field]; present && value != row[field] {
+				return nil, errors.New("请先保存资源变更，完成预检查后再审核")
+			}
+		}
+	}
+
 	if id == "friends" {
-		for _, key := range []string{"review_result", "review_checked_at", "health_failures", "health_checked_on", "health_error"} {
+		for _, key := range []string{"review_result", "review_checked_at", "health_failures", "health_checked_on", "health_error", "processing_failures", "failure_notified", "failure_mail_sent", "review_ready", "inspection_failures", "inspection_failed_on"} {
 			if _, provided := values[key]; provided {
 				return nil, errors.New("审核结果由审核流程维护")
 			}
@@ -563,6 +583,37 @@ func (m Manager) Save(ctx context.Context, id string, values, key map[string]any
 	if id == "friends" {
 		if err = community.EnqueueFriendTx(ctx, tx, fmt.Sprint(row["id"])); err != nil {
 			return nil, err
+		}
+	}
+	if key != nil && (id == "friends" || id == "feedback") && oldStatus != fmt.Sprint(row["status"]) {
+		title, summary := "反馈处理状态更新", fmt.Sprint(row["description"])
+		if id == "friends" {
+			title = "友链审核结果更新"
+			status := fmt.Sprint(row["status"])
+			if status == "展示中" {
+				var email string
+				if err = tx.QueryRowContext(ctx, "SELECT email FROM friends WHERE id=?", row["id"]).Scan(&email); err != nil {
+					return nil, err
+				}
+				if err = community.EnqueueFriendMailTx(ctx, tx, community.Friend{ID: fmt.Sprint(row["id"]), Name: fmt.Sprint(row["name"]), Email: email}, status == "展示中", "人工审核："+status); err != nil {
+					return nil, err
+				}
+			}
+			summary = fmt.Sprint(row["name"]) + "：" + fmt.Sprint(row["review_result"])
+		}
+		if id == "feedback" {
+			if fmt.Sprint(row["status"]) == "已解决" {
+				var address string
+				if err = tx.QueryRowContext(ctx, "SELECT email FROM feedback WHERE id=?", row["id"]).Scan(&address); err != nil {
+					return nil, err
+				}
+				if err = community.EnqueueFeedbackMailTx(ctx, tx, fmt.Sprint(row["id"]), address, fmt.Sprint(row["description"])); err != nil {
+					return nil, err
+				}
+			}
+			if err = notifications.EnqueueTx(ctx, tx, notifications.Event{Kind: id, RecordID: fmt.Sprint(row["id"]), Title: title, Summary: summary, Status: fmt.Sprint(row["status"])}); err != nil {
+				return nil, err
+			}
 		}
 	}
 	if err = tx.Commit(); err != nil {

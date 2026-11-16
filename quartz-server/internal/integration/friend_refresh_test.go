@@ -17,7 +17,7 @@ func TestFriendRefreshKeepsFailuresAndConcurrentEdits(t *testing.T) {
 	fresh := "/api/site/friends/avatar/" + strings.Repeat("b", 64) + ".png"
 	ids := map[string]string{}
 	for _, name := range []string{"a", "b", "c", "d", "e", "f", "g"} {
-		f := community.Friend{Name: name, URL: "https://" + name + ".example/", BacklinkURL: "https://" + name + ".example/friends", Avatar: old, Status: "展示中"}
+		f := community.Friend{Email: "fixture@example.test", Name: name, URL: "https://" + name + ".example/", BacklinkURL: "https://" + name + ".example/friends", Avatar: old, Status: "展示中"}
 		if name != "d" && name != "f" && name != "g" {
 			f.AvatarSource = "https://" + name + ".example/avatar.png"
 		}
@@ -66,14 +66,14 @@ func TestFriendRefreshKeepsFailuresAndConcurrentEdits(t *testing.T) {
 		return time.Date(2026, 11, 12, hour, 0, 0, 0, time.UTC), nil
 	}
 	result, err := store.RefreshLinks(ctx)
-	if err == nil || result.Avatars != 1 || result.Feeds != 3 {
+	if err == nil || result.Avatars != 1 || result.Feeds != 2 {
 		t.Fatal(result, err)
 	}
 	friends, err := store.Friends(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if friends[0].Name != "c" || friends[1].Name != "b" || friends[2].Name != "a" {
+	if friends[0].Name != "b" || friends[1].Name != "a" {
 		t.Fatal("RSS sort failed", friends)
 	}
 	byName := map[string]community.Friend{}

@@ -252,11 +252,11 @@
     "public": false,
     "group": "服务接入",
     "category": "AstrBot",
-    "label": "场景 API Key",
+    "label": "插件 API Key",
     "type": "password",
     "default": "",
     "max": 16384,
-    "help": "留空沿用服务器原有凭据；仅管理员可读取和修改。"
+    "help": "AstrBot 中具有 plugin 权限的 API Key。"
   },
   {
     "key": "api.napcat.url",
@@ -671,5 +671,89 @@
     "type": "navigation",
     "default": "[{\"label\":\"湘ICP备2026004810号\",\"href\":\"http://beian.miit.gov.cn\",\"icon\":\"\",\"order\":10}]",
     "max": 262144
+  },
+  {
+    "key": "notify.astrbot.enabled",
+    "public": false,
+    "group": "服务接入",
+    "category": "AstrBot",
+    "label": "启用通知",
+    "type": "boolean",
+    "default": false,
+    "help": "开启后投递新产生的通知；关闭期间不补发历史业务记录。"
+  },
+  {
+    "key": "notify.astrbot.url",
+    "public": false,
+    "group": "服务接入",
+    "category": "AstrBot",
+    "label": "接收地址",
+    "type": "text",
+    "default": "http://astrbot:6185/api/v1/plugins/extensions/astrbot_plugin_microlight/webhook",
+    "help": "填写 MicroLight 插件 Web API 地址。",
+    "max": 2000
+  },
+  {
+    "key": "notify.astrbot.alerts",
+    "public": false,
+    "group": "服务接入",
+    "category": "AstrBot",
+    "label": "告警通知",
+    "type": "boolean",
+    "default": true,
+    "help": "新告警和级别升级时通知，相同告警持续重复不刷屏。"
+  },
+  {
+    "key": "notify.astrbot.feedback",
+    "public": false,
+    "group": "服务接入",
+    "category": "AstrBot",
+    "label": "问题反馈通知",
+    "type": "boolean",
+    "default": true,
+    "help": "新反馈与处理状态变化。"
+  },
+  {
+    "key": "notify.astrbot.friends",
+    "public": false,
+    "group": "服务接入",
+    "category": "AstrBot",
+    "label": "友链审核通知",
+    "type": "boolean",
+    "default": true,
+    "help": "自动审核通过，以及累计处理失败达到阈值时通知。"
+  },
+  {
+    "key": "notify.astrbot.minLevel",
+    "public": false,
+    "group": "服务接入",
+    "category": "AstrBot",
+    "label": "告警最低级别",
+    "type": "select",
+    "default": "warning",
+    "help": "只影响新入队的告警通知。",
+    "options": [
+      [
+        "warning",
+        "警告及错误"
+      ],
+      [
+        "error",
+        "仅错误"
+      ]
+    ]
+  },
+  {
+    "key": "friends.failureLimit",
+    "public": false,
+    "group": "服务接入",
+    "category": "友链",
+    "label": "失败通知阈值",
+    "type": "number",
+    "default": 5,
+    "min": 1,
+    "max": 100,
+    "step": 1,
+    "help": "友链处理累计失败达到此次数后，每次失败均通知 AstrBot；后续仍由周期任务继续处理。达到阈值后允许手动弃用，发送失败邮件并删除记录。"
   }
 ]

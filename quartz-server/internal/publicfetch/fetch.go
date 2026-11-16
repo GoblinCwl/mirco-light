@@ -117,7 +117,7 @@ func request(ctx context.Context, address string, client *http.Client, accept st
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		return nil, errors.New("下载远程资源失败，请检查资源地址")
+		return nil, requestFailure(err)
 	}
 	return res, nil
 }

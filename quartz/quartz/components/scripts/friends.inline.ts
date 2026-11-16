@@ -126,7 +126,7 @@ document.addEventListener('nav', () => {
    const result=await response.json()
    if(!response.ok)throw new Error(result.error||'提交失败，请稍后重试')
     confirmation.classList.add('is-complete')
-   const message='友链申请提交成功，已进入后台处理队列。'
+   const message='友链申请提交成功，审核结果将发送至你填写的邮箱。'
    const notice=confirmation.querySelector<HTMLElement>('[data-friends-review-notice]');if(notice){notice.textContent=message;notice.hidden=false}
    applicationError(message,false)
    submit.disabled=false;submit.textContent='完成';pendingApplication=undefined
@@ -139,7 +139,7 @@ document.addEventListener('nav', () => {
   }finally{submittingApplication=false}
  },{signal})
  const application=sidebar?.querySelector<HTMLFormElement>('[data-friends-apply-form]')
- const applicationComplete=()=>Boolean(application&&['name','url','backlinkUrl','avatar','description'].every(name=>(application.elements.namedItem(name) as HTMLInputElement).value.trim()))
+ const applicationComplete=()=>Boolean(application&&['email','name','url','backlinkUrl','avatar','description'].every(name=>(application.elements.namedItem(name) as HTMLInputElement).value.trim()))
  const syncApplication=()=>{const submit=application?.querySelector<HTMLButtonElement>('[data-friends-apply]');if(submit)submit.disabled=!applicationComplete();for(const input of application?.querySelectorAll('[aria-invalid]')||[])input.removeAttribute('aria-invalid')}
  application?.addEventListener('input',syncApplication,{signal});application?.addEventListener('change',syncApplication,{signal});syncApplication()
 
@@ -147,6 +147,7 @@ document.addEventListener('nav', () => {
   event.preventDefault()
   const field=(name:string)=>application.elements.namedItem(name) as HTMLInputElement
   if(!applicationComplete()||submittingApplication)return
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(field('email').value.trim())){field('email').setAttribute('aria-invalid','true');applicationError('请填写有效的邮箱地址');return}
   const website=field('url'),avatarField=field('avatar'),backlinkField=field('backlinkUrl')
   const address=(input:HTMLInputElement)=>{const value=input.value.trim();if(!/^https:\/\//i.test(value))throw new Error();const url=new URL(value);if(url.protocol!=='https:'||!url.hostname||url.username||url.password)throw new Error();return url.href}
   const validated:string[]=[]
@@ -166,7 +167,7 @@ document.addEventListener('nav', () => {
    catch{rssField.setAttribute('aria-invalid','true');if(!compact.matches)rssField.focus();applicationError('请填写有效的 RSS 地址（HTTP 或 HTTPS），或留空。');return}
   }
   const [siteUrl,avatarUrl,backlinkUrl]=validated
-  const friend:FriendLink={id:'application-preview',name:field('name').value.trim(),url:siteUrl,avatar:avatarUrl,backlinkUrl,rssUrl,description:Array.from(field('description').value.trim()).slice(0,40).join('')}
+  const friend:FriendLink={id:'application-preview',email:field('email').value.trim(),name:field('name').value.trim(),url:siteUrl,avatar:avatarUrl,backlinkUrl,rssUrl,description:Array.from(field('description').value.trim()).slice(0,40).join('')}
   const stage=confirmation?.querySelector<HTMLElement>('[data-friends-preview-card]')
   if(!stage||!confirmation)return
   const card=node('div','','friend-letter');card.setAttribute('role','img');card.setAttribute('aria-label',`${friend.name}的友链卡片预览`);card.style.setProperty('--letter-angle','-2deg')
@@ -500,7 +501,7 @@ document.addEventListener('nav', () => {
   fragment.append(dust)
   const rope=document.createElementNS('http://www.w3.org/2000/svg','svg');rope.classList.add('friends-letter-rope');rope.setAttribute('aria-hidden','true');fragment.append(rope)
   friends.forEach((friend,i)=>{
-   const letter=node('a','','friend-letter');letter.dataset.externalLinkTitle=friend.name;letter.classList.toggle('is-unavailable',(friend.healthFailures||0)>0);if((friend.healthFailures||0)>0)letter.setAttribute('aria-label',`${friend.name}，暂时无法访问`);letter.href=friend.url;letter.target='_blank';letter.rel='noopener noreferrer';letter.dataset.noPopover='true';letter.draggable=false;letter.dataset.tone=String(i%5);letter.dataset.cardNumber=String(friend.number??i+1).padStart(3,'0');letter.id=`friend-card-${letter.dataset.cardNumber}`
+   const letter=node('a','','friend-letter');letter.dataset.externalLinkTitle=friend.name;letter.classList.toggle('is-unavailable',(friend.inspectionFailures||0)>=(friend.inspectionGrayDays||3));if((friend.inspectionFailures||0)>=(friend.inspectionGrayDays||3))letter.setAttribute('aria-label',`${friend.name}，巡检累计失败 ${friend.inspectionFailures} 天`);letter.href=friend.url;letter.target='_blank';letter.rel='noopener noreferrer';letter.dataset.noPopover='true';letter.draggable=false;letter.dataset.tone=String(i%5);letter.dataset.cardNumber=String(friend.number??i+1).padStart(3,'0');letter.id=`friend-card-${letter.dataset.cardNumber}`
    let mobileSeed=2166136261
    for(const character of friend.id)mobileSeed=Math.imul(mobileSeed^character.charCodeAt(0),16777619)
    const mobileRandom=()=>{mobileSeed|=0;mobileSeed=mobileSeed+0x6D2B79F5|0;let n=Math.imul(mobileSeed^mobileSeed>>>15,1|mobileSeed);n^=n+Math.imul(n^n>>>7,61|n);return ((n^n>>>14)>>>0)/4294967296}

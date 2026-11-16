@@ -36,10 +36,12 @@ type QueueItem struct {
 type Tracker struct {
 	DB           *sql.DB
 	Config       *taskconfig.Config
+	OnFailure    func(context.Context, string, string) error
 	mu           sync.RWMutex
 	writeMu      sync.Mutex
 	providers    map[string]func() []QueueItem
 	retries      map[string]func(context.Context) error
+	triggers     map[string]func(context.Context) error
 	retryPending map[string]bool
 	running      map[string]int
 	external     map[string]string
@@ -177,6 +179,13 @@ func Run(ctx context.Context, key string, work func(context.Context) error) (err
 		s.mu.Lock()
 		logs := Clean(strings.Join(s.lines, "\n"), 12000)
 		s.mu.Unlock()
+		if status == "failed" && tracker.OnFailure != nil {
+			reportCtx, stop := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+			if e := tracker.OnFailure(reportCtx, key, message); e != nil {
+				slog.Warn("task failure alert could not be saved", "task", key)
+			}
+			stop()
+		}
 		if id > 0 {
 			recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 			defer cancel()
@@ -198,14 +207,21 @@ func (t *Tracker) Import(ctx context.Context, key string, r RunRecord) error {
 		return err
 	}
 	defer tx.Rollback()
-	_, err = tx.ExecContext(ctx, "INSERT IGNORE INTO task_runs(task_key,run_key,started_at,finished_at,status,duration_ms,error,logs) VALUES(?,?,?,?,?,?,?,?)", key, *r.RunKey, r.StartedAt, r.FinishedAt, r.Status, r.Duration, Clean(r.Error, 4000), Clean(r.Logs, 12000))
+	inserted, err := tx.ExecContext(ctx, "INSERT IGNORE INTO task_runs(task_key,run_key,started_at,finished_at,status,duration_ms,error,logs) VALUES(?,?,?,?,?,?,?,?)", key, *r.RunKey, r.StartedAt, r.FinishedAt, r.Status, r.Duration, Clean(r.Error, 4000), Clean(r.Logs, 12000))
 	if err != nil {
 		return err
 	}
 	if err = prune(ctx, tx, key); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	n, _ := inserted.RowsAffected()
+	if n > 0 && r.Status == "failed" && t.OnFailure != nil {
+		return t.OnFailure(ctx, key, Clean(r.Error, 4000))
+	}
+	return nil
 }
 
 func (t *Tracker) ImportBatch(ctx context.Context, key string, runs []RunRecord) error {

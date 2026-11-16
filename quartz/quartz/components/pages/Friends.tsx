@@ -27,6 +27,7 @@ export const FriendsApply: QuartzComponent = ({ cfg }) => {
     </section>
     <section class="friends-sidebar-group" aria-label="申请友链">
       <form class="friends-form-fields" data-friends-apply-form noValidate>
+        <label class="friends-form-field"><span>通知邮箱</span><input name="email" type="email" inputMode="email" autoComplete="email" required maxLength={254} placeholder="用于接收审核结果，不会公开"/></label>
         <label class="friends-form-field"><span>网站名称</span><input name="name" placeholder="你的站点名称" maxLength={80}/></label>
         <label class="friends-form-field"><span>网站简介<output data-friends-description-count aria-live="polite">0 / 40</output></span><textarea name="description" rows={3} placeholder="简单介绍一下你的网站（最多40字）" maxLength={80} data-friends-description aria-label="网站简介，最多40个字符"/></label>
         <label class="friends-form-field"><span>网站地址</span><input name="url" type="url" inputMode="url" placeholder="https://" spellcheck={false}/></label>
@@ -49,7 +50,7 @@ export const FriendsApply: QuartzComponent = ({ cfg }) => {
     <dialog class="friends-confirm" data-friends-application-preview tabIndex={-1} aria-labelledby="friends-confirm-heading">
       <header><h2 id="friends-confirm-heading">友链申请</h2><button type="button" data-friends-confirm-cancel aria-label="关闭友链申请"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
       <div class="friends-confirm-art"><svg class="friends-confirm-cord" viewBox="0 0 400 60" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M-10 8Q100 40 200 32Q300 24 410 8"/></svg><div class="friends-page friends-preview-stage" data-friends-preview-card/><div class="friend-letter-tooltip friend-mobile-bubble friends-confirm-description" data-placement="right" data-friends-preview-description/></div>
-      <div class="friends-confirm-notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.01"/></svg><div><p><strong>检测到贵站友链地址存在本站后将自动审核通过</strong></p><p data-friends-review-notice hidden/><p>连续7日无法访问时将会被移出纽带。</p></div></div>
+      <div class="friends-confirm-notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.01"/></svg><div><p><strong>检测到贵站友链地址存在本站后将自动审核通过，并通过邮箱通知结果</strong></p><p data-friends-review-notice hidden/><p>连续7日无法访问时将会被移出纽带。</p></div></div>
       <footer><button type="button" data-friends-confirm-cancel>取消</button><button type="button" data-friends-confirm-submit>提交</button></footer>
     </dialog>
   </section>

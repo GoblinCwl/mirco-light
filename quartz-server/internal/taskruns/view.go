@@ -18,12 +18,13 @@ type QueueView struct {
 }
 type Instance struct {
 	Definition
-	Retryable bool       `json:"retryable"`
-	Schedule  string     `json:"schedule"`
-	Last      *RunRecord `json:"lastRun"`
-	Remaining int        `json:"remaining"`
-	Waiting   int        `json:"waiting"`
-	Running   int        `json:"running"`
+	Retryable   bool       `json:"retryable"`
+	Triggerable bool       `json:"triggerable"`
+	Schedule    string     `json:"schedule"`
+	Last        *RunRecord `json:"lastRun"`
+	Remaining   int        `json:"remaining"`
+	Waiting     int        `json:"waiting"`
+	Running     int        `json:"running"`
 }
 
 func (t *Tracker) queue(ctx context.Context, key string, page int) (QueueView, error) {
@@ -34,7 +35,7 @@ func (t *Tracker) queue(ctx context.Context, key string, page int) (QueueView, e
 		}
 		out.Pages = max(1, (out.Total+19)/20)
 		out.Page = min(out.Page, out.Pages)
-		rows, err := t.DB.QueryContext(ctx, "SELECT j.friend_id,f.name,j.state,j.attempts,j.available_at,j.last_error FROM friend_jobs j JOIN friends f ON f.id=j.friend_id ORDER BY j.available_at,j.enqueued_at,j.friend_id LIMIT 20 OFFSET ?", (out.Page-1)*20)
+		rows, err := t.DB.QueryContext(ctx, "SELECT j.friend_id,f.name,j.state,f.processing_failures,j.available_at,j.last_error FROM friend_jobs j JOIN friends f ON f.id=j.friend_id ORDER BY j.available_at,j.enqueued_at,j.friend_id LIMIT 20 OFFSET ?", (out.Page-1)*20)
 		if err != nil {
 			return out, err
 		}
@@ -124,6 +125,7 @@ func (t *Tracker) instance(ctx context.Context, d Definition) (Instance, error) 
 		item.Waiting = q.Waiting
 		item.Running = q.Running
 	}
+	item.Triggerable = t.canTrigger(d.Key) && item.Running == 0 && (item.Last == nil || item.Last.Status != "running")
 	item.Retryable = t.canRetry(d.Key) && item.Last != nil && (item.Last.Status == "failed" || item.Last.Status == "interrupted") && item.Running == 0
 	return item, nil
 }

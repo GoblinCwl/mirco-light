@@ -10,11 +10,11 @@ import (
 	"time"
 )
 
-func TestFriendJobQueueVersionsBackoffAndRestartRecovery(t *testing.T) {
+func TestFriendJobQueueVersionsAndRestartRecovery(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
-	store := community.Store{DB: db}
-	friend, _, err := store.CreateFriend(ctx, community.Friend{Name: "queue", URL: "https://queue.example/", BacklinkURL: "https://queue.example/friends", Status: "待审核"}, false)
+	store := community.Store{DB: db, CheckHomepage: func(context.Context, string) error { return nil }}
+	friend, _, err := store.CreateFriend(ctx, community.Friend{Email: "fixture@example.test", Name: "queue", URL: "https://queue.example/", BacklinkURL: "https://queue.example/friends", Status: "待审核"}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,31 +35,35 @@ func TestFriendJobQueueVersionsBackoffAndRestartRecovery(t *testing.T) {
 	if err := store.FinishFriendJob(ctx, *next, errors.New("fixture network outage")); err != nil {
 		t.Fatal(err)
 	}
-	if due, err := store.NextFriendJob(ctx); err != nil || !due.After(time.Now()) {
-		t.Fatal("failure did not schedule a delayed retry", due, err)
+	if due, err := store.NextFriendJob(ctx); err != nil || !due.IsZero() {
+		t.Fatal("failure rescheduled", due, err)
 	}
-	if job, err := store.ClaimFriendJob(ctx, time.Now()); err != nil || job != nil {
-		t.Fatal("retry ran before due time", job, err)
+	if err = store.RecoverFriendJobs(ctx); err != nil {
+		t.Fatal(err)
 	}
-	if err := store.RecoverFriendJobs(ctx); err != nil {
+	if claimed, err := store.ClaimFriendJob(ctx, time.Now()); err != nil || claimed != nil {
+		t.Fatal("restart retried failure", claimed, err)
+	}
+	if err = store.EnqueueFriend(ctx, friend.ID); err != nil {
 		t.Fatal(err)
 	}
 	restarted, err := store.ClaimFriendJob(ctx, time.Now())
-	if err != nil || restarted == nil || restarted.Attempts != 1 {
-		t.Fatal("restart lost pending retry", restarted, err)
+	if err != nil || restarted == nil {
+		t.Fatal(err)
 	}
+
 	// Simulate service death while the claimed job is still running.
 	if err := store.RecoverFriendJobs(ctx); err != nil {
 		t.Fatal(err)
 	}
 	recovered, err := store.ClaimFriendJob(ctx, time.Now())
-	if err != nil || recovered == nil || recovered.Generation != 2 {
+	if err != nil || recovered == nil || recovered.Generation != restarted.Generation {
 		t.Fatal("running task not recovered", recovered, err)
 	}
 	if err := store.FinishFriendJob(ctx, *recovered, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.UpdateFriend(ctx, friend.ID, community.Friend{}, "delete", 0); err != nil {
+	if _, err := store.UpdateFriend(ctx, friend.ID, community.Friend{Email: "fixture@example.test"}, "delete", 0); err != nil {
 		t.Fatal(err)
 	}
 	var count int
@@ -70,7 +74,7 @@ func TestFriendJobQueueVersionsBackoffAndRestartRecovery(t *testing.T) {
 func TestFriendJobPerformsDeferredWorkAndRetainsFailures(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
-	store := community.Store{DB: db}
+	store := community.Store{DB: db, CheckHomepage: func(context.Context, string) error { return nil }}
 	calls := 0
 	down := true
 	store.StoreAvatar = func(context.Context, string) (string, error) {
@@ -91,7 +95,7 @@ func TestFriendJobPerformsDeferredWorkAndRetainsFailures(t *testing.T) {
 		}
 		return community.BacklinkResult{Found: true, Message: "passed"}, nil
 	}
-	f, _, err := store.CreateFriend(ctx, community.Friend{Name: "background", URL: "https://job.example/", BacklinkURL: "https://job.example/friends", Avatar: "https://job.example/avatar.png", RSSURL: "https://job.example/feed", Description: "hello"}, true)
+	f, _, err := store.CreateFriend(ctx, community.Friend{Email: "fixture@example.test", Name: "background", URL: "https://job.example/", BacklinkURL: "https://job.example/friends", Avatar: "https://job.example/avatar.png", RSSURL: "https://job.example/feed", Description: "hello"}, true)
 	if err != nil || calls != 0 {
 		t.Fatal("submit did remote work", calls, err)
 	}
@@ -110,6 +114,9 @@ func TestFriendJobPerformsDeferredWorkAndRetainsFailures(t *testing.T) {
 		t.Fatal(err)
 	}
 	down = false
+	if err = store.EnqueueFriend(ctx, f.ID); err != nil {
+		t.Fatal(err)
+	}
 	job, err = store.ClaimFriendJob(ctx, time.Now())
 	if err != nil || job == nil {
 		t.Fatal(job, err)
@@ -136,7 +143,7 @@ func TestQueueInsertFailureRollsBackNewFriend(t *testing.T) {
 	if _, err := db.Exec("DROP TABLE friend_jobs"); err != nil {
 		t.Fatal(err)
 	}
-	_, _, err := (community.Store{DB: db}).CreateFriend(ctx, community.Friend{Name: "atomic", URL: "https://atomic.example/", BacklinkURL: "https://atomic.example/friends"}, false)
+	_, _, err := (community.Store{DB: db}).CreateFriend(ctx, community.Friend{Email: "fixture@example.test", Name: "atomic", URL: "https://atomic.example/", BacklinkURL: "https://atomic.example/friends"}, false)
 	if err == nil {
 		t.Fatal("submission succeeded without a durable job")
 	}
@@ -177,8 +184,8 @@ func TestGenericFriendMaintenanceAlsoQueuesRemoteWork(t *testing.T) {
 func TestManualApprovalRunsInspectionOnceAndRemovesFailedQueueItem(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
-	store := community.Store{DB: db}
-	f, _, err := store.CreateFriend(ctx, community.Friend{Name: "manual", Description: "fixture", URL: "https://manual.example/", BacklinkURL: "https://manual.example/friends", Avatar: "https://manual.example/avatar.png", RSSURL: "https://manual.example/feed"}, true)
+	store := community.Store{DB: db, CheckHomepage: func(context.Context, string) error { return nil }}
+	f, _, err := store.CreateFriend(ctx, community.Friend{Email: "fixture@example.test", Name: "manual", Description: "fixture", URL: "https://manual.example/", BacklinkURL: "https://manual.example/friends", Avatar: "https://manual.example/avatar.png", RSSURL: "https://manual.example/feed"}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +208,11 @@ func TestManualApprovalRunsInspectionOnceAndRemovesFailedQueueItem(t *testing.T)
 		review++
 		return community.BacklinkResult{}, errors.New("must not review")
 	}
-	if _, err = store.UpdateFriend(ctx, f.ID, community.Friend{Status: "展示中"}, "review", 0); err != nil {
+	if _, checkErr := store.UpdateFriend(ctx, f.ID, community.Friend{Status: "展示中"}, "review", 0); checkErr == nil {
+		t.Fatal("manual approval bypassed prerequisites")
+	}
+	db.Exec("UPDATE friends SET review_ready=1 WHERE id=?", f.ID)
+	if _, err = store.UpdateFriend(ctx, f.ID, community.Friend{Email: "fixture@example.test", Status: "展示中"}, "review", 0); err != nil {
 		t.Fatal(err)
 	}
 	if homepage+avatar+feed+review != 0 {
@@ -212,7 +223,7 @@ func TestManualApprovalRunsInspectionOnceAndRemovesFailedQueueItem(t *testing.T)
 		t.Fatal(err)
 	}
 	job, err := store.ClaimFriendJob(ctx, time.Now())
-	if err != nil || job == nil || !job.InspectOnly || job.Attempts != 0 || job.Generation <= old.Generation {
+	if err != nil || job == nil || !job.InspectOnly || job.Attempts != 0 {
 		t.Fatal("manual approval did not replace failed work", job, err)
 	}
 	// A service restart retains this explicit one-off task until it is performed.
@@ -224,7 +235,7 @@ func TestManualApprovalRunsInspectionOnceAndRemovesFailedQueueItem(t *testing.T)
 		t.Fatal("lost manual inspection on recovery", job, err)
 	}
 	workErr := store.ProcessClaimedFriendJob(ctx, *job)
-	if workErr == nil || homepage != 1 || avatar != 1 || feed != 1 || review != 0 {
+	if workErr == nil || homepage != 1 || avatar != 1 || feed != 0 || review != 0 {
 		t.Fatal("inspection steps incorrect", homepage, avatar, feed, review, workErr)
 	}
 	if err = store.FinishFriendJob(ctx, *job, workErr); err != nil {
@@ -234,7 +245,7 @@ func TestManualApprovalRunsInspectionOnceAndRemovesFailedQueueItem(t *testing.T)
 	if err = db.QueryRow("SELECT status,review_result,latest_update FROM friends WHERE id=?", f.ID).Scan(&status, &result, &latest); err != nil {
 		t.Fatal(err)
 	}
-	if status != "展示中" || result != "人工审核：展示中" || latest != expected.Format("2006-01-02T15:04:05.000Z") {
+	if status != "展示中" || result != "人工审核：展示中" || latest != "2020-01-01T00:00:00.000Z" {
 		t.Fatal(status, result, latest)
 	}
 	var count int
@@ -260,8 +271,8 @@ func TestManualApprovalRunsInspectionOnceAndRemovesFailedQueueItem(t *testing.T)
 func TestManualInspectionFailureUsesDailyHomepageHealthAndCannotDeleteNewerWork(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
-	store := community.Store{DB: db}
-	f, _, err := store.CreateFriend(ctx, community.Friend{Name: "manual-health", Description: "fixture", Avatar: "https://health.example/avatar.png", URL: "https://health.example/", BacklinkURL: "https://health.example/friends", RSSURL: "https://health.example/feed"}, true)
+	store := community.Store{DB: db, CheckHomepage: func(context.Context, string) error { return nil }}
+	f, _, err := store.CreateFriend(ctx, community.Friend{Email: "fixture@example.test", Name: "manual-health", Description: "fixture", Avatar: "https://health.example/avatar.png", URL: "https://health.example/", BacklinkURL: "https://health.example/friends", RSSURL: "https://health.example/feed"}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +280,11 @@ func TestManualInspectionFailureUsesDailyHomepageHealthAndCannotDeleteNewerWork(
 	if err != nil || old == nil {
 		t.Fatal(old, err)
 	}
-	if _, err = store.UpdateFriend(ctx, f.ID, community.Friend{Status: "展示中"}, "review", 0); err != nil {
+	if _, checkErr := store.UpdateFriend(ctx, f.ID, community.Friend{Status: "展示中"}, "review", 0); checkErr == nil {
+		t.Fatal("manual approval bypassed prerequisites")
+	}
+	db.Exec("UPDATE friends SET review_ready=1 WHERE id=?", f.ID)
+	if _, err = store.UpdateFriend(ctx, f.ID, community.Friend{Email: "fixture@example.test", Status: "展示中"}, "review", 0); err != nil {
 		t.Fatal(err)
 	}
 	if err = store.FinishFriendJob(ctx, *old, errors.New("stale automatic task")); err != nil {
@@ -299,7 +314,7 @@ func TestManualInspectionFailureUsesDailyHomepageHealthAndCannotDeleteNewerWork(
 		t.Fatal(status, health, err)
 	}
 	// Administrator changes their decision while the one-off task is in flight.
-	if _, err = store.UpdateFriend(ctx, f.ID, community.Friend{Status: "待审核"}, "review", 0); err != nil {
+	if _, err = store.UpdateFriend(ctx, f.ID, community.Friend{Email: "fixture@example.test", Status: "待审核"}, "review", 0); err != nil {
 		t.Fatal(err)
 	}
 	if err = store.FinishFriendJob(ctx, *job, failure); err != nil {

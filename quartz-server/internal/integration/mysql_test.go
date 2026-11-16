@@ -109,7 +109,7 @@ func TestCommunityTransactionsAndHTTP(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
 	store := community.Store{DB: db}
-	friend := community.Friend{Name: "测试", URL: "https://example.com/", BacklinkURL: "https://example.com/friends", Avatar: "https://example.com/a.png", Description: "简介"}
+	friend := community.Friend{Email: "fixture@example.test", Name: "测试", URL: "https://example.com/", BacklinkURL: "https://example.com/friends", Avatar: "https://example.com/a.png", Description: "简介"}
 	uploads := 0
 	store.StoreAvatar = func(context.Context, string) (string, error) {
 		uploads++
@@ -132,7 +132,8 @@ func TestCommunityTransactionsAndHTTP(t *testing.T) {
 	if err != nil || len(public) != 0 {
 		t.Fatal("pending friend leaked")
 	}
-	if _, err = store.UpdateFriend(ctx, row.ID, community.Friend{Status: "展示中"}, "review", 0); err != nil {
+	db.Exec("UPDATE friends SET review_ready=1 WHERE id=?", row.ID)
+	if _, err = store.UpdateFriend(ctx, row.ID, community.Friend{Email: "fixture@example.test", Status: "展示中"}, "review", 0); err != nil {
 		t.Fatal(err)
 	}
 	public, err = store.Friends(ctx, true)

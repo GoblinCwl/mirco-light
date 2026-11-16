@@ -121,6 +121,12 @@ func validate(key string, value any) (any, error) {
 		if !ok || utf8.RuneCountInString(v) > max {
 			return nil, errors.New("文本长度不符合要求")
 		}
+		if key == "notify.astrbot.url" && v != "" {
+			u, err := url.Parse(v)
+			if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil || u.Fragment != "" {
+				return nil, errors.New("请输入完整的 HTTP 或 HTTPS 接收地址，不含用户名、密码或锚点")
+			}
+		}
 		if key == "external.favicons" {
 			return validateFavicons(v)
 		}

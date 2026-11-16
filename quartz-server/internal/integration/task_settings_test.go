@@ -23,7 +23,7 @@ func TestTaskSettingsPersistAndRemainPrivate(t *testing.T) {
 	if err != nil || initial[taskconfig.Key("video-sync")] != float64(7200) {
 		t.Fatal(initial[taskconfig.Key("video-sync")], err)
 	}
-	for k, v := range map[string]any{taskconfig.Key("video-sync"): float64(10800), "tasks.friendsTime": "07:30", "tasks.friendsEveryDays": float64(2), taskconfig.Key("friend-retry"): float64(3), taskconfig.Key("friend-retry-max"): float64(5)} {
+	for k, v := range map[string]any{taskconfig.Key("video-sync"): float64(10800), "tasks.friendsTime": "07:30", "tasks.friendsEveryDays": float64(2)} {
 		if _, err := store.Save(ctx, k, v); err != nil {
 			t.Fatal(k, err)
 		}
@@ -47,7 +47,7 @@ func TestTaskSettingsPersistAndRemainPrivate(t *testing.T) {
 		}
 	}
 	friends := community.Store{DB: db}
-	friend, _, err := friends.CreateFriend(ctx, community.Friend{Name: "schedule", URL: "https://example.com", BacklinkURL: "https://example.com/friends", Status: "待审核"}, false)
+	friend, _, err := friends.CreateFriend(ctx, community.Friend{Email: "fixture@example.test", Name: "schedule", URL: "https://example.com", BacklinkURL: "https://example.com/friends", Status: "待审核"}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,12 +56,11 @@ func TestTaskSettingsPersistAndRemainPrivate(t *testing.T) {
 		t.Fatal(job, err)
 	}
 	job.Attempts = 1000
-	before := time.Now()
 	if err = friends.FinishFriendJob(ctx, *job, errors.New("fixture")); err != nil {
 		t.Fatal(err)
 	}
 	due, err := friends.NextFriendJob(ctx)
-	if err != nil || due.Before(before.Add(5*time.Second-time.Millisecond)) || due.After(time.Now().Add(5*time.Second)) {
-		t.Fatal("configured retry cap not applied", due, err)
+	if err != nil || !due.IsZero() {
+		t.Fatal("failed work was rescheduled", due, err)
 	}
 }

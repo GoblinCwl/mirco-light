@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"goblincwl/quartz-server/internal/alerts"
 	"goblincwl/quartz-server/internal/taskconfig"
 	"goblincwl/quartz-server/internal/taskruns"
 	"log/slog"
@@ -52,7 +51,6 @@ func (t *eventTask) run(root context.Context, log *slog.Logger) {
 			if root.Err() != nil {
 				return
 			}
-			alerts.Emit(alerts.Event{Kind: "task", Source: alerts.TaskName(t.name), Title: "事件处理失败", Message: "保留已有数据，将按原有机制重试"})
 			log.Warn("event task failed; retrying", "task", t.name)
 			state.Retry(err, taskconfig.Duration(root, t.retryKey))
 			if !taskconfig.Wait(root, t.retryKey, t.pending) {

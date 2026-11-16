@@ -91,6 +91,7 @@ func (s Store) refreshFriends(ctx context.Context, friends []Friend) (RefreshRes
 			}
 			if err != nil {
 				failures = append(failures, fmt.Errorf("%s 头像刷新失败: %w", friend.Name, err))
+				continue
 			}
 		}
 		if friend.RSSURL != "" {

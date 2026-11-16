@@ -75,8 +75,10 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
     const avatarSource=field('原始头像地址（选填，每日 06:00 检查）',friend?.avatarSource||'','url');avatarSource.maxLength=1500;avatarSource.placeholder='填写远程头像地址；留空不参与每日更新';avatarSource.pattern='[Hh][Tt][Tt][Pp][Ss]?://.+';avatarSource.parentElement!.classList.add('is-wide')
     const descriptionLabel = node('label', '站点简介'), description = node('textarea'); description.value = friend?.description || ''; description.rows = 3; description.maxLength = 300
     descriptionLabel.className = 'is-wide'; descriptionLabel.append(description); fields.append(descriptionLabel)
-    const stateLabel=node('label',reviewing?'审核结果':'状态'),state=node('select');for(const value of ['展示中','待审核','已失效'] as const)state.append(new Option(reviewing?({'展示中':'通过 · 展示中','待审核':'暂不处理 · 待审核','已失效':'不通过 · 已失效'})[value]!:value,value));state.value=reviewing?'展示中':friend?.status||'展示中';stateLabel.append(state);fields.append(stateLabel)
+    if(friend?.email){const email=field('通知邮箱（不公开）',friend.email,'email');email.readOnly=true}
+    const stateLabel=node('label',reviewing?'审核结果':'状态'),state=node('select');for(const value of ['展示中','待审核','已失效'] as const)state.append(new Option(reviewing?({'展示中':'通过 · 展示中','待审核':'暂不处理 · 待审核','已失效':'不通过 · 已失效'})[value]!:value,value));if(friend?.status!=='展示中'&&!friend?.reviewReady)state.querySelector<HTMLOptionElement>('option[value=展示中]')!.disabled=true;state.value=reviewing?(friend?.reviewReady?'展示中':'待审核'):friend?.status||'待审核';stateLabel.append(state);fields.append(stateLabel)
     if(reviewing&&friend){
+ if(!friend.reviewReady){const note=node('p','首页、RSS 或头像处理尚未全部通过，暂不能审核通过；请先执行后台检查。','data-admin-note');fields.prepend(note)}
       for(const input of [name,url,backlink,rss,avatar,avatarSource,description])input.readOnly=true
       const visit=node('a','打开网站');visit.href=friend.url;visit.target='_blank';visit.rel='noopener noreferrer';visit.dataset.noPopover='true';visit.className='friend-admin-review-link';url.parentElement!.append(visit)
       if(friend.backlinkUrl){const check=node('a','查看本站友链');check.href=friend.backlinkUrl;check.target='_blank';check.rel='noopener noreferrer';check.dataset.noPopover='true';check.className='friend-admin-review-link';backlink.parentElement!.append(check)}
@@ -107,18 +109,24 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
     const orderedFriends = [...friends].sort((a,b)=>(b.number??0)-(a.number??0)||a.id.localeCompare(b.id))
     orderedFriends.forEach(friend => {
       const row = node('div', '', 'friend-admin-row'), avatar = node('span', Array.from(friend.name)[0], 'friend-admin-avatar')
-      if((friend.healthFailures||0)>0){row.classList.add('is-unavailable');avatar.classList.add('is-unavailable')}
+      if((friend.inspectionFailures||0)>=(friend.inspectionGrayDays||3)){row.classList.add('is-unavailable');avatar.classList.add('is-unavailable')}
       if (friend.avatar) { const image = node('img'); image.alt = ''; image.loading = 'lazy'; image.referrerPolicy = 'strict-origin-when-cross-origin'; image.src = friend.avatar; image.addEventListener('error', () => image.remove(), { once: true, signal }); avatar.append(image) }
-      const text = node('div', '', 'friend-admin-copy'),meta=node('div','','friend-admin-meta'),state=node('span',friend.status||'展示中','stellar-admin-badge');state.dataset.state=(friend.healthFailures||0)>0 && (friend.healthFailures||0)<7?'重试中':friend.status||'展示中';if(state.dataset.state==='重试中')state.textContent=`重试中 ${friend.healthFailures}/7`;meta.append(node('small',new URL(friend.url).host),state);if(friend.healthError)meta.append(node('small',friend.healthError));if(friend.latestUpdate)meta.append(node('small',`最近更新 ${new Date(friend.latestUpdate).toLocaleString('zh-CN')}`));const title=node('strong');if(friend.number!==undefined){const number=node('span',`#${String(friend.number).padStart(3,'0')}`,'friend-admin-number');number.setAttribute('aria-label',`编号 ${friend.number}`);title.append(number,document.createTextNode(' '))}title.append(document.createTextNode(friend.name));text.append(title,meta);if(friend.reviewResult && friend.reviewResult!=='已检测到指向本站的友链，自动审核通过' && !friend.reviewResult.startsWith('人工审核：')){const review=node('p',friend.reviewResult,'data-admin-note');review.style.margin='0.35rem 0 0';if(friend.reviewCheckedAt)review.title=`检查于 ${new Date(friend.reviewCheckedAt).toLocaleString('zh-CN')}`;text.append(review)}
+      const text = node('div', '', 'friend-admin-copy'),meta=node('div','','friend-admin-meta'),state=node('span',friend.status||'展示中','stellar-admin-badge');state.dataset.state=(friend.inspectionFailures||0)>0?'检查异常':friend.status||'展示中';if(state.dataset.state==='检查异常')state.textContent=`巡检失败 ${friend.inspectionFailures} 天`;meta.append(node('small',new URL(friend.url).host),state);if(friend.healthError)meta.append(node('small',friend.healthError));if(friend.status!=='展示中'&&friend.processingFailures)meta.append(node('small',`累计失败 ${friend.processingFailures} 次 · 阈值 ${friend.failureLimit||5} 次`));if(friend.latestUpdate)meta.append(node('small',`最近更新 ${new Date(friend.latestUpdate).toLocaleString('zh-CN')}`));const title=node('strong');if(friend.number!==undefined){const number=node('span',`#${String(friend.number).padStart(3,'0')}`,'friend-admin-number');number.setAttribute('aria-label',`编号 ${friend.number}`);title.append(number,document.createTextNode(' '))}title.append(document.createTextNode(friend.name));text.append(title,meta);if(friend.reviewResult && friend.reviewResult!=='已检测到指向本站的友链，自动审核通过' && !friend.reviewResult.startsWith('人工审核：')){const review=node('p',friend.reviewResult,'data-admin-note');review.style.margin='0.35rem 0 0';if(friend.reviewCheckedAt)review.title=`检查于 ${new Date(friend.reviewCheckedAt).toLocaleString('zh-CN')}`;text.append(review)}
       const actions = node('div', '', 'friend-admin-actions')
       const button = (label: string, handler: () => void) => { const item = node('button', label); item.type = 'button'; item.onclick = handler; actions.append(item); return item }
       button('编辑', () => edit(friend))
       button('头像', () => manageAvatar(friend))
       button('审核', () => edit(friend,true)).disabled=friend.status!=='待审核'
       if(friend.status==='待审核')button('自动审核',()=>{void persist('/'+friend.id+'/auto-review','PUT',{}).then(saved=>{if(saved)render()})})
+      if((friend.processingFailures||0)>=(friend.failureLimit||5)){
+       let confirmed=false
+       const abandon=button('弃用',()=>{if(!confirmed){confirmed=true;abandon.textContent='确认弃用并通知';return};void persist('/'+friend.id+'/abandon','PUT',{}).then(saved=>{if(saved)render()})});abandon.className='is-danger'
+      } else {
       let confirming = false
       const remove = button('移除', () => { if (!confirming) { confirming = true; remove.textContent = '确认移除'; return }; void persist('/'+friend.id,'DELETE').then(saved => { if (saved) render() }) })
-      remove.className = 'is-danger'; row.append(avatar, text, actions); list.append(row)
+      remove.className = 'is-danger'
+      }
+      row.append(avatar, text, actions); list.append(row)
     })
     if (!friends.length) showAdminListMessage(list, '暂无友链', '在这里审核访客提交的友链申请。')
     root.replaceChildren(toolbar, list, status)

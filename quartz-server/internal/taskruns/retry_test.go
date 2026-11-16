@@ -81,3 +81,55 @@ func TestRetryOnlyFailedTasksAndCoalescesPending(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestTriggerAllowsNeverRunAndSuccessfulTasksWithoutOverlapping(t *testing.T) {
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "manual.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err = db.Exec(`CREATE TABLE task_runs(id INTEGER PRIMARY KEY,task_key TEXT,run_key TEXT,started_at TEXT,finished_at TEXT,status TEXT,duration_ms INTEGER,error TEXT,logs TEXT)`); err != nil {
+		t.Fatal(err)
+	}
+	tracker := New(db)
+	calls := 0
+	tracker.RegisterRetry("index-repo", func(context.Context) error { calls++; return nil })
+	ctx := With(context.Background(), tracker)
+	if err = tracker.Trigger(ctx, "index-repo"); err != nil {
+		t.Fatal("never-run trigger rejected", err)
+	}
+	if err = tracker.Trigger(ctx, "index-repo"); !errors.Is(err, ErrRetryPending) {
+		t.Fatal("duplicate trigger accepted", err)
+	}
+	if err = Run(ctx, "index-repo", func(context.Context) error {
+		if e := tracker.Trigger(ctx, "index-repo"); !errors.Is(e, ErrRetryPending) {
+			t.Fatal("overlapping trigger", e)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = tracker.Retry(ctx, "index-repo"); !errors.Is(err, ErrRetryUnavailable) {
+		t.Fatal("retry allowed successful task", err)
+	}
+	if err = tracker.Trigger(ctx, "index-repo"); err != nil || calls != 2 {
+		t.Fatal("successful task could not trigger", calls, err)
+	}
+	if err = tracker.Trigger(ctx, "unknown"); err == nil {
+		t.Fatal("unknown task triggered")
+	}
+}
+
+func TestHealthyRecoveryRequiresExplicitManualHandler(t *testing.T) {
+	tracker := New(nil)
+	tracker.RegisterRetry("friend-recovery", func(context.Context) error {
+		t.Fatal("healthy recovery triggered through failure-only hook")
+		return nil
+	})
+	if tracker.canTrigger("friend-recovery") {
+		t.Fatal("failure-only recovery exposed as manually runnable")
+	}
+	if err := tracker.Trigger(context.Background(), "friend-recovery"); !errors.Is(err, ErrTriggerUnavailable) {
+		t.Fatal(err)
+	}
+}

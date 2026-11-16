@@ -125,7 +125,6 @@ func (c *Controller) Start() {
 		c.retrying = err != nil || !complete
 		delay := c.interval
 		if err != nil || !complete {
-			alerts.Emit(alerts.Event{Kind: "task", Level: "warning", Source: "视频同步", Title: "Bilibili 视频同步未完成", Message: "保留已有数据，将按原有机制重试"})
 			delay = taskconfig.Duration(c.ctx, "video-retry")
 		}
 		if err != nil || !complete {

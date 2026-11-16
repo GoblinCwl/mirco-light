@@ -131,6 +131,10 @@ func (s *Server) site(mux *http.ServeMux) {
 		}
 
 		switch {
+		case path == "/admin/api-token":
+			s.siteAPIToken(w, r)
+		case strings.HasPrefix(path, "/admin/notifications"):
+			s.siteNotifications(w, r, path)
 		case strings.HasPrefix(path, "/admin/comments/"):
 			s.siteCommentsAdmin(w, r, path)
 		case path == "/admin/comments-session" && r.Method == "POST":

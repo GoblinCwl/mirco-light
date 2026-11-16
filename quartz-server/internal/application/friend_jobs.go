@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"errors"
-	"goblincwl/quartz-server/internal/alerts"
 	"goblincwl/quartz-server/internal/community"
 	"goblincwl/quartz-server/internal/publicfetch"
 	"goblincwl/quartz-server/internal/taskconfig"
@@ -70,6 +69,21 @@ func (r *Runtime) runFriendJobs(root context.Context) {
 		}
 		return errors.New("原友链已不存在，无法重试")
 	})
+	r.app.TaskRuns.RegisterTrigger("friend-jobs", func(ctx context.Context) error {
+		if _, err := store.EnqueuePendingFriendReviews(ctx); err != nil {
+			return err
+		}
+		var waiting int
+		if err := r.app.DB.QueryRowContext(ctx, "SELECT count(*) FROM friend_jobs WHERE state='pending'").Scan(&waiting); err != nil {
+			return err
+		}
+		if waiting == 0 {
+			return errors.New("当前没有待处理的友链；全站巡检请执行友链巡检任务")
+		}
+		r.requestFriendJobs()
+		return nil
+	})
+
 	if !r.recoverFriendQueue(root, store) {
 		return
 	}
@@ -97,7 +111,7 @@ func (r *Runtime) runFriendJobs(root context.Context) {
 		workErr := taskruns.Run(ctx, "friend-jobs", func(ctx context.Context) error {
 			taskruns.Note(ctx, "友链："+job.FriendName+"（"+job.FriendID+"）")
 			if job.InspectOnly {
-				taskruns.Note(ctx, "人工通过后巡检，跳过自动审核")
+				taskruns.Note(ctx, "已通过审核，仅巡检首页、头像和 RSS")
 			}
 			return store.ProcessClaimedFriendJob(ctx, *job)
 		})
@@ -136,12 +150,8 @@ func (r *Runtime) runFriendJobs(root context.Context) {
 			}
 			continue
 		}
-		if workErr != nil && job.InspectOnly {
-			r.app.Log.Warn("friend inspection completed with issues; removed from review queue", "friend", job.FriendID, "error", workErr)
-			alerts.Emit(alerts.Event{Kind: "task", Level: "warning", Source: "友链巡检", Title: "人工审核后的友链巡检部分失败", Message: "已保留人工审核结果并移除本次队列任务；失败项由日常巡检跟进，请检查头像、RSS、首页及 OpenList 接入"})
-		} else if workErr != nil {
-			r.app.Log.Warn("friend background job failed; retry scheduled", "friend", job.FriendID, "attempt", job.Attempts+1, "error", workErr)
-			alerts.Emit(alerts.Event{Kind: "task", Level: "warning", Source: "友链队列", Title: "友链后台处理失败", Message: "申请已保存，任务保留并将自动重试；请检查头像、RSS、友链页面及 OpenList 接入"})
+		if workErr != nil {
+			r.app.Log.Warn("friend processing failed; recorded for next periodic run", "friend", job.FriendID)
 		} else {
 			r.app.Log.Info("friend background job completed", "friend", job.FriendID)
 		}

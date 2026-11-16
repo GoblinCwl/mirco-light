@@ -21,6 +21,7 @@ const kinds: Record<string, string> = {
   service: "服务异常",
   api: "外部 API",
   runtime: "运行异常",
+  task: "任务与队列",
 }
 const paths: Record<string, string> = {
   service:

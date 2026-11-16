@@ -33,6 +33,7 @@ document.addEventListener("nav",()=>{
    document.dispatchEvent(new Event("backlinks-updated"))
   }catch{if(!controller.signal.aborted)roots.forEach(root=>root.hidden=true)}
  }
+ document.addEventListener("content-route-changed",()=>void render(),{signal:controller.signal})
  const update=()=>void render(true)
  for(const event of ['drive-files-changed','stellar-data-changed','content-tags-changed'])document.addEventListener(event,update,{signal:controller.signal})
  void render()

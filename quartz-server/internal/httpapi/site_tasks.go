@@ -19,13 +19,24 @@ func (s *Server) siteTasks(w http.ResponseWriter, r *http.Request, path string) 
 		tracker = taskruns.New(s.DB)
 	}
 	if r.Method == "POST" {
-		key := strings.TrimSuffix(strings.TrimPrefix(path, "/admin/tasks/"), "/retry")
-		if !strings.HasSuffix(path, "/retry") {
+		if path == "/admin/tasks" {
+			w.Header().Set("Allow", "GET")
+			JSON(w, 405, map[string]string{"error": "请选择任务执行"})
+			return
+		}
+		parts := strings.Split(strings.TrimPrefix(path, "/admin/tasks/"), "/")
+		if len(parts) != 2 || (parts[1] != "retry" && parts[1] != "run") {
 			JSON(w, 404, map[string]string{"error": "接口不存在"})
 			return
 		}
-		if err := tracker.Retry(r.Context(), key); err != nil {
-			if errors.Is(err, taskruns.ErrRetryUnavailable) || errors.Is(err, taskruns.ErrRetryPending) {
+		var err error
+		if parts[1] == "run" {
+			err = tracker.Trigger(r.Context(), parts[0])
+		} else {
+			err = tracker.Retry(r.Context(), parts[0])
+		}
+		if err != nil {
+			if errors.Is(err, taskruns.ErrTriggerUnavailable) || errors.Is(err, taskruns.ErrRetryUnavailable) || errors.Is(err, taskruns.ErrRetryPending) {
 				JSON(w, 409, map[string]string{"error": err.Error()})
 			} else {
 				s.fail(w, err)

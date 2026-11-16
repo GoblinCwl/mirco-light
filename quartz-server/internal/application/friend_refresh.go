@@ -2,11 +2,7 @@ package application
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"goblincwl/quartz-server/internal/alerts"
 	"goblincwl/quartz-server/internal/community"
-	"goblincwl/quartz-server/internal/publicfetch"
 	"goblincwl/quartz-server/internal/taskconfig"
 	"goblincwl/quartz-server/internal/taskruns"
 	"time"
@@ -57,12 +53,11 @@ func (r *Runtime) dailyFriends() {
 			case <-timer.C:
 			}
 			ctx, cancel := context.WithTimeout(root, 30*time.Minute)
-			var result community.RefreshResult
 			err := taskruns.Run(ctx, "friends-refresh", func(ctx context.Context) error {
 				pending, queueErr := (community.Store{DB: r.app.DB}).Friends(ctx, false)
 				if queueErr == nil {
 					for _, friend := range pending {
-						if friend.Status == "待审核" {
+						if friend.Status != "已失效" {
 							if err := (community.Store{DB: r.app.DB}).EnqueueFriend(ctx, friend.ID); err != nil {
 								queueErr = err
 							}
@@ -70,20 +65,17 @@ func (r *Runtime) dailyFriends() {
 					}
 				}
 				r.requestFriendJobs()
-				var refreshErr error
-				result, refreshErr = (community.Store{DB: r.app.DB, StoreAvatar: r.app.FriendAvatars.Save, CheckHomepage: func(ctx context.Context, address string) error { return publicfetch.Probe(ctx, address, nil) }}).RefreshLinks(ctx)
-				taskruns.Note(ctx, fmt.Sprintf("头像更新 %d，RSS 更新 %d", result.Avatars, result.Feeds))
-				return errors.Join(queueErr, refreshErr)
+				taskruns.Note(ctx, "已将友链加入周期处理队列；失败仅累计次数，等待下个周期继续。")
+				return queueErr
 
 			})
 			cancel()
 			if root.Err() != nil {
 				return
 			}
-			r.app.Log.Info("friend refresh finished", "avatars", result.Avatars, "feeds", result.Feeds, "approved", result.Approved, "failed", err != nil)
+			r.app.Log.Info("friend periodic processing queued", "failed", err != nil)
 			if err != nil {
 				r.app.Log.Warn("friend refresh retained stale data", "error", err)
-				alerts.Emit(alerts.Event{Kind: "task", Level: "warning", Source: "友链更新", Title: "部分友链首页、审核、头像或 RSS 检查失败", Message: "首页不可用的友链已清空更新时间并进入每日重试；其他检查失败保留旧值，请检查对应地址与 OpenList 接入"})
 			}
 		}
 	})

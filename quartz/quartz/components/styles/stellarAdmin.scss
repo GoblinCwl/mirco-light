@@ -531,3 +531,15 @@
  .comment-admin-page-heading {display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;min-width:0;>strong{overflow-wrap:anywhere;} .is-error{color:var(--error,#c75d5d);}}
  .comment-admin-meta {margin:.3rem 0 0;}
 }
+
+// Notification history uses the existing management dialog/drawer surface.
+.observatory-dialog.observatory-settings-dialog.stellar-notification-dialog {
+ width:min(46rem,calc(100% - 2rem));height:auto;max-height:min(42rem,calc(100dvh - 3rem));
+ >.stellar-notification-content {overflow-y:auto;overscroll-behavior:contain;padding:1rem;scrollbar-width:thin;}
+}
+@media(max-width:1199px){
+ .observatory-dialog.observatory-settings-dialog.stellar-notification-dialog {
+  width:min(100dvw,48rem);max-width:calc(100dvw - env(safe-area-inset-left) - env(safe-area-inset-right));max-height:85svh;
+  >.stellar-notification-content {padding-bottom:calc(1rem + env(safe-area-inset-bottom));}
+ }
+}

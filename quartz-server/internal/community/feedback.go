@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"goblincwl/quartz-server/internal/notifications"
 	"regexp"
 	"strings"
 	"time"
@@ -39,8 +40,19 @@ func (s Store) Submit(ctx context.Context, f Feedback, userAgent string) (Feedba
 	}
 	f.Status = "待处理"
 	f.CreatedAt = time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
-	_, err = s.DB.ExecContext(ctx, "INSERT INTO feedback(id,email,browser,user_agent,description,status,created_at) VALUES(?,?,?,?,?,?,?)", f.ID, f.Email, f.Browser, userAgent, f.Description, f.Status, f.CreatedAt)
-	return f, err
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return f, err
+	}
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, "INSERT INTO feedback(id,email,browser,user_agent,description,status,created_at) VALUES(?,?,?,?,?,?,?)", f.ID, f.Email, f.Browser, userAgent, f.Description, f.Status, f.CreatedAt)
+	if err != nil {
+		return f, err
+	}
+	if err = notifications.EnqueueTx(ctx, tx, notifications.Event{Kind: "feedback", RecordID: f.ID, Title: "收到问题反馈", Summary: f.Description, Status: f.Status}); err != nil {
+		return f, err
+	}
+	return f, tx.Commit()
 }
 func clip(s string, n int) string {
 	r := []rune(s)
@@ -83,28 +95,35 @@ func (s Store) Feedback(ctx context.Context, page int) (map[string]any, error) {
 	return map[string]any{"page": page, "items": items, "total": total}, nil
 }
 func (s Store) UpdateFeedback(ctx context.Context, id, status string, remove bool) error {
-	var result sql.Result
-	var err error
+	if !remove && status != "待处理" && status != "已解决" {
+		return errors.New("反馈状态无效")
+	}
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var old, description, address string
+	if err = tx.QueryRowContext(ctx, "SELECT status,description,email FROM feedback WHERE id=? FOR UPDATE", id).Scan(&old, &description, &address); err == sql.ErrNoRows {
+		return errors.New("反馈不存在")
+	} else if err != nil {
+		return err
+	}
 	if remove {
-		result, err = s.DB.ExecContext(ctx, "DELETE FROM feedback WHERE id=?", id)
+		_, err = tx.ExecContext(ctx, "DELETE FROM feedback WHERE id=?", id)
 	} else {
-		if status != "待处理" && status != "已解决" {
-			return errors.New("反馈状态无效")
+		_, err = tx.ExecContext(ctx, "UPDATE feedback SET status=? WHERE id=?", status, id)
+		if err == nil && old != status {
+			if status == "已解决" {
+				if err = EnqueueFeedbackMailTx(ctx, tx, id, address, description); err != nil {
+					return err
+				}
+			}
+			err = notifications.EnqueueTx(ctx, tx, notifications.Event{Kind: "feedback", RecordID: id, Title: "反馈处理状态更新", Summary: description, Status: status})
 		}
-		result, err = s.DB.ExecContext(ctx, "UPDATE feedback SET status=? WHERE id=?", status, id)
 	}
 	if err != nil {
 		return err
 	}
-	n, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if n == 0 {
-		var exists int
-		if remove || s.DB.QueryRowContext(ctx, "SELECT count(*) FROM feedback WHERE id=?", id).Scan(&exists) != nil || exists == 0 {
-			return errors.New("反馈不存在")
-		}
-	}
-	return nil
+	return tx.Commit()
 }

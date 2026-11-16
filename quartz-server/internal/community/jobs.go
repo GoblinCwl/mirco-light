@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"goblincwl/quartz-server/internal/friendavatar"
-	"goblincwl/quartz-server/internal/taskconfig"
 	"goblincwl/quartz-server/internal/taskruns"
 	"strings"
 	"time"
@@ -21,6 +21,9 @@ type FriendJob struct {
 
 // EnqueueFriendTx commits the work item together with its friend record.
 func EnqueueFriendTx(ctx context.Context, tx *sql.Tx, id string) error {
+	if _, err := tx.ExecContext(ctx, "UPDATE friends SET review_ready=0 WHERE id=? AND status='待审核'", id); err != nil {
+		return err
+	}
 	stamp := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	_, err := tx.ExecContext(ctx, "INSERT INTO friend_jobs(friend_id,generation,state,attempts,available_at,last_error,enqueued_at) VALUES(?,1,'pending',0,0,'',?) ON DUPLICATE KEY UPDATE generation=generation+1,state='pending',attempts=0,available_at=0,last_error='',enqueued_at=?", id, stamp, stamp)
 	return err
@@ -47,8 +50,7 @@ func (s Store) RecoverFriendJobs(ctx context.Context) error {
 	if _, err := s.DB.ExecContext(ctx, "UPDATE friend_jobs SET state='pending',available_at=0"); err != nil {
 		return err
 	}
-	_, err := s.DB.ExecContext(ctx, "INSERT INTO friend_jobs(friend_id,generation,state,attempts,available_at,last_error,enqueued_at) SELECT id,1,'pending',0,0,'',? FROM friends WHERE status<>'已失效' AND NOT(status='展示中' AND review_result='人工审核：展示中') AND (status='待审核' OR avatar LIKE 'https://%' OR avatar LIKE 'http://%' OR (rss_url<>'' AND latest_update='' AND health_failures=0)) ON DUPLICATE KEY UPDATE friend_id=friend_jobs.friend_id", time.Now().UTC().Format("2006-01-02T15:04:05.000Z"))
-	return err
+	return nil
 }
 func (s Store) ClaimFriendJob(ctx context.Context, now time.Time) (*FriendJob, error) {
 	tx, err := s.DB.BeginTx(ctx, nil)
@@ -57,7 +59,7 @@ func (s Store) ClaimFriendJob(ctx context.Context, now time.Time) (*FriendJob, e
 	}
 	defer tx.Rollback()
 	var job FriendJob
-	err = tx.QueryRowContext(ctx, "SELECT j.friend_id,f.name,j.generation,j.attempts,(f.status='展示中' AND f.review_result='人工审核：展示中') FROM friend_jobs j JOIN friends f ON f.id=j.friend_id WHERE j.state='pending' AND j.available_at<=? ORDER BY j.available_at,j.enqueued_at,j.friend_id LIMIT 1 FOR UPDATE SKIP LOCKED", now.UnixMilli()).Scan(&job.FriendID, &job.FriendName, &job.Generation, &job.Attempts, &job.InspectOnly)
+	err = tx.QueryRowContext(ctx, "SELECT j.friend_id,f.name,j.generation,j.attempts,(f.status='展示中') FROM friend_jobs j JOIN friends f ON f.id=j.friend_id WHERE j.state='pending' AND j.available_at<=? ORDER BY j.available_at,j.enqueued_at,j.friend_id LIMIT 1 FOR UPDATE SKIP LOCKED", now.UnixMilli()).Scan(&job.FriendID, &job.FriendName, &job.Generation, &job.Attempts, &job.InspectOnly)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -82,23 +84,40 @@ func (s Store) NextFriendJob(ctx context.Context) (time.Time, error) {
 	}
 	return time.UnixMilli(due.Int64), nil
 }
-func FriendJobBackoff(attempt int) time.Duration {
-	return min(time.Minute*time.Duration(1<<min(max(attempt-1, 0), 6)), time.Hour)
-}
 func (s Store) FinishFriendJob(ctx context.Context, job FriendJob, workErr error) error {
-	if workErr == nil || job.InspectOnly {
-		_, err := s.DB.ExecContext(ctx, "DELETE FROM friend_jobs WHERE friend_id=? AND generation=?", job.FriendID, job.Generation)
+	tx, err := s.transaction(ctx)
+	if err != nil {
 		return err
 	}
-	message := []rune(workErr.Error())
-	if len(message) > 1000 {
-		message = message[:1000]
+	defer tx.Rollback()
+	var status string
+	if err = tx.QueryRowContext(ctx, "SELECT status FROM friends WHERE id=? FOR UPDATE", job.FriendID).Scan(&status); errors.Is(err, sql.ErrNoRows) {
+		return nil
+	} else if err != nil {
+		return err
 	}
-	base := taskconfig.Duration(ctx, "friend-retry")
-	delay := min(base*time.Duration(1<<min(max(job.Attempts, 0), 17)), taskconfig.Duration(ctx, "friend-retry-max"))
-	due := time.Now().Add(delay).UnixMilli()
-	_, err := s.DB.ExecContext(ctx, "UPDATE friend_jobs SET state='pending',attempts=attempts+1,available_at=?,last_error=? WHERE friend_id=? AND generation=?", due, string(message), job.FriendID, job.Generation)
-	return err
+	var generation int64
+	if err = tx.QueryRowContext(ctx, "SELECT generation FROM friend_jobs WHERE friend_id=? FOR UPDATE", job.FriendID).Scan(&generation); errors.Is(err, sql.ErrNoRows) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	if generation != job.Generation {
+		return nil
+	}
+	if workErr != nil || (status == "待审核" && !job.InspectOnly) {
+		if status == "展示中" {
+			if err = recordInspectionFailureTx(ctx, tx, job.FriendID, workErr); err != nil {
+				return err
+			}
+		} else if err = recordFriendFailureTx(ctx, tx, job.FriendID, workErr); err != nil {
+			return err
+		}
+	}
+	if _, err = tx.ExecContext(ctx, "DELETE FROM friend_jobs WHERE friend_id=? AND generation=?", job.FriendID, job.Generation); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // ProcessClaimedFriendJob retains the claimed task mode across concurrent admin edits.
@@ -121,10 +140,24 @@ func (s Store) ProcessFriendJob(ctx context.Context, id string) error {
 	if friend.Status == "已失效" {
 		return nil
 	}
-	if friend.Status == "展示中" && friend.ReviewResult == "人工审核：展示中" {
+	if friend.Status == "展示中" {
 		return s.InspectFriend(ctx, id)
 	}
+	if _, err = s.DB.ExecContext(ctx, "UPDATE friends SET review_ready=0 WHERE id=? AND status='待审核'", id); err != nil {
+		return err
+	}
 	var failures []error
+	if s.CheckHomepage == nil {
+		failures = append(failures, errors.New("首页检查尚未配置"))
+	} else {
+		own, cancel := context.WithTimeout(ctx, 25*time.Second)
+		taskruns.Note(ctx, "检查首页："+friend.Name)
+		if err = s.CheckHomepage(own, friend.URL); err != nil {
+			failures = append(failures, fmt.Errorf("首页检查失败：%w", err))
+		}
+		cancel()
+	}
+	expectedAvatar := friend.Avatar
 	source := friend.Avatar
 	if friendavatar.Local(source) || strings.HasPrefix(source, "/static/") || source == "" {
 		source = friend.AvatarSource
@@ -137,6 +170,9 @@ func (s Store) ProcessFriendJob(ctx context.Context, id string) error {
 			address, err := s.StoreAvatar(ctx, source)
 			if err == nil {
 				_, err = s.DB.ExecContext(ctx, "UPDATE friends SET avatar=? WHERE id=? AND avatar=? AND avatar_source=?", address, friend.ID, friend.Avatar, friend.AvatarSource)
+				if err == nil {
+					expectedAvatar = address
+				}
 			}
 			if err != nil {
 				failures = append(failures, err)
@@ -146,15 +182,48 @@ func (s Store) ProcessFriendJob(ctx context.Context, id string) error {
 	if friend.RSSURL != "" {
 		taskruns.Note(ctx, "初始化 RSS："+friend.Name)
 	}
-	if err := s.InitializeFeed(ctx, id); err != nil {
-		failures = append(failures, err)
+	if friend.RSSURL != "" {
+		own, cancel := context.WithTimeout(ctx, 30*time.Second)
+		read := s.ReadFeed
+		if read == nil {
+			read = func(ctx context.Context, address string) (time.Time, error) { return LatestFeedDate(ctx, address, nil) }
+		}
+		stamp, feedErr := read(own, friend.RSSURL)
+		cancel()
+		if feedErr == nil && stamp.IsZero() {
+			feedErr = errors.New("RSS 没有有效文章时间")
+		}
+		if feedErr != nil {
+			failures = append(failures, feedErr)
+		} else {
+			_, feedErr = s.DB.ExecContext(ctx, "UPDATE friends SET latest_update=? WHERE id=? AND rss_url=? AND status='待审核'", stamp.UTC().Format("2006-01-02T15:04:05.000Z"), id, friend.RSSURL)
+			if feedErr != nil {
+				failures = append(failures, feedErr)
+			}
+		}
+	}
+
+	if len(failures) > 0 {
+		message := "预检查未通过：首页、RSS 或头像处理失败，请等待下个周期或手动重新检查"
+		_, saveErr := s.DB.ExecContext(ctx, "UPDATE friends SET review_ready=0,review_result=? WHERE id=? AND status='待审核'", message, id)
+		return errors.Join(append(failures, saveErr)...)
+	}
+	changed, saveErr := s.DB.ExecContext(ctx, "UPDATE friends SET review_ready=1 WHERE id=? AND status='待审核' AND url=? AND rss_url=? AND avatar_source=? AND avatar=?", id, friend.URL, friend.RSSURL, friend.AvatarSource, expectedAvatar)
+	if saveErr != nil {
+		return saveErr
+	}
+	n, _ := changed.RowsAffected()
+	if n == 0 {
+		return errors.New("友链信息已变化，等待新任务检查")
 	}
 	if s.CheckBacklink != nil {
 		if friend.Status == "待审核" {
 			taskruns.Note(ctx, "执行回链自动审核："+friend.Name)
 		}
-		if _, err := s.AutoReviewFriend(ctx, id); err != nil && !errors.Is(err, ErrFriendNotFound) {
+		if reviewed, err := s.AutoReviewFriend(ctx, id); err != nil && !errors.Is(err, ErrFriendNotFound) {
 			failures = append(failures, err)
+		} else if err == nil && reviewed.Status == "待审核" {
+			failures = append(failures, errors.New("回链自动审核未通过"))
 		}
 	}
 	return errors.Join(failures...)

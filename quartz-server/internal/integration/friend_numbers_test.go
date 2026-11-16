@@ -15,7 +15,7 @@ func TestFriendNumbersPersistAcrossRSSSortingAndDeletion(t *testing.T) {
 	store := community.Store{DB: db}
 	create := func(name string) community.Friend {
 		t.Helper()
-		f, _, err := store.CreateFriend(ctx, community.Friend{Name: name, URL: "https://" + name + ".example", BacklinkURL: "https://" + name + ".example/friends", Status: "展示中"}, false)
+		f, _, err := store.CreateFriend(ctx, community.Friend{Email: "fixture@example.test", Name: name, URL: "https://" + name + ".example", BacklinkURL: "https://" + name + ".example/friends", Status: "展示中"}, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -32,14 +32,14 @@ func TestFriendNumbersPersistAcrossRSSSortingAndDeletion(t *testing.T) {
 	if err != nil || len(rows) != 2 || rows[0].ID != b.ID || rows[0].Number != b.Number || rows[1].Number != a.Number {
 		t.Fatal(rows, err)
 	}
-	if _, err := store.UpdateFriend(ctx, b.ID, community.Friend{}, "delete", 0); err != nil {
+	if _, err := store.UpdateFriend(ctx, b.ID, community.Friend{Email: "fixture@example.test"}, "delete", 0); err != nil {
 		t.Fatal(err)
 	}
 	c := create("gamma")
 	if c.Number <= b.Number {
 		t.Fatal("deleted number reused", c.Number, b.Number)
 	}
-	if _, err := store.UpdateFriend(ctx, a.ID, community.Friend{}, "move", 1); err == nil {
+	if _, err := store.UpdateFriend(ctx, a.ID, community.Friend{Email: "fixture@example.test"}, "move", 1); err == nil {
 		t.Fatal("obsolete move accepted")
 	}
 	manager := datamanager.Manager{DB: db}
