@@ -11,3 +11,10 @@
 .hover-preview-loading { display:flex;align-items:center;justify-content:center;gap:.65rem;min-height:10rem;color:var(--gray);font-size:.85rem; }
 
 .hover-preview-loading .drive-loading { @include driveLoading.spinner; }
+
+.drive-hover-file.drive-page {
+  padding: 0;
+  .drive-renderer-frame { width: 100%; height: min(24rem, 50dvh); min-height: 12rem; }
+  .drive-preview-content { max-height: min(26rem, 55dvh); overflow: auto; }
+  .drive-image-viewport { height: min(22rem, 45dvh); }
+}

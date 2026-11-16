@@ -29,7 +29,7 @@ import { matroskaReaderUrl } from "./matroskaReaderVersion"
 import { renderDriveArchive, type PreviewAccess } from "./driveArchivePreview"
 import { fallbackVideoScope, readVideoPreferences, saveVideoPreferences, type VideoScope } from "./driveVideoPreferences"
 let cached: { at: number; value: PreviewSettings } | undefined
-async function settings(signal: AbortSignal) {
+export async function drivePreviewSettings(signal: AbortSignal) {
   if (cached && Date.now() - cached.at < 300000) return cached.value
   const value = await driveRequest<PreviewSettings>("public/settings", undefined, { anonymous: true, signal })
   cached = { at: Date.now(), value }; return value
@@ -39,8 +39,8 @@ const colors = () => {
   return { background: style.getPropertyValue("--moreLight").trim(), foreground: style.getPropertyValue("--darkgray").trim(), muted: style.getPropertyValue("--gray").trim(), accent: style.getPropertyValue("--secondary").trim(), border: style.getPropertyValue("--lightgray").trim() }
 }
 const theme = () => document.documentElement.getAttribute("saved-theme") || "light"
-export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal) {
-  const chooser = document.querySelector<HTMLElement>("[data-drive-preview-selector]")!
+export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, options: { chooser?: HTMLElement; hover?: boolean } = {}) {
+  const chooser = options.chooser || document.querySelector<HTMLElement>("[data-drive-preview-selector]")!
   const select = chooser.querySelector<HTMLSelectElement>("select")!
   const encodingLabel = node("label", "文本编码", "drive-preview-encoding"), encoding = node("select")
   encoding.setAttribute("aria-label", "文本编码")
@@ -69,7 +69,7 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal) {
   window.addEventListener('pagehide',stop,{signal:lifecycle})
   const prepare = (file: PreviewFile) => {
     const choices = previewChoices(file, cached?.value || {}, false, false).filter(item => !item.external)
-    const requested = new URL(location.href).searchParams.get("preview")
+    const requested = options.hover ? null : new URL(location.href).searchParams.get("preview")
     select.replaceChildren(...choices.map(item => { const option = node("option", item.name); option.value = item.key; return option }))
     select.value = choices.some(item => item.key === requested) ? requested! : choices[0].key
     select.disabled = true; select.setAttribute("aria-busy", "true")
@@ -100,7 +100,7 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal) {
     stop(); body.replaceChildren()
     try {
     let config: PreviewSettings
-    try { config = await settings(fileSignal) }
+    try { config = await drivePreviewSettings(fileSignal) }
     catch { config = {} }
     if (fileSignal.aborted) return
     // Only the Jellyfin player starts a background danmaku match.
@@ -133,11 +133,11 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal) {
     const allowed = access.view === "share" ? String(config.share_archive_preview ?? "true") === "true"
       : Boolean(access.user && (access.user.role === 2 || (access.user.permission || 0) & (1 << 12)))
     const choices = previewChoices(file, config, access.view === "share", allowed && !returnToArchive)
-    const available = choices.filter(item => !item.external && (item.key !== "pdf_native" || navigator.pdfViewerEnabled !== false))
+    const available = choices.filter(item => (!options.hover || item.key !== "download") && !item.external && (item.key !== "pdf_native" || navigator.pdfViewerEnabled !== false))
     if (jellyfin && available.some(item => item.key === "video")) available.unshift({ key: "jellyfin", name: "Jellyfin 播放器" })
     select.replaceChildren(...available.map(item => { const option = node("option", item.name); option.value = item.key; return option }))
     select.disabled = false; select.removeAttribute("aria-busy")
-    chooser.hidden = Boolean(access.mediaShare); encoding.value = "utf-8"
+    chooser.hidden = Boolean(options.hover || access.mediaShare); encoding.value = "utf-8"
     const actions = node("div", "", "drive-file-actions")
     const extension = file.name.split(".").at(-1)!.toLowerCase()
     if (["ipa", "tipa", "plist"].includes(extension)) {
@@ -535,10 +535,10 @@ html{color-scheme:${theme()};background:var(--background)}body{margin:0;padding:
       } catch (error) { if (!renderSignal.aborted) fail(error instanceof Error ? error.message : "预览失败") }
     }
     renderChoice = key => {
-      const url = new URL(location.href); url.searchParams.set("preview", key); history.replaceState(history.state, "", url.pathname + url.search + url.hash)
+      if (!options.hover) { const url = new URL(location.href); url.searchParams.set("preview", key); history.replaceState(history.state, "", url.pathname + url.search + url.hash) }
       void render(key)
     }
-    const initial = new URL(location.href).searchParams.get("preview")
+    const initial = options.hover ? null : new URL(location.href).searchParams.get("preview")
     await render(access.mediaShare && jellyfin ? "jellyfin" : archiveDirectory !== undefined ? "archive" : available.some(item => item.key === initial) ? initial! : available[0].key)
     } finally { finishPreparation() }
   }

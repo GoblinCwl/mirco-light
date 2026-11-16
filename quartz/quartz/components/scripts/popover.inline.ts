@@ -23,9 +23,9 @@ async function showDriveHover(link:HTMLAnchorElement,event:{clientX:number;clien
   clearActivePopover();
   if(repo&&!repoHoverAvailable(new URL(link.href)))return
   activeAnchor=link
-  const eligibility=repo?Promise.resolve(true):driveHoverAllowed(new URL(link.href),Boolean(link.closest('.home-encounter,.tag-project-dialog')))
   {
     const request=driveHoverRequest=new AbortController()
+    const eligibility=repo?Promise.resolve(true):driveHoverAllowed(new URL(link.href),Boolean(link.closest('.home-encounter,.tag-project-dialog')),request.signal)
     const allowMedia=Boolean(link.closest('.home-encounter,.tag-project-dialog'))
     if(!await eligibility||request.signal.aborted||activeAnchor!==link)return
     document.querySelectorAll('.drive-popover,.repo-popover').forEach(node=>node.remove())

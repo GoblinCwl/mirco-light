@@ -159,6 +159,13 @@ body[data-slug^="Repo/"] {
 .repo-page .repo-file-actions { display: inline-flex; align-items: center; gap: .35rem; flex-shrink: 0; }
 
 .repo-local-graph { margin-bottom: 1.2rem; }
+@media (min-width: 1200px) {
+  .repo-aside {
+    padding-inline-end: .75rem;
+    scrollbar-gutter: stable;
+    .backlinks-list { padding-inline-end: .75rem; scrollbar-gutter: stable; }
+  }
+}
 @media not all and ($desktop) { .repo-aside { max-height: none !important; overflow: visible; } }
 
 .repo-page .repo-language-section { margin: .5rem 0 2rem; }

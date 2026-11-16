@@ -1,21 +1,37 @@
+import { RequestCache } from './sharedRequest'
+import { drivePreviewSettings, setupDrivePreview } from './drivePreview'
+import { fileHoverSupported } from './driveHoverPolicy'
 import {previewBreadcrumbs} from './previewBreadcrumbs'
 import {readDriveShareRoot} from "./driveShareSummary"
 import { driveHref, drivePassword, driveRequest, driveRoute, driveToken, requireDriveUser, DriveError } from './driveClient'
 import { fetchDriveEntries } from './driveEntries'
 import { fetchDriveAliases } from './driveAliases'
-import { joinDrivePath, type DriveFile } from './openlistShared'
+import { DRIVE_ORIGIN, driveDownloadUrl, driveGuestFileUrl, joinDrivePath, type DriveFile } from './openlistShared'
 import { fileIcon, fileIconForName, node } from './driveUi'
 
 type Preview = { title:string; entries?:{name:string;href:string;directory:boolean;portal?:boolean}[]; total?:number; message?:string }
+const metadata=new RequestCache<DriveFile>(60000,80)
 const cache=new Map<string,{at:number;value:Preview}>()
-for(const event of ['drive-auth-change','drive-directory-unlocked','drive-files-changed']) document.addEventListener(event,()=>cache.clear())
-export async function driveHoverAllowed(url:URL,allowMedia=false):Promise<boolean>{
+for(const event of ['drive-auth-change','drive-directory-unlocked','drive-files-changed']) document.addEventListener(event,()=>{cache.clear();metadata.clear()})
+async function hoverMetadata(url:URL,signal:AbortSignal):Promise<DriveFile> {
+ const route=driveRoute(url)
+ if(!route.valid)throw new Error('无效链接')
+ const password=drivePassword(route.view,route.share,route.path)
+ const requestPath=route.view==='share'?`/@s/${route.share}${route.path==='/'?'':route.path}`:route.path
+ return metadata.read(JSON.stringify([route.view,requestPath,driveToken(),password]),requestSignal=>driveRequest<DriveFile>('fs/get',{path:requestPath,password},{anonymous:route.view!=='storage',signal:requestSignal,timeout:10000}),{signal})
+}
+export async function driveHoverAllowed(url:URL,allowMedia=false,signal:AbortSignal=AbortSignal.timeout(10000)):Promise<boolean>{
   const route=driveRoute(url)
   if(!route.valid)return false
-  if(route.view!=='share')return true
   try{
-    const entry=(await fetchDriveEntries()).find(entry=>entry.kind==='share'&&entry.id===route.share)
-    return entry?.kind==='share'&&(allowMedia||!entry.jellyfin)&&(!entry.protected||Boolean(drivePassword('share',route.share,route.path)))
+    if(route.view==='share'){
+      const entry=(await fetchDriveEntries()).find(entry=>entry.kind==='share'&&entry.id===route.share)
+      if(!(entry?.kind==='share'&&(allowMedia||!entry.jellyfin)&&(!entry.protected||Boolean(drivePassword('share',route.share,route.path)))))return false
+    }else if(route.view==='storage'&&!driveToken())return false
+    const file=await hoverMetadata(url,signal)
+    if(file.is_dir)return true
+    const config=await drivePreviewSettings(signal).catch(()=>({}))
+    return fileHoverSupported(file,config,route.view==='share')
   }catch{return false}
 }
 export async function driveHoverContent(url:URL,label:string,signal:AbortSignal,allowMedia=false):Promise<HTMLElement|null>{
@@ -46,7 +62,7 @@ export async function driveHoverContent(url:URL,label:string,signal:AbortSignal,
   }
   try{
     if(!route.valid)throw new Error('无效链接')
-    if(route.view==='share'&&!await driveHoverAllowed(url,allowMedia))return null
+    if(route.view==='share'&&!await driveHoverAllowed(url,allowMedia,signal))return null
     const user=route.view==='storage'?await requireDriveUser(signal):undefined
     if(user)route=driveRoute(url)
     if(!route.valid)throw new Error('目录不可访问')
@@ -58,8 +74,20 @@ export async function driveHoverContent(url:URL,label:string,signal:AbortSignal,
     {
       const requestPath=view==='share'?`/@s/${share}${path==='/'?'':path}`:path
       const root=view==='share'&&path==='/'?await readDriveShareRoot(share,signal):undefined
-      const meta=root?{is_dir:!root.isFile,name:share}:await driveRequest<DriveFile>('fs/get',{path:requestPath,password},options)
-      if(!meta.is_dir)return null
+      const meta=await hoverMetadata(url,signal)
+      if(!meta.is_dir){
+        const config=await drivePreviewSettings(signal).catch(()=>({}))
+        if(!fileHoverSupported(meta,config,view==='share'))return null
+        const header=node('div','','popover-hint');header.append(node('h1',meta.name,'article-title'))
+        const wrapper=node('div','','drive-page drive-hover-file'),chooser=node('div'),select=node('select'),body=node('div')
+        chooser.hidden=true;chooser.append(select);wrapper.append(chooser,body);box.append(header,wrapper)
+        const direct=view==='share'?new URL(`/sd/${encodeURIComponent(share)}${path==='/'?'':path.split('/').map(encodeURIComponent).join('/')}`,DRIVE_ORIGIN):undefined
+        if(direct&&password)direct.searchParams.set('pwd',password)
+        const address=direct?.href||(view==='guest'?driveGuestFileUrl(meta):driveDownloadUrl(joinDrivePath(user?.base_path||'/',path),meta.sign))
+        const preview=setupDrivePreview(body,signal,{chooser,hover:true})
+        void preview.load(meta,address,{view,requestPath,password,user},signal).catch(()=>{})
+        return box
+      }
       const aliases=view==='share'?await fetchDriveAliases(share,signal,path).catch(()=>({} as Record<string,string>)):{}
       const title=view==='share'&&path==='/'?share:aliases[path]||label||meta.name
       value={title}
