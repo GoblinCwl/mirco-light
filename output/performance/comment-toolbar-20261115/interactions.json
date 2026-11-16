@@ -1,9 +1,0 @@
-{
-  "cursorPagination": true,
-  "deduplication": true,
-  "nestedPagination": true,
-  "collapse": true,
-  "emoteLimit": true,
-  "readonly": true,
-  "errors": []
-}

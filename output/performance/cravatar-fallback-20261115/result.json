@@ -1,9 +1,0 @@
-{
-  "gravatarFirst": true,
-  "cravatarSHA256Fallback": true,
-  "localFallback": true,
-  "noMD5Reprobe": true,
-  "mappingCached": true,
-  "themePreservesRemote": true,
-  "errors": []
-}
