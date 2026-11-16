@@ -19,9 +19,19 @@ test('external hosts, non-project routes and invalid URLs cannot create project 
     'https://github.com/Repo/CwlWeb', 'https://goblincwl.site.evil.test/Repo/CwlWeb',
     'https://goblincwl.site:444/Repo/CwlWeb', 'https://evil.test@goblincwl.site/Repo/CwlWeb',
     'javascript:alert(1)', 'mailto:a@example.com', '/Study/note', '/Repo/', '/Share/空间/secret',
-    '/Share/分享/id/subfolder', '/Repo/CwlWeb/file.ts', '/Repo/%2Fsecret', '/Repo/%5csecret',
+    '/Repo/CwlWeb/file.ts', '/Repo/%2Fsecret', '/Repo/%5csecret',
     '/Repo/%00secret', '/Repo/%', '/Video', 'Repo/CwlWeb', '../Repo/CwlWeb',
   ]) assert.equal(projectReference(href, 'goblincwl.site'), undefined, href)
   assert.equal(projectSlug('/Share/分享/id/'), 'Share/分享/id')
   assert.equal(projectSlug('/Repo//name'), undefined)
 })
+
+ test('share descendants retain the original destination while targeting only the share root',()=>{
+  for(const path of ['/Share/分享/文章附件/日记日报方案/日记模板.md','/Share/分享/文章附件/目录/','/Share/分享/文章附件备份/file.js']){
+   const url=new URL(path+'?x=1#part','https://goblincwl.site')
+   const expected=path.includes('文章附件备份')?'Share/分享/文章附件备份':'Share/分享/文章附件'
+   assert.deepEqual(projectReference(url.href,'goblincwl.site'),{slug:expected,href:url.pathname+url.search+url.hash})
+   assert.equal(projectSlug(url.pathname),expected)
+  }
+  for(const path of ['/Share/分享/id//file','/Share/分享/id/%2Fsecret','/Share/分享/id/%00file'])assert.equal(projectSlug(path),undefined)
+ })

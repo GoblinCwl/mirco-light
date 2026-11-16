@@ -192,7 +192,7 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, opt
         back.append(node("span", "返回压缩包")); back.onclick = returnToArchive; body.append(back)
       }
       const output = node("div", "", "drive-preview-content"); body.append(output)
-      if (actions.childElementCount && !["download", "ipa", "plist", "url_open"].includes(selected.key)) body.append(actions.cloneNode(true))
+      if (!options.hover && actions.childElementCount && !["download", "ipa", "plist", "url_open"].includes(selected.key)) body.append(actions.cloneNode(true))
       let retainedPlayerError = ""
       const fail = (reason: string) => {
         if (renderSignal.aborted) return

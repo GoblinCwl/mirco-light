@@ -4,7 +4,7 @@ export function projectSlug(pathname: string): string | undefined {
     const parts = pathname.replace(/^\/+|\/+$/g, '').split('/').map(decodeURIComponent)
     if (parts.some(part => !part || part === '.' || part === '..' || /[/\\\u0000-\u001f\u007f]/.test(part))) return
     if (parts.length === 2 && (parts[0] === 'Repo' || parts[0] === 'Video')) return parts.join('/')
-    if (parts.length === 3 && parts[0] === 'Share' && parts[1] === '分享') return parts.join('/')
+    if (parts.length >= 3 && parts[0] === 'Share' && parts[1] === '分享') return parts.slice(0, 3).join('/')
   } catch { /* Malformed escapes are not project references. */ }
 }
 
@@ -17,6 +17,7 @@ export function projectReference(href: string, baseUrl?: string): { slug: string
     if (!/^https?:$/.test(url.protocol) || url.host !== site.host || url.username || url.password) return
     const slug = projectSlug(url.pathname)
     if (!slug) return
-    return { slug, href: '/' + slug.split('/').map(encodeURIComponent).join('/') + url.search + url.hash }
+    const deepShare = slug.startsWith('Share/分享/') && url.pathname.replace(/^\/+|\/+$/g, '').split('/').length > 3
+    return { slug, href: (deepShare ? url.pathname : '/' + slug.split('/').map(encodeURIComponent).join('/')) + url.search + url.hash }
   } catch { return }
 }

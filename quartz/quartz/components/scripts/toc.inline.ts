@@ -28,9 +28,10 @@ function setupTocHighlighting() {
   })
 
   let animationFrame: number | undefined
+  let lastRevealedHeader: string | undefined
   const update = () => {
     animationFrame = undefined
-    const latestVisibleEntries = new Set<HTMLAnchorElement>()
+    let latestVisibleHeader: string | undefined
 
     for (const header of headers) {
       const entries = tocEntries.get(header.id)
@@ -38,10 +39,15 @@ function setupTocHighlighting() {
 
       const isInView = header.getBoundingClientRect().top < window.innerHeight
       entries.forEach((entry) => entry.classList.toggle("in-view", isInView))
-      if (isInView) entries.forEach((entry) => latestVisibleEntries.add(entry))
+      if (isInView) latestVisibleHeader = header.id
     }
 
-    latestVisibleEntries.forEach(revealTocEntry)
+    // Reveal one current heading, not every heading passed while reading.
+    // Repeated smooth-scroll targets otherwise fight near the end of long TOCs.
+    if (latestVisibleHeader !== lastRevealedHeader) {
+      lastRevealedHeader = latestVisibleHeader
+      if (latestVisibleHeader) tocEntries.get(latestVisibleHeader)?.forEach(revealTocEntry)
+    }
   }
   const scheduleUpdate = () => {
     if (animationFrame === undefined) animationFrame = requestAnimationFrame(update)

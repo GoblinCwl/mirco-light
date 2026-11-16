@@ -62,18 +62,39 @@ func TestShareIndexReadsReferencesAndCachesWithoutFetchingProtectedFiles(t *test
 			t.Fatal(items)
 		}
 		for _, item := range items {
-			if item.SourceID == "public" && item.Content != "folder\nvisible.txt" {
+			if item.SourceID == "public" && item.Content != "https://site.test/Repo/head\nfolder\nvisible.txt\nhttps://site.test/Video/BV1" {
 				t.Fatal(item)
 			}
 			if item.SourceID == "public" && item.ReferenceContent != "https://site.test/Repo/head\nhttps://site.test/Video/BV1" {
 				t.Fatal("missing share references", item)
 			}
-			if item.SourceID == "protected" && (item.Content != "" || item.ReferenceContent != "private-header\nprivate-readme") {
+			if item.SourceID == "protected" && (item.Content != "" || item.Description != "" || item.ReferenceContent != "private-header\nprivate-readme") {
 				t.Fatal("private content exposed", item)
+			}
+		}
+	}
+	// Editing metadata must bypass the directory-listing cache without refetching files.
+	if _, err = db.Exec(`UPDATE x_sharing_dbs SET header='<h2>新页头</h2><p>更新说明 &amp; 链接</p>',readme='<p>新页尾</p>' WHERE id='public'`); err != nil {
+		t.Fatal(err)
+	}
+	items, err := shares.Content(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range items {
+		if item.SourceID == "public" {
+			if item.Content != "新页头 更新说明 & 链接\nfolder\nvisible.txt\n新页尾" || item.Description != "新页头 更新说明 & 链接 新页尾" {
+				t.Fatal("metadata edit not reflected with warm cache", item)
 			}
 		}
 	}
 	if calls != 2 {
 		t.Fatal("root cache not reused", calls)
+	}
+}
+
+func TestShareMetadataText(t *testing.T) {
+	if got := shareMetadataText(`<p>第一段</p><p>第二段 &amp; <a href="https://secret.test/path">链接</a></p><script>hidden</script><style>hidden</style>`); got != "第一段 第二段 & 链接" {
+		t.Fatal(got)
 	}
 }

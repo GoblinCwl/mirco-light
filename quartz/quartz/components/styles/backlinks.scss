@@ -52,7 +52,7 @@
 
 @media(min-width:1200px) {
   // The article TOC consumes only the space above the reserved backlink slot.
-  #quartz-body > .sidebar.right:has(> .backlinks:not([hidden])) {
+  html:not(.pure-mode) #quartz-body > .sidebar.right:has(> .backlinks) {
     --article-backlink-height: calc(8 * 1.55rem + 1.35rem + .5rem);
     height:100dvh;
     min-height:0;
@@ -82,13 +82,20 @@
       &::-webkit-scrollbar-thumb {background:var(--gray);}
     }
     > .toc:has(button.toc-header.collapsed) > .toc-content { display:none; margin:0; }
-    > .backlinks { margin-top:auto; }
+    > .backlinks {
+      flex:0 0 var(--article-backlink-height);
+      min-height:var(--article-backlink-height);
+      margin-top:auto;
+    }
+    // The server-rendered placeholder reserves the same slot before the index
+    // arrives, including when there are no backlinks to display.
+    > .backlinks[hidden] { display:flex!important; visibility:hidden; pointer-events:none; }
   }
 }
 @media(max-width:1199px) { .backlinks {display:none!important;} }
-html.pure-mode [data-backlinks-panel] {display:none!important;}
+html.pure-mode [data-backlinks] {display:none!important;}
 :root[reader-mode="on"] [data-backlinks-panel] {opacity:0;transition:opacity .2s ease;&:hover,&:focus-within{opacity:1;}}
 
 @media(min-width:1200px) and (max-height:580px) {
-  #quartz-body >.sidebar.right:has(>.backlinks:not([hidden])) >.graph {display:none;}
+  html:not(.pure-mode) #quartz-body >.sidebar.right:has(>.backlinks) >.graph {display:none;}
 }

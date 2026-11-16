@@ -81,3 +81,15 @@ test('homepage navigation never receives body link icons at build time', async (
   const tree = await processor.run(processor.parse('[篇章](/reading/) [标签](/tags/) [仓库](/Repo/CwlWeb) [外链](https://example.com)'), file)
   assert.ok(!JSON.stringify(tree).includes('dataLinkIcon'))
 })
+
+test('article attachment links preserve file URLs and collapse relations onto share homepages',async()=>{
+ const file=new VFile();file.data.slug='Memo/source' as typeof file.data.slug
+ const processor=unified().use(remarkParse).use(remarkRehype).use(CrawlLinks().htmlPlugins!(ctx))
+ const path='/Share/%E5%88%86%E4%BA%AB/attachments/folder/template.md?download=1#part'
+ const tree=await processor.run(processor.parse(`[template](https://goblincwl.site${path})\n\n[code](/Share/分享/attachments/folder/file.js)\n\n[other](/Share/分享/attachments-backup/file.js)`),file) as Root
+ assert.deepEqual(file.data.links,['Share/分享/attachments','Share/分享/attachments-backup'])
+ const links:Element[]=[];visit(tree,'element',node=>{if(node.tagName==='a')links.push(node)})
+ assert.equal(links[0].properties.href,path)
+ assert.equal(links[0].properties['data-slug'],'Share/分享/attachments')
+ assert.equal(links[1].properties.href,'/Share/%E5%88%86%E4%BA%AB/attachments/folder/file.js')
+})

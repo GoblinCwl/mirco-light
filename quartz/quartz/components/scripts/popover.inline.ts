@@ -1,3 +1,4 @@
+import { hoverDismissal } from './hoverDismissal'
 import { isNavigationLink } from "../../util/previewPolicy"
 import { attachVideoPreview } from "./videoPreview"
 import {repoHoverContent,repoHoverAvailable} from "./repoHover"
@@ -15,6 +16,7 @@ const p = new DOMParser()
 let activeAnchor: HTMLAnchorElement | null = null
 let driveHoverTimer: ReturnType<typeof setTimeout> | undefined
 let driveHoverRequest: AbortController | undefined
+const dismissal=hoverDismissal(clearActivePopover,()=>Boolean(activeAnchor?.matches(':hover')||document.querySelector('.popover:hover')))
 for(const event of ['drive-auth-change','drive-directory-unlocked','drive-files-changed'])document.addEventListener(event,()=>{
   clearActivePopover();document.querySelectorAll('.drive-popover,.repo-popover').forEach(node=>node.remove())
 })
@@ -42,6 +44,7 @@ async function showDriveHover(link:HTMLAnchorElement,event:{clientX:number;clien
       const content=await (repo?repoHoverContent(url,label,request.signal):driveHoverContent(url,label,request.signal,allowMedia))
       if(request.signal.aborted||activeAnchor!==link)return
       if(!content){popover.remove();return}
+      popover.classList.toggle('drive-file-popover',Boolean(content.querySelector('.drive-hover-file')))
       request.signal.removeEventListener('abort',cancel);inner.replaceChildren(content);void position()
       inner.querySelectorAll('img').forEach(img=>img.addEventListener('load',()=>void position(),{once:true,signal:request.signal}))
     }catch{if(!request.signal.aborted)popover.remove()}
@@ -74,6 +77,7 @@ async function mouseEnterHandler(
     if(matchMedia('(hover: hover) and (pointer: fine)').matches)void showDriveHover(link,{clientX,clientY})
     return
   }
+  clearActivePopover()
   activeAnchor=link
   if (link.dataset.noPopover === "true") {
     return
@@ -180,6 +184,7 @@ async function mouseEnterHandler(
 }
 
 function clearActivePopover() {
+  dismissal.cancel()
   clearTimeout(driveHoverTimer);driveHoverRequest?.abort();driveHoverRequest=undefined
   activeAnchor = null
   const allPopoverElements = document.querySelectorAll(".popover")
@@ -193,16 +198,30 @@ document.addEventListener("nav", () => {
   }
   // Delegate so links rendered asynchronously (such as 拾遗) get the same preview.
   const enter = (event: MouseEvent) => {
+    if(event.target instanceof Element && event.target.closest('.popover')){dismissal.cancel();return}
     const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a.internal,a[data-drive-hover],a[data-repo-hover]") : null
-    if (!link || event.relatedTarget instanceof Node && link.contains(event.relatedTarget)) return
+    if (!link) { if(activeAnchor)dismissal.schedule(); return }
+    if (event.relatedTarget instanceof Node && link.contains(event.relatedTarget)) return
     if (isNavigationLink(link.href, location.href)) return
+    dismissal.cancel()
     clearTimeout(driveHoverTimer)
     driveHoverTimer=setTimeout(()=>void mouseEnterHandler.call(link,event),250)
   }
   const leave = (event: MouseEvent) => {
-    const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a.internal,a[data-drive-hover],a[data-repo-hover]") : null
-    if (!link || event.relatedTarget instanceof Node && link.contains(event.relatedTarget)) return
-    clearActivePopover()
+    const target=event.target instanceof Element?event.target:null
+    if(!target)return
+    const popover=target.closest('.popover')
+    if(popover){
+      if(event.relatedTarget instanceof Node && (popover.contains(event.relatedTarget)||activeAnchor?.contains(event.relatedTarget)))return
+      // Entering the iframe's own document is still inside this preview.
+      if(target instanceof HTMLIFrameElement && event.relatedTarget===null)return
+      dismissal.schedule();return
+    }
+    const link=target.closest<HTMLAnchorElement>("a.internal,a[data-drive-hover],a[data-repo-hover]")
+    if(!link || event.relatedTarget instanceof Node && link.contains(event.relatedTarget))return
+    clearTimeout(driveHoverTimer)
+    if(event.relatedTarget instanceof Element && event.relatedTarget.closest('.popover')){dismissal.cancel();return}
+    dismissal.schedule()
   }
   document.addEventListener("mouseover", enter)
   document.addEventListener("mouseout", leave)

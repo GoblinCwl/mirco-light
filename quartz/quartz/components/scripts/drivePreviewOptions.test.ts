@@ -65,3 +65,13 @@ test("initial quality uses the lowest available resolution and honors saved sele
  assert.equal(initialVideoQuality([{id:'auto'}],'lowest')?.id,'auto')
  assert.equal(initialVideoQuality([],'lowest'),undefined)
 })
+
+test('Markdown retains its original rendered default and optional text editor',()=>{
+ for(const name of ['note.md','note.MARKDOWN']){
+  const choices=previewChoices({name,is_dir:false,size:1024,modified:'',type:4},{},true,true)
+  assert.equal(choices[0].key,'markdown')
+  assert.ok(choices.some(choice=>choice.key==='text_editor'))
+ }
+ const disabled=previewChoices({name:'note.md',is_dir:false,size:1024,modified:'',type:4},{share_preview:'false'},true,true)
+ assert.ok(!disabled.some(choice=>choice.key==='text_editor'))
+})

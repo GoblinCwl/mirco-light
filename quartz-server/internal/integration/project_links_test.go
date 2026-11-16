@@ -110,3 +110,47 @@ func TestCrossTypeArticleBacklinksAndProtectedReferences(t *testing.T) {
 		}
 	}
 }
+
+func TestShareAttachmentRelationsCreateNoDirectoryNodes(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	store := content.Store{DB: db, Origin: "https://site.test"}
+	target := content.Item{SourceID: "attachments", Slug: "Share/分享/attachments", Title: "Attachments", Href: "/Share/分享/attachments/"}
+	if err := store.Sync(ctx, "share", []content.Item{target}); err != nil {
+		t.Fatal(err)
+	}
+	for _, kind := range []string{"article", "repo", "video", "share"} {
+		source := content.Item{SourceID: "source", Slug: kind + "/source", Title: "Source", Content: "https://site.test/Share/分享/attachments/folder/a.md /Share/分享/attachments/folder/b.js"}
+		input := []content.Item{source}
+		if kind == "article" {
+			input[0].Links = []string{"Share/分享/attachments"}
+		}
+		if kind == "share" {
+			source.Slug = "Share/分享/source"
+			source.Encrypted = true
+			source.ReferenceContent = source.Content
+			input = []content.Item{target, source}
+		}
+		if err := store.Sync(ctx, kind, input); err != nil {
+			t.Fatal(err)
+		}
+		var raw string
+		if err := db.QueryRow("SELECT links FROM content WHERE type=? AND source_id='source'", kind).Scan(&raw); err != nil {
+			t.Fatal(err)
+		}
+		var links []string
+		if err := json.Unmarshal([]byte(raw), &links); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(links, []string{"Share/分享/attachments"}) {
+			t.Fatal(kind, links)
+		}
+	}
+	var children int
+	if err := db.QueryRow("SELECT COUNT(*) FROM content WHERE slug LIKE 'Share/分享/attachments/%'").Scan(&children); err != nil {
+		t.Fatal(err)
+	}
+	if children != 0 {
+		t.Fatal("directory/file nodes were created", children)
+	}
+}

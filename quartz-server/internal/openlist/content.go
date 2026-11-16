@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"goblincwl/quartz-server/internal/content"
+	"html"
 	"path"
 	"sort"
 	"strings"
@@ -71,7 +72,18 @@ func (s *Shares) Content(ctx context.Context) ([]content.Item, error) {
 		if err != nil {
 			return nil, err
 		}
-		item.Content = text(value["content"])
+		headerText, readmeText := shareMetadataText(header.String), shareMetadataText(readme.String)
+		item.Content = strings.TrimSpace(strings.Join([]string{headerText, text(value["content"]), readmeText}, "\n"))
+		description := []rune(strings.TrimSpace(strings.Join([]string{headerText, readmeText}, " ")))
+		if len(description) > 180 {
+			description = description[:180]
+		}
+		item.Description = string(description)
 	}
 	return items, nil
+}
+
+// Match displayed metadata text; markup is kept separately for link extraction.
+func shareMetadataText(source string) string {
+	return strings.Join(strings.Fields(html.UnescapeString(htmlTags.ReplaceAllString(blocks.ReplaceAllString(source, ""), " "))), " ")
 }

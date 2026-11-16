@@ -48,6 +48,11 @@ func projectLinks(origin, source, self string, routeMaps ...map[string]string) [
 		if !valid {
 			continue
 		}
+		// A share owns every directory/file below its exact root path.
+		// Relations target that root only; directory/file nodes are never indexed.
+		if len(parts) >= 3 && parts[0] == "Share" && parts[1] == "分享" {
+			parts = parts[:3]
+		}
 		slug := strings.Join(parts, "/")
 		route := relationKey(slug)
 		if route == "reading" || route == "friends" || route == "observatory" || route == "archives" || route == "tags" || strings.HasPrefix(route, "tags/") {

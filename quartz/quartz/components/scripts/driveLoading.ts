@@ -2,7 +2,7 @@ const pendingLoads = new WeakMap<HTMLElement, Set<symbol>>()
 const progressOwners = new WeakMap<HTMLElement, symbol>()
 
 export function driveFileProgress(scope: HTMLElement, signal: AbortSignal) {
-  const root = scope.closest<HTMLElement>("[data-openlist]")
+  const root = scope.closest<HTMLElement>("[data-drive-loading-root],[data-openlist]")
   const indicator = root?.querySelector<HTMLElement>("[data-drive-page-loading]")
   if (!root || !indicator || signal.aborted) return { update: (_value: number) => {}, clear: () => {} }
   const owner = Symbol()
@@ -31,7 +31,7 @@ export function driveFileProgress(scope: HTMLElement, signal: AbortSignal) {
 // Page requests and preview readiness share one indicator. An older request
 // finishing or being cancelled must not hide a newer preview's loading state.
 export function beginDriveLoading(scope: HTMLElement, signal: AbortSignal): () => void {
-  const root = scope.closest<HTMLElement>("[data-openlist]")
+  const root = scope.closest<HTMLElement>("[data-drive-loading-root],[data-openlist]")
   const indicator = root?.querySelector<HTMLElement>("[data-drive-page-loading]")
   if (!root || !indicator || signal.aborted) return () => {}
   let pending = pendingLoads.get(root)

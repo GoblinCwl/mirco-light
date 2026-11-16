@@ -35,3 +35,19 @@ func TestArticleAndAliasReferencesAcrossSources(t *testing.T) {
 		t.Fatal("self references via alias leaked", got)
 	}
 }
+
+func TestShareDescendantsReferenceOnlyTheirOwnShareRoot(t *testing.T) {
+	source := `https://goblincwl.site/Share/分享/文章附件/日记日报方案/日记模板.md
+ /Share/%E5%88%86%E4%BA%AB/文章附件/日记日报方案/file.js?x=1#section
+ /Share/分享/文章附件备份/folder/file.md /Share/分享/文章附件/目录/
+ https://evil.test/Share/分享/foreign/file.md /Share/分享/invalid/%2Fsecret /Share/分享/invalid//file /Repo/code/file`
+	want := []string{"Share/分享/文章附件", "Share/分享/文章附件备份"}
+	for _, routes := range []map[string]string{nil, {"Memo/note": "Memo/note"}} {
+		if got := projectLinks("https://goblincwl.site", source, "Memo/source", routes); !reflect.DeepEqual(got, want) {
+			t.Fatalf("got %v want %v", got, want)
+		}
+	}
+	if got := projectLinks("https://goblincwl.site", "/Share/分享/文章附件/folder/file.md", "Share/分享/文章附件"); len(got) != 0 {
+		t.Fatal("share self-reference leaked", got)
+	}
+}
