@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var ErrHomepageInspectionFailed = errors.New("首页巡检失败")
+
 type RefreshResult struct{ Avatars, Feeds, Approved int }
 
 // RefreshLinks checks the two resources independently, retaining prior data on error.
@@ -90,8 +92,7 @@ func (s Store) refreshFriends(ctx context.Context, friends []Friend) (RefreshRes
 				}
 			}
 			if err != nil {
-				failures = append(failures, fmt.Errorf("%s 头像刷新失败: %w", friend.Name, err))
-				continue
+				taskruns.Note(ctx, fmt.Sprintf("%s 头像刷新失败，保留已有头像：%s", friend.Name, taskruns.Clean(err.Error(), 240)))
 			}
 		}
 		if friend.RSSURL != "" {
@@ -119,7 +120,7 @@ func (s Store) refreshFriends(ctx context.Context, friends []Friend) (RefreshRes
 				}
 			}
 			if err != nil {
-				failures = append(failures, fmt.Errorf("%s RSS 刷新失败: %w", friend.Name, err))
+				taskruns.Note(ctx, fmt.Sprintf("%s RSS 刷新失败，保留已有数据：%s", friend.Name, taskruns.Clean(err.Error(), 240)))
 			}
 		}
 	}

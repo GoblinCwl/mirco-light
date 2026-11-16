@@ -39,7 +39,7 @@ func TestRefreshAvatarRetainsStateAndConcurrentEdits(t *testing.T) {
 		"ALTER TABLE friends ADD COLUMN failure_notified INTEGER DEFAULT 0",
 		"ALTER TABLE friends ADD COLUMN failure_mail_sent INTEGER DEFAULT 0",
 		"ALTER TABLE friends ADD COLUMN review_ready INTEGER DEFAULT 0",
-		"ALTER TABLE friends ADD COLUMN inspection_failed_on TEXT DEFAULT ''; ALTER TABLE friends ADD COLUMN inspection_failures INTEGER DEFAULT 0",
+		"ALTER TABLE friends ADD COLUMN verified INTEGER DEFAULT 0; ALTER TABLE friends ADD COLUMN inspection_failed_on TEXT DEFAULT ''; ALTER TABLE friends ADD COLUMN inspection_failures INTEGER DEFAULT 0",
 	} {
 		if _, err = db.Exec(ddl); err != nil {
 			t.Fatal(err)

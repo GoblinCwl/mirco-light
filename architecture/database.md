@@ -198,6 +198,7 @@ OpenList分享来源与本站稳定内容标识的映射。
 | `review_ready` | `tinyint(1)` | 否 | `0` | é¦–é¡µã€RSSåŠå¤´åƒé¢„æ£€æŸ¥å…¨éƒ¨é€šè¿‡ï¼Œæ‰å…è®¸å®¡æ ¸é€šè¿‡ |
 | `inspection_failures` | `int` | 否 | `0` | 巡检累计失败天数，同一北京时间日期最多累计一天 |
 | `inspection_failed_on` | `varchar(10)` | 否 | `` | 最近计入巡检失败天数的北京时间日期，同日不重复累计 |
+| `verified` | `tinyint unsigned` | 否 | `0` | 回链验证标记，自动审核通过默认验证，人工审核默认未验，管理员可切换 |
 
 索引与约束：
 
@@ -225,6 +226,7 @@ OpenList分享来源与本站稳定内容标识的映射。
 | `available_at` | `bigint` | 否 | `0` | 下次可处理的 Unix 毫秒时间，0 表示立即 |
 | `last_error` | `varchar(1000)` | 否 | `` | 最近处理失败原因 |
 | `enqueued_at` | `varchar(32)` | 否 | `` | 任务提交时间，UTC ISO 8601 |
+| `manual_approval` | `tinyint unsigned` | 否 | `0` | 人工请求先检查首页头像RSS，通过后直接审核，不执行回链自动审批 |
 
 索引与约束：
 

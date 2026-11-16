@@ -543,3 +543,12 @@
   >.stellar-notification-content {padding-bottom:calc(1rem + env(safe-area-inset-bottom));}
  }
 }
+
+.stellar-admin .friend-admin-actions .friend-status-toggle {
+ --friend-state-color: var(--stellar-waiting);
+ &[data-active='true'] { --friend-state-color: var(--stellar-success); }
+ color: var(--friend-state-color);
+ border-color: color-mix(in srgb, var(--friend-state-color) 35%, var(--lightgray));
+ background: color-mix(in srgb, var(--friend-state-color) 9%, var(--light));
+ &:hover:not(:disabled) { color: var(--friend-state-color); border-color: var(--friend-state-color); background: color-mix(in srgb, var(--friend-state-color) 16%, var(--light)); }
+}

@@ -21,8 +21,8 @@ func TestApprovedFriendNeverRunsAutomaticReviewAgain(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < 2; i++ {
-		if err = store.ProcessFriendJob(ctx, f.ID); err == nil {
-			t.Fatal("inspection failure lost")
+		if err = store.ProcessFriendJob(ctx, f.ID); err != nil {
+			t.Fatal("optional avatar failure marked inspection failed", err)
 		}
 		if _, err = store.AutoReviewFriend(ctx, f.ID); err != nil {
 			t.Fatal("approved friend attempted review", err)

@@ -2,6 +2,7 @@ package community
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -34,6 +35,9 @@ func (s Store) checkHomepageSnapshot(ctx context.Context, friend Friend, now tim
 	current, err := s.friendByID(ctx, friend.ID)
 	if err != nil {
 		return friend, false, err
+	}
+	if checkErr != nil {
+		checkErr = fmt.Errorf("%w: %w", ErrHomepageInspectionFailed, checkErr)
 	}
 	return current, current.Status == "展示中" && current.HealthFailures == 0 && current.HealthCheckedOn == day, checkErr
 }

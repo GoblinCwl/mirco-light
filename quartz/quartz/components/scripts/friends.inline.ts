@@ -126,7 +126,7 @@ document.addEventListener('nav', () => {
    const result=await response.json()
    if(!response.ok)throw new Error(result.error||'提交失败，请稍后重试')
     confirmation.classList.add('is-complete')
-   const message='友链申请提交成功，审核结果将发送至你填写的邮箱。'
+   const message=pendingApplication?.email?'友链申请提交成功，审核结果将发送至你填写的邮箱。':'友链申请提交成功。'
    const notice=confirmation.querySelector<HTMLElement>('[data-friends-review-notice]');if(notice){notice.textContent=message;notice.hidden=false}
    applicationError(message,false)
    submit.disabled=false;submit.textContent='完成';pendingApplication=undefined
@@ -139,7 +139,7 @@ document.addEventListener('nav', () => {
   }finally{submittingApplication=false}
  },{signal})
  const application=sidebar?.querySelector<HTMLFormElement>('[data-friends-apply-form]')
- const applicationComplete=()=>Boolean(application&&['email','name','url','backlinkUrl','avatar','description'].every(name=>(application.elements.namedItem(name) as HTMLInputElement).value.trim()))
+ const applicationComplete=()=>Boolean(application&&['name','url','backlinkUrl','avatar','description'].every(name=>(application.elements.namedItem(name) as HTMLInputElement).value.trim()))
  const syncApplication=()=>{const submit=application?.querySelector<HTMLButtonElement>('[data-friends-apply]');if(submit)submit.disabled=!applicationComplete();for(const input of application?.querySelectorAll('[aria-invalid]')||[])input.removeAttribute('aria-invalid')}
  application?.addEventListener('input',syncApplication,{signal});application?.addEventListener('change',syncApplication,{signal});syncApplication()
 
@@ -147,7 +147,7 @@ document.addEventListener('nav', () => {
   event.preventDefault()
   const field=(name:string)=>application.elements.namedItem(name) as HTMLInputElement
   if(!applicationComplete()||submittingApplication)return
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(field('email').value.trim())){field('email').setAttribute('aria-invalid','true');applicationError('请填写有效的邮箱地址');return}
+  if(field('email').value.trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(field('email').value.trim())){field('email').setAttribute('aria-invalid','true');applicationError('请填写有效的邮箱地址');return}
   const website=field('url'),avatarField=field('avatar'),backlinkField=field('backlinkUrl')
   const address=(input:HTMLInputElement)=>{const value=input.value.trim();if(!/^https:\/\//i.test(value))throw new Error();const url=new URL(value);if(url.protocol!=='https:'||!url.hostname||url.username||url.password)throw new Error();return url.href}
   const validated:string[]=[]

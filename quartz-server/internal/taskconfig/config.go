@@ -36,7 +36,7 @@ var Definitions = []Definition{
 
 func Key(name string) string { return "tasks." + name + "Seconds" }
 func Schema() []map[string]any {
-	out := []map[string]any{}
+	out := []map[string]any{{"key": "tasks.friendConcurrency", "group": "任务管理", "category": "友链巡检", "label": "同时处理数量", "help": "友链处理队列并发数量；调整后不打断正在运行的条目。头像压缩仍最多同时两个。", "type": "number", "default": 1, "min": 1, "max": 8, "step": 1, "public": false}}
 	for _, d := range Definitions {
 		out = append(out, map[string]any{"key": Key(d.Key), "group": "任务管理", "category": d.Category, "label": d.Label, "help": d.Help, "type": "number", "default": d.Default, "min": d.Min, "max": d.Max, "step": 1, "public": false})
 	}
@@ -44,9 +44,9 @@ func Schema() []map[string]any {
 		Key, Label string
 		Default    int
 	}{{"tasks.friendsGrayDays", "巡检置灰天数", 3}, {"tasks.friendsRemoveDays", "巡检移除天数", 7}} {
-		out = append(out, map[string]any{"key": d.Key, "group": "任务管理", "category": "友链巡检", "label": d.Label, "help": "累计发生巡检失败的天数，北京时间同一天最多计一天。", "type": "number", "default": d.Default, "min": 1, "max": 365, "step": 1, "public": false})
+		out = append(out, map[string]any{"key": d.Key, "group": "任务管理", "category": "友链巡检", "label": d.Label, "help": "累计首页检查失败的天数，北京时间同一天最多计一天；头像和 RSS 失败沿用已有数据。", "type": "number", "default": d.Default, "min": 1, "max": 365, "step": 1, "public": false})
 	}
-	out = append(out, map[string]any{"key": "tasks.friendsEveryDays", "group": "任务管理", "category": "友链巡检", "label": "巡检间隔", "help": "默认每天一次；处理友链并继续处理上次失败的友链，失败仅累计次数。日期按固定日历周期安排，重启不会推迟日程。", "type": "number", "default": 1, "min": 1, "max": 30, "step": 1, "public": false})
+	out = append(out, map[string]any{"key": "tasks.friendsEveryDays", "group": "任务管理", "category": "友链巡检", "label": "巡检间隔", "help": "默认每天一次；处理友链并继续处理上次失败的友链，仅首页检查失败累计天数。日期按固定日历周期安排，重启不会推迟日程。", "type": "number", "default": 1, "min": 1, "max": 30, "step": 1, "public": false})
 	return append(out, map[string]any{"key": "tasks.friendsTime", "group": "任务管理", "category": "友链巡检", "label": "执行时间", "help": "北京时间；将友链加入一次性处理队列，检查首页、头像、RSS 和待审核申请。失败等待下个周期，不自动弃用。", "type": "time", "default": "06:00", "public": false})
 }
 
@@ -89,6 +89,11 @@ func (c *Config) Reload(values map[string]any) {
 		days = x
 	}
 	next["tasks.friendsEveryDays"] = days
+	concurrency := float64(1)
+	if x, ok := values["tasks.friendConcurrency"].(float64); ok && x >= 1 && x <= 8 && x == float64(int(x)) {
+		concurrency = x
+	}
+	next["tasks.friendConcurrency"] = concurrency
 	for ch, keys := range c.watchers {
 		for k := range keys {
 			if next[k] != c.values[k] {
@@ -207,4 +212,13 @@ func Wait(ctx context.Context, name string, wake <-chan struct{}) bool {
 			return true
 		}
 	}
+}
+
+func (c *Config) FriendConcurrency() int {
+	if c == nil {
+		return 1
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return int(c.values["tasks.friendConcurrency"].(float64))
 }

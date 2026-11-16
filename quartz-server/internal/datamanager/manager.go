@@ -401,7 +401,7 @@ func (m Manager) Save(ctx context.Context, id string, values, key map[string]any
 	}
 
 	if id == "friends" {
-		for _, key := range []string{"review_result", "review_checked_at", "health_failures", "health_checked_on", "health_error", "processing_failures", "failure_notified", "failure_mail_sent", "review_ready", "inspection_failures", "inspection_failed_on"} {
+		for _, key := range []string{"review_result", "review_checked_at", "health_failures", "health_checked_on", "health_error", "processing_failures", "failure_notified", "failure_mail_sent", "review_ready", "inspection_failures", "inspection_failed_on", "verified"} {
 			if _, provided := values[key]; provided {
 				return nil, errors.New("审核结果由审核流程维护")
 			}

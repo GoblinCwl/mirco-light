@@ -9,14 +9,14 @@ import (
 )
 
 func TestInspectionFailuresCountAllStagesAndRemoveAtSeven(t *testing.T) {
-	for _, stage := range []string{"homepage", "avatar", "rss"} {
+	for _, stage := range []string{"homepage"} {
 		t.Run(stage, func(t *testing.T) {
 			db := testDB(t)
 			ctx := context.Background()
 			avatars, feeds := 0, 0
 			store := community.Store{DB: db, CheckHomepage: func(context.Context, string) error {
 				if stage == "homepage" {
-					return errors.New("offline")
+					return community.ErrHomepageInspectionFailed
 				}
 				return nil
 			}, StoreAvatar: func(context.Context, string) (string, error) {
@@ -97,7 +97,7 @@ func TestInspectionRemovalWithoutEmailRecordsAlert(t *testing.T) {
 	if err != nil || job == nil {
 		t.Fatal(err)
 	}
-	if err = store.FinishFriendJob(ctx, *job, errors.New("offline")); err != nil {
+	if err = store.FinishFriendJob(ctx, *job, community.ErrHomepageInspectionFailed); err != nil {
 		t.Fatal(err)
 	}
 	var n int
@@ -133,7 +133,7 @@ func TestInspectionDaysDeduplicateAndUseConfiguredThresholds(t *testing.T) {
 		if e != nil || job == nil {
 			t.Fatal(e)
 		}
-		if e = store.FinishFriendJob(ctx, *job, errors.New("fixture failure")); e != nil {
+		if e = store.FinishFriendJob(ctx, *job, community.ErrHomepageInspectionFailed); e != nil {
 			t.Fatal(e)
 		}
 	}
@@ -156,11 +156,42 @@ func TestInspectionDaysDeduplicateAndUseConfiguredThresholds(t *testing.T) {
 	if err != nil || job == nil {
 		t.Fatal(err)
 	}
-	if err = store.FinishFriendJob(ctx, *job, errors.New("fixture failure")); err != nil {
+	if err = store.FinishFriendJob(ctx, *job, community.ErrHomepageInspectionFailed); err != nil {
 		t.Fatal(err)
 	}
 	db.QueryRow("SELECT count(*) FROM friends WHERE id=?", f.ID).Scan(&count)
 	if count != 0 {
 		t.Fatal("configured removal threshold ignored")
+	}
+}
+
+func TestInspectionResourceFailuresKeepDataAndDoNotCount(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	feeds := 0
+	store := community.Store{DB: db, CheckHomepage: func(context.Context, string) error { return nil }, StoreAvatar: func(context.Context, string) (string, error) { return "", errors.New("avatar failed") }, ReadFeed: func(context.Context, string) (time.Time, error) {
+		feeds++
+		return time.Time{}, errors.New("rss failed")
+	}}
+	f, _, err := store.CreateFriend(ctx, community.Friend{Name: "resources", URL: "https://resources.example", BacklinkURL: "https://resources.example/friends", Avatar: "https://resources.example/avatar", RSSURL: "https://resources.example/feed", Status: "展示中"}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.Exec("UPDATE friends SET latest_update='2026-11-01T00:00:00.000Z' WHERE id=?", f.ID)
+	job, err := store.ClaimFriendJob(ctx, time.Now())
+	if err != nil || job == nil {
+		t.Fatal(err)
+	}
+	if err = store.ProcessClaimedFriendJob(ctx, *job); err != nil {
+		t.Fatal("resource failure marked inspection failed", err)
+	}
+	if err = store.FinishFriendJob(ctx, *job, nil); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	var avatar, latest string
+	err = db.QueryRow("SELECT inspection_failures,avatar,latest_update FROM friends WHERE id=?", f.ID).Scan(&count, &avatar, &latest)
+	if err != nil || count != 0 || feeds != 1 || avatar != f.Avatar || latest != "2026-11-01T00:00:00.000Z" {
+		t.Fatal("existing data changed or RSS skipped", count, feeds, avatar, latest, err)
 	}
 }

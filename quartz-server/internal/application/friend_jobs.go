@@ -8,6 +8,7 @@ import (
 	"goblincwl/quartz-server/internal/taskconfig"
 	"goblincwl/quartz-server/internal/taskruns"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,7 +19,7 @@ func (r *Runtime) requestFriendJobs() {
 	}
 }
 func (r *Runtime) waitFriendJobs(ctx context.Context, due time.Time) bool {
-	changed, stop := taskconfig.Watch(ctx, taskconfig.Key("friend-recovery"))
+	changed, stop := taskconfig.Watch(ctx, taskconfig.Key("friend-recovery"), "tasks.friendConcurrency")
 	defer stop()
 	if due.IsZero() {
 		select {
@@ -88,72 +89,93 @@ func (r *Runtime) runFriendJobs(root context.Context) {
 		return
 	}
 	r.app.Log.Info("friend queue recovered; processing pending jobs")
+
+	changed, stop := taskconfig.Watch(root, "tasks.friendConcurrency", taskconfig.Key("friend-recovery"))
+	defer stop()
+	var workers sync.WaitGroup
+	defer workers.Wait()
+	completed := make(chan string, 8)
+	active := map[string]bool{}
+	recoveryNeeded := false
 	for root.Err() == nil {
-		job, err := store.ClaimFriendJob(root, time.Now())
-		if err != nil {
-			r.app.Log.Warn("friend queue claim failed; retrying")
-			if !r.waitFriendJobs(root, time.Now().Add(taskconfig.Duration(root, "friend-recovery"))) {
+		if recoveryNeeded && len(active) == 0 {
+			if !r.waitFriendJobs(root, time.Now().Add(taskconfig.Duration(root, "friend-recovery"))) || !r.recoverFriendQueue(root, store) {
 				return
 			}
-			continue
+			recoveryNeeded = false
 		}
-		if job == nil {
-			due, err := store.NextFriendJob(root)
+		claimFailed := false
+		for !recoveryNeeded && len(active) < taskconfig.From(root).FriendConcurrency() {
+			ids := make([]string, 0, len(active))
+			for id := range active {
+				ids = append(ids, id)
+			}
+			job, err := store.ClaimFriendJobExcept(root, time.Now(), ids)
 			if err != nil {
+				r.app.Log.Warn("friend queue claim failed; retrying")
+				claimFailed = true
+				break
+			}
+			if job == nil {
+				break
+			}
+			active[job.FriendID] = true
+			workers.Add(1)
+			go func(job community.FriendJob) {
+				defer workers.Done()
+				ctx, cancel := context.WithTimeout(root, 3*time.Minute)
+				workErr := taskruns.Run(ctx, "friend-jobs", func(ctx context.Context) error {
+					taskruns.Note(ctx, "友链："+job.FriendName+"（"+job.FriendID+"）")
+					if job.InspectOnly {
+						taskruns.Note(ctx, "已通过审核，仅巡检首页、头像和 RSS")
+					}
+					return store.ProcessClaimedFriendJob(ctx, job)
+				})
+				cancel()
+				result := job.FriendID
+				if root.Err() == nil {
+					if err := store.FinishFriendJob(root, job, workErr); err != nil {
+						r.app.Log.Warn("friend queue completion failed; recovering")
+						result = "!" + result
+					}
+					if workErr != nil {
+						r.app.Log.Warn("friend processing failed; recorded for next periodic run", "friend", job.FriendID)
+					}
+				}
+				completed <- result
+			}(*job)
+		}
+		if len(active) == 0 {
+			due, err := store.NextFriendJob(root)
+			if err != nil || claimFailed {
 				due = time.Now().Add(taskconfig.Duration(root, "friend-recovery"))
 			}
+			// Configuration changes must also wake an idle pool.
 			if !r.waitFriendJobs(root, due) {
 				return
 			}
 			continue
 		}
-		ctx, cancel := context.WithTimeout(root, 3*time.Minute)
-		workErr := taskruns.Run(ctx, "friend-jobs", func(ctx context.Context) error {
-			taskruns.Note(ctx, "友链："+job.FriendName+"（"+job.FriendID+"）")
-			if job.InspectOnly {
-				taskruns.Note(ctx, "已通过审核，仅巡检首页、头像和 RSS")
-			}
-			return store.ProcessClaimedFriendJob(ctx, *job)
-		})
-		cancel()
-		if root.Err() != nil {
-			return
-		} // Leave running work persisted for recovery on the next start.
-		if err := store.FinishFriendJob(root, *job, workErr); err != nil {
-			r.app.Log.Warn("friend queue completion failed; recovering")
-			if !r.waitFriendJobs(root, time.Now().Add(taskconfig.Duration(root, "friend-recovery"))) {
-				return
-			}
-			r.app.TaskRuns.RegisterRetry("friend-recovery", func(context.Context) error { r.requestFriendJobs(); return nil })
-			r.app.TaskRuns.RegisterRetry("friend-jobs", func(ctx context.Context) error {
-				var logs string
-				if err := r.app.DB.QueryRowContext(ctx, "SELECT logs FROM task_runs WHERE task_key='friend-jobs' ORDER BY id DESC LIMIT 1").Scan(&logs); err != nil {
-					return err
-				}
-				friends, err := store.Friends(ctx, false)
-				if err != nil {
-					return err
-				}
-				for _, friend := range friends {
-					if strings.Contains(logs, "（"+friend.ID+"）") {
-						if err := store.EnqueueFriend(ctx, friend.ID); err != nil {
-							return err
-						}
-						r.requestFriendJobs()
-						return nil
-					}
-				}
-				return errors.New("原友链已不存在，无法重试")
-			})
-			if !r.recoverFriendQueue(root, store) {
-				return
-			}
-			continue
+		var retry <-chan time.Time
+		var timer *time.Timer
+		if claimFailed {
+			timer = time.NewTimer(taskconfig.Duration(root, "friend-recovery"))
+			retry = timer.C
 		}
-		if workErr != nil {
-			r.app.Log.Warn("friend processing failed; recorded for next periodic run", "friend", job.FriendID)
-		} else {
-			r.app.Log.Info("friend background job completed", "friend", job.FriendID)
+		select {
+		case result := <-completed:
+			if strings.HasPrefix(result, "!") {
+				recoveryNeeded = true
+				result = strings.TrimPrefix(result, "!")
+			}
+			delete(active, result)
+		case <-changed:
+		case <-r.friendJobsWake:
+		case <-retry:
+		case <-root.Done():
+		}
+		if timer != nil {
+			timer.Stop()
 		}
 	}
 }

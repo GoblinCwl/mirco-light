@@ -63,7 +63,7 @@ func (s Store) autoReviewSnapshot(ctx context.Context, friend Friend) (Friend, e
 		return friend, err
 	}
 	defer tx.Rollback()
-	changed, err := tx.ExecContext(ctx, "UPDATE friends SET status=?,review_result=?,review_checked_at=? WHERE id=? AND status='待审核' AND review_ready=1 AND url=? AND backlink_url=?", status, message, checkedAt, friend.ID, friend.URL, friend.BacklinkURL)
+	changed, err := tx.ExecContext(ctx, "UPDATE friends SET verified=(?='展示中'),status=?,review_result=?,review_checked_at=? WHERE id=? AND status='待审核' AND review_ready=1 AND url=? AND backlink_url=? AND NOT EXISTS (SELECT 1 FROM friend_jobs WHERE friend_id=? AND manual_approval=1)", status, status, message, checkedAt, friend.ID, friend.URL, friend.BacklinkURL, friend.ID)
 	if err != nil {
 		return friend, err
 	}

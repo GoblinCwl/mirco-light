@@ -59,6 +59,7 @@ export function setupTaskInstances(root:HTMLElement,signal:AbortSignal,request:(
      const keys=[`tasks.${period}Seconds`]
      if(task.key==='video-sync')keys.push('tasks.video-retrySeconds')
      if(task.key==='friends-refresh')keys.push('tasks.friendsEveryDays','tasks.friendsTime','tasks.friendsGrayDays','tasks.friendsRemoveDays')
+     if(task.key==='friend-jobs')keys.push('tasks.friendConcurrency')
      if(task.key==='attendance-refresh')keys.push('tasks.attendance-quietSeconds')
      if(task.key==='video-index')keys.push('tasks.video-index-retrySeconds')
      attachSettings(card,keys)

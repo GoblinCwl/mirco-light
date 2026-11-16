@@ -139,7 +139,12 @@ func (s *Server) siteCommunity(w http.ResponseWriter, r *http.Request, path stri
 			JSON(w, 200, map[string]any{"friends": value, "avatarChanged": changed})
 			return
 		}
-		if action == "auto-review" && r.Method == "PUT" {
+		if action == "manual-approval" && r.Method == "PUT" {
+ if err:=communityStore.EnqueueManualFriendApproval(r.Context(),parts[0]);err!=nil{s.fail(w,err);return}
+ s.wakeFriendJobs()
+ value,err:=communityStore.Friends(r.Context(),false);if err!=nil{s.fail(w,err);return};JSON(w,200,map[string]any{"friends":value,"queued":true});return
+ }
+ if action == "auto-review" && r.Method == "PUT" {
 			if err := communityStore.EnqueueFriendReview(r.Context(), parts[0]); err != nil {
 				s.fail(w, err)
 				return

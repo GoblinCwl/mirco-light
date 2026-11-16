@@ -66,14 +66,14 @@ func TestFriendRefreshKeepsFailuresAndConcurrentEdits(t *testing.T) {
 		return time.Date(2026, 11, 12, hour, 0, 0, 0, time.UTC), nil
 	}
 	result, err := store.RefreshLinks(ctx)
-	if err == nil || result.Avatars != 1 || result.Feeds != 2 {
+	if err != nil || result.Avatars != 1 || result.Feeds != 3 {
 		t.Fatal(result, err)
 	}
 	friends, err := store.Friends(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if friends[0].Name != "b" || friends[1].Name != "a" {
+	if friends[0].Name != "c" || friends[1].Name != "b" || friends[2].Name != "a" {
 		t.Fatal("RSS sort failed", friends)
 	}
 	byName := map[string]community.Friend{}

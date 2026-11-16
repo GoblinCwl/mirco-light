@@ -235,7 +235,7 @@ func TestManualApprovalRunsInspectionOnceAndRemovesFailedQueueItem(t *testing.T)
 		t.Fatal("lost manual inspection on recovery", job, err)
 	}
 	workErr := store.ProcessClaimedFriendJob(ctx, *job)
-	if workErr == nil || homepage != 1 || avatar != 1 || feed != 0 || review != 0 {
+	if workErr != nil || homepage != 1 || avatar != 1 || feed != 1 || review != 0 {
 		t.Fatal("inspection steps incorrect", homepage, avatar, feed, review, workErr)
 	}
 	if err = store.FinishFriendJob(ctx, *job, workErr); err != nil {
@@ -245,7 +245,7 @@ func TestManualApprovalRunsInspectionOnceAndRemovesFailedQueueItem(t *testing.T)
 	if err = db.QueryRow("SELECT status,review_result,latest_update FROM friends WHERE id=?", f.ID).Scan(&status, &result, &latest); err != nil {
 		t.Fatal(err)
 	}
-	if status != "展示中" || result != "人工审核：展示中" || latest != "2020-01-01T00:00:00.000Z" {
+	if status != "展示中" || result != "人工审核：展示中" || latest != expected.Format("2006-01-02T15:04:05.000Z") {
 		t.Fatal(status, result, latest)
 	}
 	var count int
@@ -321,10 +321,46 @@ func TestManualInspectionFailureUsesDailyHomepageHealthAndCannotDeleteNewerWork(
 		t.Fatal(err)
 	}
 	next, err := store.ClaimFriendJob(ctx, time.Now())
-	if err != nil || next == nil || next.InspectOnly || next.Generation <= job.Generation {
-		t.Fatal("old inspection removed newer automatic work", next, err)
+	if err != nil || next != nil {
+		t.Fatal("manual pending status must not retain automatic work", next, err)
 	}
 	if err = store.ProcessClaimedFriendJob(ctx, *job); err != nil {
 		t.Fatal("stale inspection should skip a newly pending friend", err)
+	}
+}
+
+func TestFriendPoolClaimsDistinctFriendsAndDefersNewGeneration(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	store := community.Store{DB: db}
+	for _, name := range []string{"pool-a", "pool-b", "pool-c"} {
+		if _, _, err := store.CreateFriend(ctx, community.Friend{Name: name, URL: "https://" + name + ".example", BacklinkURL: "https://" + name + ".example/friends", Status: "展示中"}, false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	jobs := make(chan *community.FriendJob, 3)
+	errs := make(chan error, 3)
+	for i := 0; i < 3; i++ {
+		go func() { j, e := store.ClaimFriendJob(ctx, time.Now()); jobs <- j; errs <- e }()
+	}
+	var active []string
+	seen := map[string]bool{}
+	for i := 0; i < 3; i++ {
+		j := <-jobs
+		e := <-errs
+		if e != nil || j == nil || seen[j.FriendID] {
+			t.Fatal("duplicate or missing parallel claim", j, e)
+		}
+		seen[j.FriendID] = true
+		active = append(active, j.FriendID)
+	}
+	if err := store.EnqueueFriend(ctx, active[0]); err != nil {
+		t.Fatal(err)
+	}
+	if j, e := store.ClaimFriendJobExcept(ctx, time.Now(), active); e != nil || j != nil {
+		t.Fatal("running friend generation claimed concurrently", j, e)
+	}
+	if j, e := store.ClaimFriendJobExcept(ctx, time.Now(), active[1:]); e != nil || j == nil || j.FriendID != active[0] {
+		t.Fatal("new generation not claimable after worker completes", j, e)
 	}
 }

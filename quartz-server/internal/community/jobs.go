@@ -12,11 +12,12 @@ import (
 )
 
 type FriendJob struct {
-	FriendID    string
-	FriendName  string
-	Generation  int64
-	Attempts    int
-	InspectOnly bool
+	FriendID       string
+	FriendName     string
+	Generation     int64
+	Attempts       int
+	ManualApproval bool
+	InspectOnly    bool
 }
 
 // EnqueueFriendTx commits the work item together with its friend record.
@@ -25,7 +26,7 @@ func EnqueueFriendTx(ctx context.Context, tx *sql.Tx, id string) error {
 		return err
 	}
 	stamp := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
-	_, err := tx.ExecContext(ctx, "INSERT INTO friend_jobs(friend_id,generation,state,attempts,available_at,last_error,enqueued_at) VALUES(?,1,'pending',0,0,'',?) ON DUPLICATE KEY UPDATE generation=generation+1,state='pending',attempts=0,available_at=0,last_error='',enqueued_at=?", id, stamp, stamp)
+	_, err := tx.ExecContext(ctx, "INSERT INTO friend_jobs(friend_id,generation,state,attempts,available_at,last_error,enqueued_at) VALUES(?,1,'pending',0,0,'',?) ON DUPLICATE KEY UPDATE generation=generation+1,state='pending',attempts=0,available_at=0,last_error='',manual_approval=0,enqueued_at=?", id, stamp, stamp)
 	return err
 }
 func (s Store) EnqueueFriend(ctx context.Context, id string) error {
@@ -53,13 +54,29 @@ func (s Store) RecoverFriendJobs(ctx context.Context) error {
 	return nil
 }
 func (s Store) ClaimFriendJob(ctx context.Context, now time.Time) (*FriendJob, error) {
+	return s.ClaimFriendJobExcept(ctx, now, nil)
+}
+
+// ClaimFriendJobExcept excludes friends already running in this worker pool, including newer generations.
+func (s Store) ClaimFriendJobExcept(ctx context.Context, now time.Time, active []string) (*FriendJob, error) {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 	var job FriendJob
-	err = tx.QueryRowContext(ctx, "SELECT j.friend_id,f.name,j.generation,j.attempts,(f.status='展示中') FROM friend_jobs j JOIN friends f ON f.id=j.friend_id WHERE j.state='pending' AND j.available_at<=? ORDER BY j.available_at,j.enqueued_at,j.friend_id LIMIT 1 FOR UPDATE SKIP LOCKED", now.UnixMilli()).Scan(&job.FriendID, &job.FriendName, &job.Generation, &job.Attempts, &job.InspectOnly)
+	query := "SELECT j.friend_id,f.name,j.generation,j.attempts,(f.status='展示中'),j.manual_approval FROM friend_jobs j JOIN friends f ON f.id=j.friend_id WHERE j.state='pending' AND j.available_at<=?"
+	args := []any{now.UnixMilli()}
+	if len(active) > 0 {
+		placeholders := make([]string, len(active))
+		for i, id := range active {
+			placeholders[i] = "?"
+			args = append(args, id)
+		}
+		query += " AND j.friend_id NOT IN (" + strings.Join(placeholders, ",") + ")"
+	}
+	query += " ORDER BY j.available_at,j.enqueued_at,j.friend_id LIMIT 1 FOR UPDATE SKIP LOCKED"
+	err = tx.QueryRowContext(ctx, query, args...).Scan(&job.FriendID, &job.FriendName, &job.Generation, &job.Attempts, &job.InspectOnly, &job.ManualApproval)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -107,8 +124,10 @@ func (s Store) FinishFriendJob(ctx context.Context, job FriendJob, workErr error
 	}
 	if workErr != nil || (status == "待审核" && !job.InspectOnly) {
 		if status == "展示中" {
-			if err = recordInspectionFailureTx(ctx, tx, job.FriendID, workErr); err != nil {
-				return err
+			if errors.Is(workErr, ErrHomepageInspectionFailed) {
+				if err = recordInspectionFailureTx(ctx, tx, job.FriendID, workErr); err != nil {
+					return err
+				}
 			}
 		} else if err = recordFriendFailureTx(ctx, tx, job.FriendID, workErr); err != nil {
 			return err
@@ -125,11 +144,14 @@ func (s Store) ProcessClaimedFriendJob(ctx context.Context, job FriendJob) error
 	if job.InspectOnly {
 		return s.InspectFriend(ctx, job.FriendID)
 	}
-	return s.ProcessFriendJob(ctx, job.FriendID)
+	return s.processFriendJob(ctx, job.FriendID, job.ManualApproval)
 }
 
 // ProcessFriendJob performs remote work only in the background worker.
 func (s Store) ProcessFriendJob(ctx context.Context, id string) error {
+	return s.processFriendJob(ctx, id, false)
+}
+func (s Store) processFriendJob(ctx context.Context, id string, manualApproval bool) error {
 	friend, err := s.friendByID(ctx, id)
 	if errors.Is(err, ErrFriendNotFound) {
 		return nil
@@ -215,6 +237,9 @@ func (s Store) ProcessFriendJob(ctx context.Context, id string) error {
 	n, _ := changed.RowsAffected()
 	if n == 0 {
 		return errors.New("友链信息已变化，等待新任务检查")
+	}
+	if manualApproval {
+		return s.finishManualApproval(ctx, friend)
 	}
 	if s.CheckBacklink != nil {
 		if friend.Status == "待审核" {

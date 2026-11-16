@@ -63,9 +63,9 @@ func TestRSSAddressOptionalAndValidated(t *testing.T) {
 	}
 }
 
-func TestApplicationEmailRequired(t *testing.T) {
+func TestApplicationEmailOptional(t *testing.T) {
 	base := Friend{Name: "fixture", URL: "https://fixture.example", BacklinkURL: "https://fixture.example/friends", Avatar: "https://fixture.example/avatar.png", Description: "fixture"}
-	for _, address := range []string{"", "invalid", "user@example.com\r\nBcc:other@example.com", strings.Repeat("x", 255) + "@example.com"} {
+	for _, address := range []string{"invalid", "user@example.com\r\nBcc:other@example.com", strings.Repeat("x", 255) + "@example.com"} {
 		base.Email = address
 		if _, err := validFriend(base, true); err == nil {
 			t.Fatal("accepted invalid email")
@@ -77,6 +77,9 @@ func TestApplicationEmailRequired(t *testing.T) {
 		t.Fatal(err)
 	}
 	base.Email = ""
+	if _, err := validFriend(base, true); err != nil {
+		t.Fatal("optional email rejected", err)
+	}
 	if _, err := validFriend(base, false); err != nil {
 		t.Fatal("legacy admin friend rejected", err)
 	}

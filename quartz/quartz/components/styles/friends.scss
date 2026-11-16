@@ -311,3 +311,5 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
   >button {position:absolute;top:.35rem;right:.35rem;display:grid;place-items:center;width:1.9rem;height:1.9rem;padding:.35rem;border:0;border-radius:4px;background:transparent;color:var(--gray);cursor:pointer;>svg {display:block;width:1.05rem;height:1.05rem;} &:hover {color:var(--secondary);background:var(--highlight);} &:focus-visible {outline:2px solid var(--secondary);outline-offset:1px;}}
  }
 }
+
+.friends-sidebar .friends-form-field > span { justify-content:flex-start; .friends-required { color:#c75d5d; font-style:normal; margin-left:-.3rem; } output { margin-left:auto; } }

@@ -6,6 +6,22 @@ import { node } from './driveUi'
 export function setupFriendManager(root: HTMLElement, initial: unknown, signal: AbortSignal, request: (path: string, init?: RequestInit) => Promise<{friends: FriendLink[];avatarChanged?:boolean}>) {
   let friends: FriendLink[]
   try { friends = parseFriends(initial ?? defaultFriends) } catch { friends = [] }
+  let reviewPoll: ReturnType<typeof setTimeout>|undefined
+  signal.addEventListener('abort',()=>clearTimeout(reviewPoll),{once:true})
+  const watchApproval=(id:string,deadline=Date.now()+180000)=>{
+    clearTimeout(reviewPoll)
+    reviewPoll=setTimeout(async()=>{
+      if(signal.aborted)return
+      if(busy){watchApproval(id,deadline);return}
+      try {
+        const result=await request('/admin/data/friends');if(signal.aborted)return
+        const next=parseFriends(result.friends),changed=JSON.stringify(next)!==JSON.stringify(friends)
+        friends=next
+        if(changed&&root.querySelector('.friend-admin-row'))render()
+        if(friends.find(friend=>friend.id===id)?.status==='待审核'&&Date.now()<deadline)watchApproval(id,deadline)
+      }catch{if(!signal.aborted&&Date.now()<deadline)watchApproval(id,deadline)}
+    },2000)
+  }
   let busy = false
   const status = node('p', '', 'friend-admin-status'); status.setAttribute('role', 'status')
   const persist = async (path: string, method: string, value?: unknown) => {
@@ -13,7 +29,7 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
     busy = true; status.textContent = ''; status.classList.remove('is-error')
     const controls = [...root.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement | HTMLSelectElement>('input,button,textarea,select')]
     const disabled = controls.map(control => control.disabled); controls.forEach(control => control.disabled = true)
-    try { const result = await request('/admin/data/friends'+path, {method, ...(value === undefined ? {} : {body:JSON.stringify(value)})}); if (signal.aborted) return false; friends = parseFriends(result.friends); document.dispatchEvent(new Event('friends-changed')); showPasswordToast(path.endsWith('/auto-review')?'已加入后台处理队列':method==='DELETE'?'已删除':'已保存'); return true }
+    try { const result = await request('/admin/data/friends'+path, {method, ...(value === undefined ? {} : {body:JSON.stringify(value)})}); if (signal.aborted) return false; friends = parseFriends(result.friends); document.dispatchEvent(new Event('friends-changed')); showPasswordToast((path.endsWith('/auto-review')||path.endsWith('/manual-approval'))?'已加入后台处理队列':method==='DELETE'?'已删除':'已保存'); return true }
     catch (error) { if (!signal.aborted) { showPasswordToast(error instanceof Error ? error.message : '保存失败',true) }; return false }
     finally { busy = false; controls.forEach((control, i) => control.disabled = disabled[i]) }
   }
@@ -116,8 +132,10 @@ export function setupFriendManager(root: HTMLElement, initial: unknown, signal: 
       const button = (label: string, handler: () => void) => { const item = node('button', label); item.type = 'button'; item.onclick = handler; actions.append(item); return item }
       button('编辑', () => edit(friend))
       button('头像', () => manageAvatar(friend))
-      button('审核', () => edit(friend,true)).disabled=friend.status!=='待审核'
-      if(friend.status==='待审核')button('自动审核',()=>{void persist('/'+friend.id+'/auto-review','PUT',{}).then(saved=>{if(saved)render()})})
+      const verification=button(friend.verified?'已验':'未验',()=>{void persist('/'+friend.id+'/verification','PUT',{}).then(saved=>{if(saved)render()})});verification.className='friend-status-toggle';verification.dataset.active=String(!!friend.verified);verification.setAttribute('aria-pressed',String(!!friend.verified));verification.title=friend.verified?'已验证，点击切换为未验':'未验证，点击切换为验证'
+
+      const review=button(friend.status==='展示中'?'已审':'待审',()=>{const reviewed=friend.status==='展示中';void persist('/'+friend.id+(reviewed?'/review':'/manual-approval'),'PUT',reviewed?{status:'待审核'}:{}).then(saved=>{if(saved){render();if(!reviewed)watchApproval(friend.id)}})});review.className='friend-status-toggle';review.dataset.active=String(friend.status==='展示中');review.setAttribute('aria-pressed',String(friend.status==='展示中'));review.title=friend.status==='展示中'?'已审核，点击切换为待审':'检查首页、头像及 RSS，通过后设为已审'
+
       if((friend.processingFailures||0)>=(friend.failureLimit||5)){
        let confirmed=false
        const abandon=button('弃用',()=>{if(!confirmed){confirmed=true;abandon.textContent='确认弃用并通知';return};void persist('/'+friend.id+'/abandon','PUT',{}).then(saved=>{if(saved)render()})});abandon.className='is-danger'
