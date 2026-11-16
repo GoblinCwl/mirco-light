@@ -42,12 +42,15 @@ export function encounterWeights(settings:Record<string,unknown>):EncounterWeigh
 export function pickEncounterItems(items:EncounterItem[],previous:Set<string>,random=Math.random,weights:EncounterWeights={article:1,share:1,repo:1,video:1}) {
  const remaining=items.filter(item=>weights[item.kind]>0),chosen:EncounterItem[]=[]
  while(chosen.length<3&&remaining.length){
-  const kinds=[...new Set(remaining.map(item=>item.kind))]
+  // Exclude the whole visible batch before choosing a weighted type. Otherwise
+  // a type with no fresh items can bring an old item back despite other options.
+  const fresh=remaining.filter(item=>!previous.has(item.id))
+  const pool=fresh.length?fresh:remaining
+  const kinds=[...new Set(pool.map(item=>item.kind))]
   const total=kinds.reduce((sum,kind)=>sum+weights[kind],0)
   let cursor=random()*total,kind=kinds[kinds.length-1]
   for(const candidate of kinds){cursor-=weights[candidate];if(cursor<0){kind=candidate;break}}
-  const all=remaining.filter(item=>item.kind===kind),fresh=all.filter(item=>!previous.has(item.id))
-  const candidates=fresh.length?fresh:all
+  const candidates=pool.filter(item=>item.kind===kind)
   const selected=candidates[Math.floor(random()*candidates.length)]
   chosen.push(selected)
   for(let index=remaining.length-1;index>=0;index--)if(remaining[index].id===selected.id)remaining.splice(index,1)

@@ -47,8 +47,19 @@ test('relative type weights determine frequency independently of how many record
  assert.ok(articles>3000&&articles<3400,`expected roughly 80% articles; got ${articles}/4000`)
 })
 
-test('a previous batch does not suppress the configured weight of a type with one item',()=>{
- const items=encounterItemsFromIndex([page('article','a'),page('video','BV1234567890')],()=>false)
- const selected=pickEncounterItems(items,new Set(['video:BV1234567890']),()=>.99,{article:1,video:100,repo:0,share:0})
- assert.equal(selected[0].kind,'video')
+test('refresh excludes the visible batch before choosing types, including high-weight singleton types',()=>{
+ const items=encounterItemsFromIndex([...Array.from({length:4},(_,i)=>page('article',`a${i}`)),page('repo','r'),page('video','BV1234567890')],()=>false)
+ const previous=new Set(['article:a0','repo:r','video:BV1234567890'])
+ const selected=pickEncounterItems(items,previous,()=>.99,{article:1,video:100,repo:100,share:0})
+ assert.equal(selected.length,3)
+ assert.ok(selected.every(item=>!previous.has(item.id)))
+})
+
+test('refresh exhausts fresh items before filling missing slots from the visible batch',()=>{
+ const items=encounterItemsFromIndex([page('article','a'),page('article','b'),page('repo','r'),page('video','BV1234567890')],()=>false)
+ const previous=new Set(['article:a','repo:r','video:BV1234567890'])
+ const selected=pickEncounterItems(items,previous,()=>.99,{article:1,video:100,repo:100,share:0})
+ assert.equal(selected[0].id,'article:b')
+ assert.equal(selected.length,3)
+ assert.equal(new Set(selected.map(item=>item.id)).size,3)
 })
