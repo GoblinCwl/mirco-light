@@ -1,3 +1,4 @@
+import type { Root, Blockquote } from "mdast"
 import matter from "gray-matter"
 import remarkFrontmatter from "remark-frontmatter"
 import { QuartzTransformerPlugin } from "../types"
@@ -61,7 +62,7 @@ export const FrontMatter: QuartzTransformerPlugin<Partial<Options>> = (userOpts)
       return [
         [remarkFrontmatter, ["yaml", "toml"]],
         () => {
-          return (_, file) => {
+          return (tree: Root, file) => {
             const fileData = Buffer.from(file.value as Uint8Array)
             const { data } = matter(fileData, {
               ...opts,
@@ -125,6 +126,26 @@ export const FrontMatter: QuartzTransformerPlugin<Partial<Options>> = (userOpts)
             const uniqueSlugs = [...new Set(allSlugs)]
             allSlugs.splice(0, allSlugs.length, ...uniqueSlugs)
 
+            // Accept both Obsidian checkbox booleans and text properties saved as "true".
+            if ("deprecated" in data) data.deprecated = data.deprecated === true || typeof data.deprecated === "string" && data.deprecated.trim().toLowerCase() === "true"
+            if (data.deprecated) {
+              const directive = "[!WARNING] 本文已弃用"
+              const contentStart = tree.children.findIndex(node => !["yaml", "toml"].includes(node.type))
+              const index = contentStart < 0 ? tree.children.length : contentStart
+              const first = tree.children[index]
+              const alreadyPresent = first?.type === "blockquote" && first.children[0]?.type === "paragraph" && first.children[0].children[0]?.type === "text" && first.children[0].children[0].value.split("\n")[0] === directive
+              if (!alreadyPresent) {
+                const notice: Blockquote = {
+                  type: "blockquote",
+                  children: [
+                    { type: "paragraph", children: [{ type: "text", value: directive }] },
+                    { type: "paragraph", children: [{ type: "text", value: "本文内容已不再维护，部分信息可能已经过时或不再适用，仅供历史参考。请勿直接依照本文进行操作。" }] },
+                  ],
+                }
+                tree.children.splice(index, 0, notice)
+              }
+            }
+
             // fill in frontmatter
             file.data.frontmatter = data as QuartzPluginData["frontmatter"]
           }
@@ -148,6 +169,7 @@ declare module "vfile" {
         description: string
         socialDescription: string
         publish: boolean | string
+        deprecated: boolean
         draft: boolean | string
         lang: string
         enableToc: boolean | string

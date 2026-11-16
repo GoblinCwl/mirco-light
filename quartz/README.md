@@ -33,3 +33,5 @@ node quartz/bootstrap-cli.mjs build
 `docs/` 中的框架参考资料与本站维护规范分开，阅读入口见 [文档分类](docs/README.md)。
 
 文章 `alias` / `aliases` 由 ContentPage 同步输出完整页面，访问别名保留地址栏，原文 slug、评论及解密身份不变。相对资源和正文链接转换为根路径，canonical 指向原文；不再输出刷新跳转页。裸别名位于站点根目录，显式 `./` 别名相对文章目录。
+
+文章 frontmatter 支持 Obsidian 布尔属性 `deprecated: true`。构建时在正文开头插入「本文已弃用」WARNING 提示块，内容为「本文内容已不再维护，部分信息可能已经过时或不再适用，仅供历史参考。请勿直接依照本文进行操作。」，复用现有 Obsidian callout 渲染与主题样式，不修改笔记文件。同时兼容文本属性 `deprecated: "true"`（忽略大小写和两侧空格）；未填写或 `false` 不启用；已有相同开头提示时不重复添加。
