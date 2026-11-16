@@ -11,7 +11,7 @@ export const ViewImage: QuartzTransformerPlugin = () => {
         js: [
           {script:`(()=>{${lockScript}})();`,loadTime:"afterDOMReady",contentType:"inline"},
           {
-            src: "/static/view-image.min.js?v=20261111-3",
+            src: "/static/view-image.min.js?v=20261116-3",
             loadTime: "afterDOMReady",
             contentType: "external",
           },

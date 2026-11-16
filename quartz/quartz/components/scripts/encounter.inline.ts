@@ -1,3 +1,4 @@
+import { readSiteSettings, siteSettings } from './siteSettings'
 import {readContentCatalog} from './contentCatalog'
 import {resolveRelative,type FullSlug} from '../../util/path'
 import {attachVideoPreview,clearVideoPreviews} from './videoPreview'
@@ -6,7 +7,7 @@ import {repoHref} from './repoShared'
 import {driveEntryHref} from './driveEntries'
 import {drivePassword} from './driveClient'
 import {readDriveShareRoot} from './driveShareSummary'
-import {encounterItemsFromIndex,pickEncounterItems,type EncounterItem} from './encounterItems'
+import {encounterItemsFromIndex,pickEncounterItems,encounterWeights,type EncounterItem} from './encounterItems'
 import {contentTypeIcons} from '../../util/contentTypeIcons'
 const compact=new Intl.NumberFormat('zh-CN',{notation:'compact',maximumFractionDigits:1})
 const date=(value:string|null)=>value?new Date(value).toLocaleDateString('zh-CN'):''
@@ -48,6 +49,7 @@ document.addEventListener('nav',async()=>{
       second.textContent=item.video.description?.trim()||'暂无视频简介'
       cleanups.push(attachVideoPreview(link,item.video.bvid,item.video.cover,{anchor:link,duration:item.video.duration}))
     }
+    const title=document.createElement('span');title.className='home-encounter-title';title.textContent=link.textContent;link.title=link.textContent||'';link.replaceChildren(title)
     const icon=document.createElement('span');icon.className='home-encounter-kind';icon.setAttribute('aria-hidden','true')
     icon.innerHTML=contentTypeIcons[item.kind]
     link.prepend(icon)
@@ -61,23 +63,24 @@ document.addEventListener('nav',async()=>{
       if(signal.aborted)return
       version++;clear()
       const eligible=items.filter(item=>item.kind!=='share'||!item.entry.protected||Boolean(drivePassword('share',item.entry.id,'/')))
-      const selected=pickEncounterItems(eligible,previous);previous=new Set(selected.map(item=>item.id))
+      const selected=pickEncounterItems(eligible,previous,Math.random,encounterWeights(siteSettings()));previous=new Set(selected.map(item=>item.id))
       content.replaceChildren(...selected.map(create))
       if(!selected.length)content.textContent='静候下一束微光'
       content.setAttribute('aria-busy','false');animation?.cancel()
       if(!reduced.matches)animation=content.animate([{opacity:0},{opacity:1}],{duration:250})
-    }finally{busy=false;next.disabled=items.length<=3}
+    }finally{busy=false;next.disabled=items.filter(item=>encounterWeights(siteSettings())[item.kind]>0).length<=3}
   }
   next.addEventListener('click',()=>void choose(),{signal})
   const refresh=async()=>{
     const request=++fetchVersion
     try{
-      const catalog=await readContentCatalog()
+      const [catalog]=await Promise.all([readContentCatalog(),readSiteSettings()])
       if(signal.aborted||request!==fetchVersion)return
       items=encounterItemsFromIndex(Object.values(catalog.pages),id=>Boolean(drivePassword('share',id,'/')))
       await choose()
     }catch{if(!signal.aborted&&request===fetchVersion&&!items.length){content.textContent='暂时无法读取拾遗';content.setAttribute('aria-busy','false');next.disabled=true}}
   }
   for(const event of ['drive-auth-change','drive-directory-unlocked','drive-files-changed','stellar-data-changed'])document.addEventListener(event,()=>void refresh(),{signal})
+  document.addEventListener('site-settings-changed',()=>{if(items.length)void choose()},{signal})
   await refresh()
 })

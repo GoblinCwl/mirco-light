@@ -74,12 +74,13 @@ document.addEventListener('nav', () => {
       window.clearTimeout(timeout)
       favicon.onload = favicon.onerror = null
       if (loaded) {
-        let padded = true
+        const isPNG = /\.png$/i.test(new URL(favicon.currentSrc || favicon.src).pathname)
+        let padded = !isPNG
         try {
           const canvas = document.createElement('canvas')
           canvas.width = canvas.height = 32
           const context = canvas.getContext('2d', { willReadFrequently: true })
-          if (context) {
+          if (context && !isPNG) {
             context.drawImage(favicon, 0, 0, 32, 32)
             padded = faviconNeedsPadding(context.getImageData(0, 0, 32, 32).data, 32)
           }

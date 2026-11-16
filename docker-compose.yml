@@ -26,7 +26,8 @@ services:
 
   artalk:
     container_name: artalk
-    image: artalk/artalk-go
+    build: ./artalk
+    image: quartz-artalk:local
     restart: unless-stopped
     ports:
       - 23366:23366

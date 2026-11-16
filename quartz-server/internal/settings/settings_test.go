@@ -114,3 +114,22 @@ func TestFriendAvatarMemoryLimit(t *testing.T) {
 		}
 	}
 }
+
+func TestEncounterWeights(t *testing.T) {
+	for _, kind := range []string{"article", "share", "repo", "video"} {
+		key := "home.encounter." + kind + "Weight"
+		for _, value := range []float64{0, 1, 100} {
+			if _, err := validate(key, value); err != nil {
+				t.Fatal(key, value, err)
+			}
+		}
+		for _, value := range []any{float64(-1), float64(101), 1.5, "2"} {
+			if _, err := validate(key, value); err == nil {
+				t.Fatal("invalid weight accepted", key, value)
+			}
+		}
+		if Sensitive(key) {
+			t.Fatal("encounter weight must be public", key)
+		}
+	}
+}

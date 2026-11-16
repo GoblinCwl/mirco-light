@@ -46,7 +46,7 @@ document.addEventListener('nav', () => {
     fields.replaceChildren()
     const navigation = root.querySelector<HTMLElement>('[data-stellar-modules]')!; navigation.replaceChildren()
     const designs: Record<string, {id:string; title:string; description:string; icon:string}> = {
-      '首页展示': {id:'profile',title:'首页',description:'首页头像、身份信息、网站简介与联系方式。',icon:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>'},
+      '首页展示': {id:'profile',title:'首页',description:'首页头像、身份信息、网站简介、联系方式与拾遗抽取权重。',icon:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>'},
       '视频': {id:'video',title:'媒体',description:'播放默认值、字幕与弹幕显示设置，个人播放记忆优先。',icon:'<rect x="3" y="4" width="18" height="14" rx="2"/><path d="m10 8 5 3-5 3V8Zm-3 13h10"/>'},
       '星轨': {id:'graph',title:'星轨',description:'文章的新星标记与孤星特效。',icon:'<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="5" transform="rotate(-30 12 12)"/><path d="m18 3 .6 1.4L20 5l-1.4.6L18 7l-.6-1.4L16 5l1.4-.6Z"/>'},
       '服务接入': {id:'integrations',title:'服务',description:'统一管理 OpenList、媒体、仓库、评论、监控与首页数据源及平台凭据。保存后由对应服务读取。',icon:'<path d="M14 5a5 5 0 1 1-4 8l-6 6H2v-3l6-6a5 5 0 0 1 6-5Z"/><circle cx="16" cy="8" r="1"/>'},

@@ -31,18 +31,26 @@ export function encounterItemsFromIndex(pages:IndexedContent[],unlocked:(id:stri
  }
  return items
 }
-export function pickEncounterItems(items:EncounterItem[],previous:Set<string>,random=Math.random) {
-  const kinds=[...new Set(items.map(item=>item.kind))]
-  const shuffle=<T>(values:T[])=>{for(let i=values.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[values[i],values[j]]=[values[j],values[i]]}return values}
-  const chosen:EncounterItem[]=[]
-  // A mixed batch, without a mandatory video slot or one source drowning out the others.
-  for(const kind of shuffle(kinds)){
-    const all=items.filter(item=>item.kind===kind),fresh=all.filter(item=>!previous.has(item.id)),pool=fresh.length?fresh:all
-    chosen.push(pool[Math.floor(random()*pool.length)])
-    if(chosen.length===3)return chosen
-  }
-  const rest=items.filter(item=>!chosen.some(pick=>pick.id===item.id))
-  rest.sort((a,b)=>Number(previous.has(a.id))-Number(previous.has(b.id)))
-  while(chosen.length<3&&rest.length)chosen.push(rest.shift()!)
-  return chosen
+export type EncounterWeights = Record<EncounterItem['kind'],number>
+export function encounterWeights(settings:Record<string,unknown>):EncounterWeights {
+ const weight=(kind:EncounterItem['kind'])=>{
+  const value=settings[`home.encounter.${kind}Weight`]
+  return typeof value==='number'&&Number.isFinite(value)?Math.max(0,Math.min(100,value)):1
+ }
+ return {article:weight('article'),share:weight('share'),repo:weight('repo'),video:weight('video')}
+}
+export function pickEncounterItems(items:EncounterItem[],previous:Set<string>,random=Math.random,weights:EncounterWeights={article:1,share:1,repo:1,video:1}) {
+ const remaining=items.filter(item=>weights[item.kind]>0),chosen:EncounterItem[]=[]
+ while(chosen.length<3&&remaining.length){
+  const kinds=[...new Set(remaining.map(item=>item.kind))]
+  const total=kinds.reduce((sum,kind)=>sum+weights[kind],0)
+  let cursor=random()*total,kind=kinds[kinds.length-1]
+  for(const candidate of kinds){cursor-=weights[candidate];if(cursor<0){kind=candidate;break}}
+  const all=remaining.filter(item=>item.kind===kind),fresh=all.filter(item=>!previous.has(item.id))
+  const candidates=fresh.length?fresh:all
+  const selected=candidates[Math.floor(random()*candidates.length)]
+  chosen.push(selected)
+  for(let index=remaining.length-1;index>=0;index--)if(remaining[index].id===selected.id)remaining.splice(index,1)
+ }
+ return chosen
 }

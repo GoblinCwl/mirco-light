@@ -1,5 +1,57 @@
 [
   {
+    "key": "home.encounter.articleWeight",
+    "public": true,
+    "group": "首页展示",
+    "category": "拾遗",
+    "label": "文章权重",
+    "type": "number",
+    "default": 1,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "help": "按类型权重随机抽取，数值越大越容易出现；0 表示不参与。没有类型保底，同一批可以出现多个同类型内容。"
+  },
+  {
+    "key": "home.encounter.shareWeight",
+    "public": true,
+    "group": "首页展示",
+    "category": "拾遗",
+    "label": "分享权重",
+    "type": "number",
+    "default": 1,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "help": "按类型权重随机抽取，数值越大越容易出现；0 表示不参与。没有类型保底，同一批可以出现多个同类型内容。"
+  },
+  {
+    "key": "home.encounter.repoWeight",
+    "public": true,
+    "group": "首页展示",
+    "category": "拾遗",
+    "label": "仓库权重",
+    "type": "number",
+    "default": 1,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "help": "按类型权重随机抽取，数值越大越容易出现；0 表示不参与。没有类型保底，同一批可以出现多个同类型内容。"
+  },
+  {
+    "key": "home.encounter.videoWeight",
+    "public": true,
+    "group": "首页展示",
+    "category": "拾遗",
+    "label": "视频权重",
+    "type": "number",
+    "default": 1,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "help": "按类型权重随机抽取，数值越大越容易出现；0 表示不参与。没有类型保底，同一批可以出现多个同类型内容。"
+  },
+  {
     "key": "external.favicons",
     "public": true,
     "group": "外链",
