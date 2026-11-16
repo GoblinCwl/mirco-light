@@ -1,3 +1,4 @@
+import HomeNavigation from "./HomeNavigation"
 import Encounter from "./Encounter"
 import Content from "./pages/Content"
 import TagContent from "./pages/TagContent"
@@ -56,4 +57,5 @@ export {
   ScrollButton,
   Subscript,
   HomeDashboard,
+  HomeNavigation,
 }

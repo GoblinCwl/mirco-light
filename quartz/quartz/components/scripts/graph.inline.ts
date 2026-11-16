@@ -911,7 +911,7 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
     }
     advanceAnchorReturn?.(time)
     const delta = previousFrame === undefined ? 0 : Math.min(time - previousFrame, 50)
-    const rotating = idleMotion && !dragging && !viewportInteracting && !document.hidden && !reducedMotion.matches
+    const rotating = idleMotion && !dragging && !viewportInteracting && !(expandedGraph && hoveredNodeId !== null) && !document.hidden && !reducedMotion.matches
     const moving = rotating && !homeReturnActive
     if (idleMotion) {
       // A full revolution takes 48 seconds. Pause in place during interaction.

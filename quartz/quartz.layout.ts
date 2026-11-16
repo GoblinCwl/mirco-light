@@ -120,6 +120,7 @@ export const defaultContentPageLayout: PageLayout = {
   right: [
     Component.Graph(),
     Component.Encounter(),
+    Component.HomeNavigation(),
     Component.DesktopOnly(Component.TableOfContents()),
     Component.Backlinks(),
     Component.ScrollButton({

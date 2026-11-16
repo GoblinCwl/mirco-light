@@ -1,6 +1,5 @@
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 import modernStyle from "./styles/toc.scss"
-import { restoreNavigationSkeleton } from "./scripts/navigationSkeleton"
 import { classNames } from "../util/lang"
 
 // @ts-ignore
@@ -17,20 +16,7 @@ export default (() => {
     displayClass,
     cfg,
   }: QuartzComponentProps) => {
-    if (fileData.slug === "index") {
-      const id = `toc-${numTocs++}`
-      return (
-        <div class={classNames(displayClass, "toc", "home-links-toc")}>
-          <h3 class="home-links-title">寻径</h3>
-          <OverflowList id={id} class="toc-content" aria-busy="true" aria-label="寻径链接加载中">
-            {[3, 4].map(width => <li aria-hidden="true"><span class="home-link-icon"><span class="home-navigation-skeleton-icon"/></span><span class="home-navigation-placeholder-label" style={`width:${width}rem`}>{'\u00a0'}</span></li>)}
-            <li class="home-registration-divider" aria-hidden="true"/>
-            <li aria-hidden="true"><span class="home-navigation-placeholder-label home-navigation-placeholder-icp" style="width:9rem">{'\u00a0'}</span></li>
-          </OverflowList>
-          <script dangerouslySetInnerHTML={{ __html: `(${restoreNavigationSkeleton.toString()})(document.currentScript.previousElementSibling)` }} />
-        </div>
-      )
-    }
+    if (fileData.slug === "index") return null
     if (!fileData.toc) {
       return null
     }

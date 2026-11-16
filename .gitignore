@@ -3,6 +3,7 @@
 /backups/
 /artalk-data/
 /public/
+/output/
 
 # Editor settings and temporary files
 .vscode/

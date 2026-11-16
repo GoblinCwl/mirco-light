@@ -35,8 +35,6 @@ export function restoreNavigationSkeleton(container: HTMLElement | null) {
       if(item.icon){const icon=document.createElement('span');icon.className='home-registration-icon';name.prepend(icon)}
       row.append(name);fragment.append(row)
     }
-    const end=container.querySelector('.overflow-end')
-    if(end)fragment.append(end)
     container.replaceChildren(fragment)
   } catch { /* A missing/invalid layout keeps the server-rendered fallback. */ }
 }

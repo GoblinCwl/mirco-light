@@ -55,9 +55,8 @@ export function applySiteSettings(values: SiteSettings) {
       registrations.sort((a,b)=>a.order-b.order)
       rememberNavigationSkeleton(visibleLinks,registrations)
       const revision=JSON.stringify([values['navigation.items'],values['icp.items']])
-      for(const container of document.querySelectorAll<HTMLElement>('.home-links-toc .toc-content')){
+      for(const container of document.querySelectorAll<HTMLElement>('.home-links-toc .home-navigation-list')){
         if(container.dataset.navigation===revision)continue
-        const end=container.querySelector('.overflow-end')
         container.replaceChildren()
         for(const link of visibleLinks){
           const anchor=document.createElement('a');anchor.href=link.href;anchor.dataset.noPopover='true'
@@ -75,7 +74,7 @@ export function applySiteSettings(values: SiteSettings) {
           if(item.icon){const icon=document.createElement('span');icon.className='home-registration-icon';icon.setAttribute('aria-hidden','true');icon.innerHTML=navigationIcon(item.icon);icp.append(icon)}
           icp.append(document.createTextNode(item.label));row.append(icp);container.append(row)
         }
-        if(end)container.append(end);container.dataset.navigation=revision;container.setAttribute('aria-busy','false');container.removeAttribute('aria-label')
+        container.dataset.navigation=revision;container.setAttribute('aria-busy','false');container.removeAttribute('aria-label')
       }
     }catch{}
   }
