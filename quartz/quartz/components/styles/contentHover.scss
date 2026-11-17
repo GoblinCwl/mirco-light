@@ -1,6 +1,10 @@
 @use "driveLoading";
+@use "repoCode";
 @use "./videoPreview";
 .repo-hover-card {
+  @include repoCode.layout;
+  .repo-code { max-height: none; }
+  > .repo-notice { font-size: .8rem; color: var(--gray); }
   min-width:0;color:var(--darkgray);
   >div {font:.9rem/1.7 var(--bodyFont);}
   img {max-width:100%;height:auto;}

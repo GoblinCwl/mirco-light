@@ -1,5 +1,6 @@
 import { RequestCache } from './sharedRequest'
-import { drivePreviewSettings, setupDrivePreview } from './drivePreview'
+import { drivePreviewSettings } from './drivePreview'
+import {driveHoverFile} from './driveHoverFile'
 import { fileHoverSupported } from './driveHoverPolicy'
 import {previewBreadcrumbs} from './previewBreadcrumbs'
 import {readDriveShareRoot} from "./driveShareSummary"
@@ -78,18 +79,10 @@ export async function driveHoverContent(url:URL,label:string,signal:AbortSignal,
       if(!meta.is_dir){
         const config=await drivePreviewSettings(signal).catch(()=>({}))
         if(!fileHoverSupported(meta,config,view==='share'))return null
-        const wrapper=node('div','','drive-page drive-hover-file'),chooser=node('div'),select=node('select'),body=node('div')
-        body.className='drive-preview-body drive-hover-preview-body'
-        wrapper.setAttribute('data-drive-loading-root','')
-        const loading=node('span','','drive-loading-overlay')
-        loading.setAttribute('data-drive-page-loading','');loading.setAttribute('role','status');loading.setAttribute('aria-label','正在加载文件预览')
-        loading.innerHTML='<span class="drive-loading-badge"><span class="drive-loading" aria-hidden="true"><svg class="drive-loading-progress" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" pathLength="100"/></svg><i></i></span></span>'
-        chooser.hidden=true;chooser.append(select);wrapper.append(chooser,body,loading);box.append(wrapper)
         const direct=view==='share'?new URL(`/sd/${encodeURIComponent(share)}${path==='/'?'':path.split('/').map(encodeURIComponent).join('/')}`,DRIVE_ORIGIN):undefined
         if(direct&&password)direct.searchParams.set('pwd',password)
         const address=direct?.href||(view==='guest'?driveGuestFileUrl(meta):driveDownloadUrl(joinDrivePath(user?.base_path||'/',path),meta.sign))
-        const preview=setupDrivePreview(body,signal,{chooser,hover:true})
-        void preview.load(meta,address,{view,requestPath,password,user},signal).catch(()=>{})
+        box.append(driveHoverFile(meta,address,{view,requestPath,password,user},signal))
         return box
       }
       const aliases=view==='share'?await fetchDriveAliases(share,signal,path).catch(()=>({} as Record<string,string>)):{}

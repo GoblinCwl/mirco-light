@@ -1,0 +1,4 @@
+@mixin layout {
+  .repo-code pre > code { display: block; overflow: visible; margin: 0; padding: 0; }
+  .repo-code { display: flex; overflow: auto; max-height: min(75vh, 65rem); font-family: var(--codeFont); background: var(--moreLight); pre { margin: 0; padding: 1rem; border: 0; border-radius: 0; background: none; font-size: .8rem; line-height: 1.65; overflow: visible; min-width: max-content; code { font: inherit; padding: 0; white-space: pre; background: none; } } pre.repo-line-numbers { color: var(--gray); text-align: right; padding-right: .8rem; border-right: 1px solid var(--lightgray); user-select: none; position: sticky; left: 0; background: var(--moreLight); } .hljs-keyword, .hljs-selector-tag { color: #b180d7; } .hljs-string, .hljs-attr { color: #67a88e; } .hljs-number, .hljs-literal { color: #ce9763; } .hljs-comment { color: var(--gray); } .hljs-title, .hljs-built_in { color: #649fc8; } }
+}

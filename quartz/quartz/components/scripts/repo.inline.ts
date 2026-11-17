@@ -3,7 +3,8 @@ import {repoLanguageChart} from './repoLanguageChart'
 import {PageNotFoundError,showSiteNotFound} from "./siteError"
 import {fileNameIcon,fileTypeIcons} from '../../util/fileTypeIcons'
 import {readContentCatalog} from './contentCatalog'
-import {markdown,library,runtime} from "./repoMarkdown"
+import {markdown} from "./repoMarkdown"
+import {repoCode} from "./repoCode"
 import { activateDirectoryGroup } from "./directoryGroups"
 import { setPageModified, latestPageDate } from "./pageModified"
 import { createRepoViewNavigation } from "./repoViewNavigation"
@@ -227,19 +228,7 @@ async function renderRepo(root: HTMLElement, signal: AbortSignal) {
       if (/\.(png|jpe?g|gif|webp|avif)$/i.test(path)) host.innerHTML = `<div class="repo-image"><img src="${e(repoApi(info.name, "raw", { ref, path }))}" alt="${e(path)}" /></div>`
       else if (file.binary) host.innerHTML = message("二进制文件不提供文本预览，可下载查看。")
       else if (/\.(md|markdown|mdown)$/i.test(path)) { host.className = "repo-markdown"; await markdown(host, file.content, path, info, ref, signal) }
-      else {
-        const count = file.content.split("\n").length
-        host.innerHTML = `<div class="repo-code"><pre class="repo-line-numbers" aria-hidden="true">${Array.from({ length: count }, (_, i) => i + 1).join("\n")}</pre><pre><code></code></pre></div>`
-        const code = host.querySelector<HTMLElement>("code")!; code.textContent = file.content
-        try {
-          await library("highlightjs/11.11.1/highlight.min.js")
-          if (!signal.aborted) {
-            const ext = path.split(".").pop()!.toLowerCase(), language = ({ ts: "typescript", tsx: "typescript", py: "python", yml: "yaml", sh: "bash", rs: "rust" } as Record<string, string>)[ext] || ext
-            code.className = runtime.hljs!.getLanguage(language) ? `language-${language}` : "language-plaintext"
-            runtime.hljs!.highlightElement(code)
-          }
-        } catch { /* Plain text remains usable without syntax highlighting. */ }
-      }
+      else await repoCode(host,file.content,path,signal)
       if (file.truncated) host.insertAdjacentHTML("afterend", '<p class="repo-notice">文件过长，仅显示前 2 MiB。下载可查看完整内容。</p>')
     }
     if (route.tab === "code") {

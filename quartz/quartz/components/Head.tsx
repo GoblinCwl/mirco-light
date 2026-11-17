@@ -44,6 +44,7 @@ export default (() => {
         <meta charSet="utf-8" />
         {cfg.theme.fontOrigin === "local" && [
           "6xK3dSBYKcSV-LCoeQqfX1RYOo3aPw.ttf",
+          "6xKydSBYKcSV-LCoeQqfX1RYOo3i54rAkA.ttf",
           "JqzK5SSPQuCQF3t8uOwiUL-taUTtarVKQ9vZ6pJJWlMNIsEATw.ttf",
           "JqzK5SSPQuCQF3t8uOwiUL-taUTtarVKQ9vZ6pJJWlMNxcYATw.ttf",
         ].map((font) => (

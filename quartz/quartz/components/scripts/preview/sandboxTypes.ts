@@ -4,6 +4,7 @@ export type SandboxPreview = {
   url: string
   name: string
   size: number
+  inlineText?: string
   channel: string
   theme: string
   staticBase: string

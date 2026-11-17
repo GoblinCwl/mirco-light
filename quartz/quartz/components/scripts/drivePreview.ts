@@ -39,7 +39,7 @@ const colors = () => {
   return { background: style.getPropertyValue("--moreLight").trim(), foreground: style.getPropertyValue("--darkgray").trim(), muted: style.getPropertyValue("--gray").trim(), accent: style.getPropertyValue("--secondary").trim(), border: style.getPropertyValue("--lightgray").trim() }
 }
 const theme = () => document.documentElement.getAttribute("saved-theme") || "light"
-export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, options: { chooser?: HTMLElement; hover?: boolean } = {}) {
+export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, options: { chooser?: HTMLElement; hover?: boolean; source?: {text:string} } = {}) {
   const chooser = options.chooser || document.querySelector<HTMLElement>("[data-drive-preview-selector]")!
   const select = chooser.querySelector<HTMLSelectElement>("select")!
   const encodingLabel = node("label", "文本编码", "drive-preview-encoding"), encoding = node("select")
@@ -132,7 +132,7 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, opt
     const preferenceScope = jellyfin?.scopes || fallbackVideoScope(access.requestPath, `${access.view}:${access.user?.base_path || ""}`)
     const allowed = access.view === "share" ? String(config.share_archive_preview ?? "true") === "true"
       : Boolean(access.user && (access.user.role === 2 || (access.user.permission || 0) & (1 << 12)))
-    const choices = previewChoices(file, config, access.view === "share", allowed && !returnToArchive)
+    const choices = previewChoices(file, config, access.view === "share" || access.view === "repo", allowed && !returnToArchive)
     const available = choices.filter(item => (!options.hover || item.key !== "download") && !item.external && (item.key !== "pdf_native" || navigator.pdfViewerEnabled !== false))
     if (jellyfin && available.some(item => item.key === "video")) available.unshift({ key: "jellyfin", name: "Jellyfin 播放器" })
     select.replaceChildren(...available.map(item => { const option = node("option", item.name); option.value = item.key; return option }))
@@ -243,6 +243,7 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, opt
         }
         if(access.mediaShare&&jellyfin&&extra.jellyfin&&!danmaku)danmaku=matchDanmaku()
         const data: SandboxPreview = { key, name: file.name, size: file.size, channel, url: direct.replace(`${DRIVE_ORIGIN}/d/`, `${DRIVE_ORIGIN}/p/`), theme: theme(), staticBase: new URL("/static/", location.href).href, matroskaReader: new URL(matroskaReaderUrl, location.href).href, colors: colors(), encoding: encoding.value, preferences, playerIcons, resumeTime: readVideoProgress(progressIdentity), danmuApi: Boolean(danmaku)&&Boolean(extra.jellyfin), ...extra }
+        if(options.source)data.inlineText=options.source.text
         if (data.qualities && preferences.quality) data.url = initialVideoQuality(data.qualities.map(item=>({...item,id:item.html.match(/\d{3,4}/)?.[0] || "auto"})),preferences.quality)?.url || data.url
         if(data.jellyfin) {
           const playerURL=new URL(driveApiUrl('public/quartz/jellyfin/player'))

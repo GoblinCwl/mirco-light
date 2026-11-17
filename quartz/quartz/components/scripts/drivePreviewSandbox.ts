@@ -135,7 +135,7 @@ export async function previewSandboxRuntime(
     )
   }
   const text = async () =>
-    new TextDecoder(config.encoding || "utf-8").decode(await (await read()).arrayBuffer())
+    config.inlineText ?? new TextDecoder(config.encoding || "utf-8").decode(await (await read()).arrayBuffer())
   const element = <K extends keyof HTMLElementTagNameMap>(tag: K, content = "") => {
     const e = document.createElement(tag)
     e.textContent = content

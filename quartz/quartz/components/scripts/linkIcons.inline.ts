@@ -13,7 +13,7 @@ function decorate(link:HTMLAnchorElement,articles?:ReadonlySet<string>){
  const own=link.querySelector<SVGElement>('svg[data-link-icon]')
  if(!kind){own?.remove();return}
  if(!articles&&kind==='internal')return
- if(own?.dataset.linkIcon===kind&&own.dataset.linkIconVersion==='3')return
+ if(own?.dataset.linkIcon===kind&&own.dataset.linkIconVersion==='4')return
  // Existing illustrations and control icons already identify their links.
  if(link.querySelector('img,picture,canvas')||[...link.querySelectorAll('svg')].some(svg=>!svg.hasAttribute('data-link-icon')&&!svg.closest('.encrypted-mark')))return
  const previous=link.previousElementSibling
