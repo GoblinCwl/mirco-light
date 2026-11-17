@@ -238,7 +238,10 @@ func (s Store) Sync(ctx context.Context, kind string, input []Item) error {
 			extra["tagsManaged"] = true
 		}
 		published := canonicalDate(item.PublishedAt)
-		if kind != "share" {
+		if kind == "article" {
+			// Article frontmatter owns its publication date, including later corrections.
+			published = firstDate(published, old.Published, &at)
+		} else if kind != "share" {
 			published = firstDate(old.Published, published, &at)
 		}
 		updated := published
