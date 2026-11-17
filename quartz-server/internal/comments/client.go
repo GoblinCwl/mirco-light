@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"goblincwl/quartz-server/internal/alerts"
 	"io"
 	"net/http"
@@ -16,11 +17,15 @@ import (
 )
 
 type Client struct {
-	Settings   func(context.Context) (map[string]any, error)
-	HTTP       *http.Client
-	mu         sync.Mutex
-	key, token string
-	browser    *Client
+	Settings     func(context.Context) (map[string]any, error)
+	HTTP         *http.Client
+	Sessions     *SessionStore
+	CaptchaReset func() time.Duration
+	Now          func() time.Time
+	scope        string
+	mu           sync.Mutex
+	key, token   string
+	browser      *Client
 }
 
 // BrowserSession creates a separate login for an authenticated site administrator.
@@ -36,8 +41,11 @@ func (c *Client) BrowserSession(ctx context.Context) (map[string]any, error) {
 	// Reuse the dedicated browser login across page loads. Repeated password
 	// exchanges can hit Artalk's login rate limit; Do refreshes expired tokens.
 	c.mu.Lock()
+	if c.Sessions == nil {
+		c.Sessions = &SessionStore{}
+	}
 	if c.browser == nil {
-		c.browser = &Client{Settings: c.Settings, HTTP: c.HTTP}
+		c.browser = &Client{Settings: c.Settings, HTTP: c.HTTP, Sessions: c.Sessions, CaptchaReset: c.CaptchaReset, Now: c.Now, scope: "browser"}
 	}
 	browser := c.browser
 	c.mu.Unlock()
@@ -65,6 +73,42 @@ func str(values map[string]any, key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+type responseError struct {
+	status  int
+	captcha bool
+}
+
+func (e *responseError) Error() string {
+	if e.captcha {
+		return "评论认证需要验证码"
+	}
+	return "评论服务暂不可用"
+}
+
+type captchaCooldown struct {
+	until  time.Time
+	manual bool
+}
+
+func (e *captchaCooldown) Error() string {
+	if e.manual {
+		return "评论认证需要人工完成验证码，已暂停自动登录"
+	}
+	return fmt.Sprintf("评论认证需要验证码，暂停登录至 %s", e.until.In(time.FixedZone("CST", 8*3600)).Format("2006-01-02 15:04:05"))
+}
+func (c *Client) now() time.Time {
+	if c.Now != nil {
+		return c.Now()
+	}
+	return time.Now()
+}
+func (c *Client) sessionScope() string {
+	if c.scope != "" {
+		return c.scope
+	}
+	return "backend"
 }
 func (c *Client) request(ctx context.Context, base, path, method, token string, body any) (map[string]any, int, error) {
 	var input io.Reader
@@ -96,12 +140,15 @@ func (c *Client) request(ctx context.Context, base, path, method, token string, 
 		return nil, 0, errors.New("评论服务暂不可用")
 	}
 	defer response.Body.Close()
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, response.StatusCode, errors.New("评论服务暂不可用")
-	}
 	raw, err := io.ReadAll(io.LimitReader(response.Body, 16<<20+1))
 	if err != nil || len(raw) > 16<<20 {
 		return nil, response.StatusCode, errors.New("评论服务响应无效")
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		var value map[string]any
+		_ = json.Unmarshal(raw, &value)
+		captcha := value["need_captcha"] == true || object(value["data"])["need_captcha"] == true
+		return nil, response.StatusCode, &responseError{response.StatusCode, captcha}
 	}
 	if len(raw) == 0 {
 		return map[string]any{}, response.StatusCode, nil
@@ -132,8 +179,41 @@ func (c *Client) authenticate(ctx context.Context, base string, credentials map[
 	if credentials["email"] == "" || credentials["password"] == "" {
 		return "", errors.New("评论管理员认证尚未配置")
 	}
-	value, _, err := c.request(ctx, base, "/api/v2/auth/email/login", "POST", "", credentials)
+	if c.Sessions == nil {
+		c.Sessions = &SessionStore{}
+	}
+	sessions := c.Sessions
+	sessions.mu.Lock()
+	defer sessions.mu.Unlock()
+	if err := sessions.load(); err != nil {
+		return "", err
+	}
+	if saved := sessions.state.Sessions[c.sessionScope()]; saved.Key == key && saved.Token != "" {
+		c.key, c.token = key, saved.Token
+		return c.token, nil
+	}
+	if sessions.state.BlockedKey == key && (sessions.state.BlockedForever || c.now().Before(sessions.state.BlockedUntil)) {
+		return "", &captchaCooldown{sessions.state.BlockedUntil, sessions.state.BlockedForever}
+	}
+	value, _, err := c.request(ctx, base, "/api/v2/user/access_token", "POST", "", credentials)
 	if err != nil {
+		var response *responseError
+		if errors.As(err, &response) && response.status == 403 && response.captcha {
+			delay := time.Minute
+			if c.CaptchaReset != nil {
+				delay = c.CaptchaReset()
+			}
+			sessions.state.BlockedForever = delay < 0
+			if delay < time.Second {
+				delay = time.Second
+			}
+			sessions.state.BlockedKey = key
+			sessions.state.BlockedUntil = c.now().Add(delay)
+			if saveErr := sessions.save(); saveErr != nil {
+				return "", saveErr
+			}
+			return "", &captchaCooldown{sessions.state.BlockedUntil, sessions.state.BlockedForever}
+		}
 		return "", err
 	}
 	token := text(value["token"])
@@ -141,6 +221,13 @@ func (c *Client) authenticate(ctx context.Context, base string, credentials map[
 		return "", errors.New("评论管理员认证不可用")
 	}
 	c.key, c.token = key, token
+	sessions.state.Sessions[c.sessionScope()] = cachedSession{key, token}
+	sessions.state.BlockedKey = ""
+	sessions.state.BlockedUntil = time.Time{}
+	sessions.state.BlockedForever = false
+	if err := sessions.save(); err != nil {
+		return "", err
+	}
 	return token, nil
 }
 func (c *Client) Do(ctx context.Context, path string, authenticated bool, method string, body any) (map[string]any, error) {
@@ -157,13 +244,25 @@ func (c *Client) Do(ctx context.Context, path string, authenticated bool, method
 			}
 		}
 		value, status, err := c.request(ctx, base, path, method, token, body)
-		if authenticated && status == 401 && attempt == 0 {
+		if authenticated && status == 401 {
 			c.mu.Lock()
 			if c.key == key && c.token == token {
 				c.token = ""
+				if c.Sessions != nil {
+					c.Sessions.mu.Lock()
+					delete(c.Sessions.state.Sessions, c.sessionScope())
+					saveErr := c.Sessions.save()
+					c.Sessions.mu.Unlock()
+					if saveErr != nil {
+						c.mu.Unlock()
+						return nil, saveErr
+					}
+				}
 			}
 			c.mu.Unlock()
-			continue
+			if attempt == 0 {
+				continue
+			}
 		}
 		return value, err
 	}

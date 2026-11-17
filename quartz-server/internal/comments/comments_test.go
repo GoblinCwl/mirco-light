@@ -13,7 +13,7 @@ func TestClient401RetryAndConfigurationChange(t *testing.T) {
 	var logins, reads atomic.Int32
 	password := "first"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v2/auth/email/login" {
+		if r.URL.Path == "/api/v2/user/access_token" {
 			var input map[string]any
 			json.NewDecoder(r.Body).Decode(&input)
 			logins.Add(1)

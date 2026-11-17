@@ -164,7 +164,7 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	}
 	controller.Social = runtime.videoSocial.Refresh
 	app.Video = &video.Service{Store: store, Client: client, Controller: controller, Social: runtime.videoSocial, Changed: runtime.requestVideoIndex}
-	artalk := &comments.Client{Settings: read}
+	artalk := &comments.Client{Settings: read, Sessions: &comments.SessionStore{Directory: options.AuthDirectory, Key: app.Credentials.Key}, CaptchaReset: func() time.Duration { return comments.CaptchaReset("/sources/artalk/artalk.yml") }}
 	app.Comments = &comments.Service{Client: artalk, Site: "GoblinCwl 的微光集", ResolvePage: func(_ context.Context, route string) (comments.PageTarget, error) {
 		return comments.ResolveArticle(options.PublicDirectory, app.Origin, route)
 	}}

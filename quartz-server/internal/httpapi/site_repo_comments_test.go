@@ -41,7 +41,7 @@ func TestRepoCommentDefaultAndArtalkPermissionPersistence(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-		case "/api/v2/auth/email/login":
+		case "/api/v2/user/access_token":
 			w.Write([]byte(`{"token":"fixture"}`))
 		case "/api/v2/pages":
 			pages := []any{}

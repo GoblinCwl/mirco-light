@@ -15,7 +15,7 @@ import (
 func TestAvatarHashMappingIsCachedAndContainsNoEmails(t *testing.T) {
 	calls := 0
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v2/auth/email/login" {
+		if r.URL.Path == "/api/v2/user/access_token" {
 			json.NewEncoder(w).Encode(map[string]any{"token": "private"})
 			return
 		}

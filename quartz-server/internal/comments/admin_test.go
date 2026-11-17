@@ -15,7 +15,7 @@ func TestAdminListAndMutations(t *testing.T) {
 	var mutations int
 	var updated map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v2/auth/email/login" {
+		if r.URL.Path == "/api/v2/user/access_token" {
 			json.NewEncoder(w).Encode(map[string]any{"token": "private-token"})
 			return
 		}
@@ -123,7 +123,7 @@ func TestOrdinaryUsersPaginationSkipsAdministratorOnlyChunks(t *testing.T) {
 		rows = append(rows, map[string]any{"id": id, "name": "needle", "email": fmt.Sprintf("user%d@example.test", id), "is_admin": id <= 110})
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v2/auth/email/login" {
+		if r.URL.Path == "/api/v2/user/access_token" {
 			json.NewEncoder(w).Encode(map[string]any{"token": "token"})
 			return
 		}

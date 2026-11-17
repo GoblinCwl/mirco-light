@@ -134,7 +134,7 @@ func TestArticlePermissionEventsCheckpointAndRetry(t *testing.T) {
 			return
 		}
 		switch {
-		case r.URL.Path == "/api/v2/auth/email/login":
+		case r.URL.Path == "/api/v2/user/access_token":
 			w.Write([]byte(`{"token":"fixture"}`))
 		case r.Method == "GET":
 			json.NewEncoder(w).Encode(map[string]any{"pages": []map[string]any{{"id": 1, "key": "note", "site_name": "fixture", "title": "Note", "admin_only": false}}})

@@ -36,7 +36,7 @@ func TestShareRenameRollsBackOnCommentFailure(t *testing.T) {
 			json.NewDecoder(r.Body).Decode(&input)
 			changes = append(changes, input)
 			jsonResponse(nil)
-		case "/api/v2/auth/email/login":
+		case "/api/v2/user/access_token":
 			json.NewEncoder(w).Encode(map[string]any{"token": "artalk"})
 		case "/api/v2/pages":
 			json.NewEncoder(w).Encode(map[string]any{"pages": []any{}})
@@ -83,7 +83,7 @@ func TestShareMetadataPatchPreservesOtherFields(t *testing.T) {
 			}
 			updates++
 			respond(nil)
-		case "/api/v2/auth/email/login":
+		case "/api/v2/user/access_token":
 			w.Write([]byte(`{"token":"fixture"}`))
 		case "/api/v2/pages":
 			json.NewEncoder(w).Encode(map[string]any{"pages": []any{map[string]any{"id": 1, "key": comments.ShareKey("example"), "title": "example", "site_name": "site", "admin_only": denied}}})

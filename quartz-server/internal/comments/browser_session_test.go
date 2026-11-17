@@ -14,7 +14,7 @@ func TestBrowserSessionRequiresActualArtalkAdministrator(t *testing.T) {
 		t.Run(map[bool]string{true: "administrator", false: "ordinary user"}[admin], func(t *testing.T) {
 			logins := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path == "/api/v2/auth/email/login" {
+				if r.URL.Path == "/api/v2/user/access_token" {
 					logins++
 					json.NewEncoder(w).Encode(map[string]any{"token": "browser-token"})
 					return

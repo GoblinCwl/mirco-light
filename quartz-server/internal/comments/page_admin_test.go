@@ -41,7 +41,7 @@ func TestPageListAndMigrationPreserveExistingComments(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var result any
 		switch {
-		case r.URL.Path == "/api/v2/auth/email/login":
+		case r.URL.Path == "/api/v2/user/access_token":
 			result = map[string]any{"token": "token"}
 		case r.URL.Path == "/api/v2/pages":
 			result = map[string]any{"count": 3, "pages": rows}
