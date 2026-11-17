@@ -44,7 +44,7 @@ export function setupTaskInstances(root:HTMLElement,signal:AbortSignal,request:(
   for(const key of keys){const row=settings.get(key);if(row&&!assigned.has(key)){host.append(row);assigned.add(key)}}
  }
  const renderList=(tasks:Task[])=>{
-  for(const [kind,label] of [['periodic','周期任务'],['queue','队列'],['event','事件与恢复']] as const){
+  for(const [kind,label] of [['periodic','周期任务'],['queue','队列'],['manual','手动任务'],['event','事件与恢复']] as const){
    const tasksInGroup=tasks.filter(task=>task.kind===kind);if(!tasksInGroup.length)continue
    let group=groups.get(kind)
    if(!group){group=node('section','','task-instance-group');group.append(node('h3',label));groups.set(kind,group);list.append(group)}

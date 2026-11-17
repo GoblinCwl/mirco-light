@@ -27,7 +27,7 @@ export const FriendsApply: QuartzComponent = ({ cfg }) => {
     </section>
     <section class="friends-sidebar-group" aria-label="申请友链">
       <form class="friends-form-fields" data-friends-apply-form noValidate>
-        <label class="friends-form-field"><span>通知邮箱（选填）</span><input name="email" type="email" inputMode="email" autoComplete="email" maxLength={254} placeholder="用于接收审核结果，不会公开"/></label>
+        <label class="friends-form-field"><span>通知邮箱</span><input name="email" type="email" inputMode="email" autoComplete="email" maxLength={254} placeholder="用于接收审核结果，不会公开"/></label>
         <label class="friends-form-field"><span>网站名称<i class="friends-required" aria-hidden="true">*</i></span><input name="name" required placeholder="你的站点名称" maxLength={80}/></label>
         <label class="friends-form-field"><span>网站简介<i class="friends-required" aria-hidden="true">*</i><output data-friends-description-count aria-live="polite">0 / 40</output></span><textarea name="description" required rows={3} placeholder="简单介绍一下你的网站（最多40字）" maxLength={80} data-friends-description aria-label="网站简介，最多40个字符"/></label>
         <label class="friends-form-field"><span>网站地址<i class="friends-required" aria-hidden="true">*</i></span><input name="url" required type="url" inputMode="url" placeholder="https://" spellcheck={false}/></label>

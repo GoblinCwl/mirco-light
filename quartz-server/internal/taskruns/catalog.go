@@ -9,6 +9,7 @@ type Definition struct {
 }
 
 var Definitions = []Definition{
+	{"gitea-mirror-sync", "Gitea 拉取与镜像同步", "manual", "", false},
 	{"index-share", "网盘索引刷新", "periodic", "index-share", false},
 	{"index-repo", "仓库索引刷新", "periodic", "index-repo", false},
 	{"github-social", "GitHub 动态刷新", "periodic", "github-social", false},

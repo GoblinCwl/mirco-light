@@ -1,3 +1,4 @@
+const faviconCache = new Map<string, {url:string;padding:boolean;until:number}>()
 import { readSiteSettings, siteSettings } from './siteSettings'
 import { faviconNeedsPadding, faviconCandidates } from '../../util/favicon'
 import { externalDestination } from '../../util/externalLinks'
@@ -62,15 +63,17 @@ document.addEventListener('nav', () => {
     favicon.alt = ''
     favicon.width = favicon.height = 24
     favicon.referrerPolicy = 'no-referrer'
-    favicon.crossOrigin = 'anonymous'
     favicon.decoding = 'async'
     favicon.draggable = false
     favicon.setAttribute('no-view', '')
     let settled = false
     let timeout: number | undefined
+    let deadline: number | undefined
+    let cacheKey = ""
     const finish = (loaded: boolean) => {
       if (settled) return
       settled = true
+      window.clearTimeout(deadline)
       window.clearTimeout(timeout)
       favicon.onload = favicon.onerror = null
       if (loaded) {
@@ -80,26 +83,25 @@ document.addEventListener('nav', () => {
           const canvas = document.createElement('canvas')
           canvas.width = canvas.height = 32
           const context = canvas.getContext('2d', { willReadFrequently: true })
-          if (context && !isPNG) {
+          if (context && !isPNG && new URL(favicon.currentSrc || favicon.src).origin === location.origin) {
             context.drawImage(favicon, 0, 0, 32, 32)
             padded = faviconNeedsPadding(context.getImageData(0, 0, 32, 32).data, 32)
           }
         } catch { /* Cross-origin images still display with modest padding. */ }
         icon.classList.toggle('has-icon-padding', padded)
         icon.replaceChildren(favicon)
+        if(cacheKey)faviconCache.set(cacheKey,{url:favicon.src,padding:padded,until:Date.now()+300000})
       }
-      else { icon.classList.add('has-icon-padding'); icon.innerHTML = globe; favicon.removeAttribute('src') }
+      else { icon.classList.add('has-icon-padding'); icon.innerHTML = globe; favicon.removeAttribute('src');if(cacheKey)faviconCache.set(cacheKey,{url:'',padding:true,until:Date.now()+60000}) }
     }
     let candidates: string[] = []
-    let candidate = 0, retried = false
+    let candidate = 0
     const loadCandidate = () => {
       if (settled) return
       window.clearTimeout(timeout)
       if (candidate >= candidates.length) { finish(false); return }
-      retried = false
-      favicon.crossOrigin = 'anonymous'
-      // A stalled ICO must not prevent trying the PNG alternative.
-      timeout = window.setTimeout(nextCandidate, 2500)
+        // A stalled ICO must not prevent trying the PNG alternative.
+      timeout = window.setTimeout(nextCandidate, 1250)
       favicon.src = candidates[candidate]
     }
     const nextCandidate = () => { candidate++; loadCandidate() }
@@ -108,20 +110,25 @@ document.addEventListener('nav', () => {
       else nextCandidate()
     }
     favicon.onerror = () => {
-      if (settled) return
-      if (!retried) {
-        retried = true
-        favicon.removeAttribute('crossorigin')
-        favicon.src = candidates[candidate]
-      } else nextCandidate()
+      if (!settled) nextCandidate()
     }
+    deadline=window.setTimeout(()=>finish(false),3000)
     void settingsReady.then(() => {
       if (settled || signal.aborted) return
       candidates = faviconCandidates(destination, String(siteSettings()['external.favicons'] || ''))
+      cacheKey=candidates.join('|')
+      const cached=faviconCache.get(cacheKey)
+      if(cached&&cached.until>Date.now()){
+        settled=true;window.clearTimeout(deadline);favicon.onload=favicon.onerror=null
+        icon.classList.toggle('has-icon-padding',cached.padding)
+        if(cached.url){favicon.src=cached.url;icon.replaceChildren(favicon)}else icon.innerHTML=globe
+        return
+      }
       loadCandidate()
     })
     current.addEventListener('close', () => {
       settled = true
+      window.clearTimeout(deadline)
       window.clearTimeout(timeout)
       favicon.onload = favicon.onerror = null
       favicon.removeAttribute('src')

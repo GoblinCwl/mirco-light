@@ -324,6 +324,7 @@ func (r *Runtime) Start() {
 }
 func (r *Runtime) start() {
 	r.goTask(r.runFriendJobs)
+	r.goTask(r.runRepoMirrorTasks)
 	r.goTask((friendmail.Store{DB: r.app.DB, ConfigPath: "/sources/artalk/artalk.yml", Origin: r.app.Origin}).Run)
 	r.goTask((notifications.Store{DB: r.app.DB, Key: r.app.Credentials.Key}).Run)
 	for _, task := range []*eventTask{r.articleIndex, r.commentPermissions, r.mirrorCredential} {

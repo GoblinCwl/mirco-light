@@ -97,6 +97,9 @@ func (t *Tracker) history(ctx context.Context, key string) ([]RunRecord, error) 
 }
 func (t *Tracker) instance(ctx context.Context, d Definition) (Instance, error) {
 	item := Instance{Definition: d, Schedule: "事件触发"}
+	if d.Kind == "manual" {
+		item.Schedule = "手动触发"
+	}
 	cfg := t.Config
 	if d.Period != "" {
 		seconds := int(taskconfig.Duration(taskconfig.With(ctx, cfg), d.Period).Seconds())
