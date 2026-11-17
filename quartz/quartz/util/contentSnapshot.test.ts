@@ -26,8 +26,11 @@ test('snapshot publishes canonical article aliases and resolves incoming alias l
  process.env.QUARTZ_JOURNAL_DIR=directory
  const article=(slug:string,aliases:string[],links:string[])=>[{}, {data:{slug,aliases,links,relativePath:slug+'.md',frontmatter:{title:slug},text:'',dates:{created:new Date('2026-11-10T00:00:00Z')}}}] as unknown as ProcessedContent
  try{
-  await publishContentSnapshot([article('Memo/target/index',['about','./alias'],[]),article('Memo/source',[],['about','Memo/alias','Memo/target'])],{defaultDateType:'created'} as GlobalConfiguration)
+  const draft=article('Memo/draft',[],[])
+  draft[1].data.frontmatter!.draft=true
+  await publishContentSnapshot([article('Memo/target/index',['about','./alias'],[]),article('Memo/source',[],['about','Memo/alias','Memo/target','Memo/draft']),draft],{defaultDateType:'created'} as GlobalConfiguration)
   const snapshot=JSON.parse(await readFile(join(directory,'articles-index.json'),'utf8'))
+  assert.equal(snapshot.articles.length,2)
   assert.deepEqual(snapshot.articles[0].extra.aliases,['about','Memo/alias'])
   assert.deepEqual(snapshot.articles[1].links,['Memo/target'])
  }finally{if(previous===undefined)delete process.env.QUARTZ_JOURNAL_DIR;else process.env.QUARTZ_JOURNAL_DIR=previous;await rm(directory,{recursive:true,force:true})}

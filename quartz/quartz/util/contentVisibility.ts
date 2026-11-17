@@ -9,15 +9,19 @@ export function matchesContentPath(path: string, patterns: string[] = []): boole
   return patterns.some(pattern => minimatch(relative, pattern, { dot: true }) ||
     (!relative.endsWith(".md") && minimatch(relative + "/", pattern, { dot: true })))
 }
+export function isDraft(file: QuartzPluginData): boolean {
+  const draft = file.frontmatter?.draft
+  return draft === true || draft === "true"
+}
 export function isListed(file: QuartzPluginData, cfg: GlobalConfiguration): boolean {
-  return !matchesContentPath(String(file.relativePath ?? file.slug ?? ""), cfg.unlistedPatterns)
+  return !isDraft(file) &&
+    !matchesContentPath(String(file.relativePath ?? file.slug ?? ""), cfg.unlistedPatterns)
 }
 export function listedContent(content: ProcessedContent[], cfg: GlobalConfiguration): ProcessedContent[] {
   return content.filter(([, file]) => isListed(file.data, cfg))
 }
 const cache = new WeakMap<QuartzPluginData[], QuartzPluginData[]>()
 export function listedFiles(files: QuartzPluginData[], cfg: GlobalConfiguration): QuartzPluginData[] {
-  if (!cfg.unlistedPatterns?.length) return files
   let result = cache.get(files)
   if (!result) { result = files.filter(file => isListed(file, cfg)); cache.set(files, result) }
   return result.length === files.length ? files : result

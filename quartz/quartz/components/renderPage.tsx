@@ -1,5 +1,5 @@
 import {isDirectoryListed} from "../util/directoryVisibility"
-import { listedFiles, listedTrie, matchesContentPath } from "../util/contentVisibility"
+import { isDraft, listedFiles, listedTrie, matchesContentPath } from "../util/contentVisibility"
 import {render} from "preact-render-to-string"
 import {QuartzComponent, QuartzComponentProps} from "./types"
 import HeaderConstructor from "./Header"
@@ -228,6 +228,10 @@ export async function renderPage(
     renderTranscludes(root, cfg, slug, componentData, visited)
 
     const originalData = { ...componentData }
+    if (originalData.allFiles.some(isDraft)) {
+        originalData.allFiles = originalData.allFiles.filter(file => !isDraft(file))
+        originalData.ctx = { ...originalData.ctx, trie: listedTrie(originalData.allFiles), directoryDates: undefined }
+    }
     const visibleFiles = listedFiles(componentData.allFiles, cfg)
     if (visibleFiles !== componentData.allFiles) {
         componentData = { ...componentData, allFiles: visibleFiles,

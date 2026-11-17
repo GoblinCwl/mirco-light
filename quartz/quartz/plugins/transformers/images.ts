@@ -2,6 +2,7 @@ import { QuartzTransformerPlugin } from "../types"
 import { visit } from "unist-util-visit"
 import { Element, Root as HRoot } from "hast"
 import { PluggableList } from "unified"
+import type { Root } from "mdast"
 import { JSResource, CSSResource } from "../../util/resources"
 import imageLoadingScript from "../../components/scripts/imageLoading.inline"
 import imageLoadingStyles from "../../components/styles/imageLoading.scss"
@@ -19,6 +20,22 @@ export const Images: QuartzTransformerPlugin<Partial<Options>> = (userOpts) => {
 
   return {
     name: "Images",
+    markdownPlugins() {
+      return [() => (tree: Root) => {
+        visit(tree, "image", node => {
+          // Obsidian's Markdown image sizes: ![alt|500] and ![alt|500x300].
+          const size = /^(.*?)\|\s*([1-9]\d*)(?:x([1-9]\d*))?\s*$/.exec(node.alt ?? "")
+          if (!size) return
+          node.alt = size[1]
+          node.data ??= {}
+          node.data.hProperties = {
+            ...node.data.hProperties,
+            width: Number(size[2]),
+            ...(size[3] ? { height: Number(size[3]) } : {}),
+          }
+        })
+      }]
+    },
     htmlPlugins() {
       const plugins: PluggableList = []
 

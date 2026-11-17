@@ -20,6 +20,7 @@ test("encrypted artifacts reach the emitter with and without hidden navigation f
         contents: `
           import {renderPage} from './renderPage'
           import TagList from './TagList'
+          import {isListed} from '../util/contentVisibility'
           import {render} from 'preact-render-to-string'
           export async function probe(filtered) {
             const cfg = {locale:'zh-CN',unlistedPatterns:filtered?['Hidden/**']:[],passProtected:{enabled:true,iteration:10}}
@@ -33,6 +34,18 @@ test("encrypted artifacts reach the emitter with and without hidden navigation f
             const html = await renderPage(cfg,'Protected',props,{head,header:[],beforeBody:[],pageBody:body,afterBody:[],left:[],right:[],footer:blank},resources)
             return {html,payload:props.encryptedPayload,slug:props.encryptedPayloadSlug,tags:render(TagList()(props)),sourceCount:props.allFiles.length}
           }
+          export async function probeDraft() {
+            const cfg = {locale:'zh-CN',unlistedPatterns:['Hidden/**']}
+            const note = {slug:'Hidden/index',relativePath:'Hidden/index.md',filePath:'Hidden/index.md',frontmatter:{title:'Draft',draft:true}}
+            const visible = {slug:'Hidden/public',relativePath:'Hidden/public.md',filePath:'Hidden/public.md',frontmatter:{title:'Visible'}}
+            const resources = {css:[],js:[],additionalHead:[]}
+            const props = {cfg,ctx:{},fileData:note,allFiles:[note,visible],tree:{type:'root',children:[]},children:[],externalResources:resources}
+            const blank = () => null
+            const head = ({fileData}) => <head data-listed={String(isListed(fileData,cfg))}/>
+            const body = ({allFiles}) => <article data-directory-count={allFiles.length}>Draft fixture body</article>
+            const html = await renderPage(cfg,'Hidden/index',props,{head,header:[],beforeBody:[],pageBody:body,afterBody:[],left:[],right:[],footer:blank},resources)
+            return html
+          }
         `,
       },
       outfile, bundle: true, platform: "node", format: "esm", packages: "external",
@@ -41,7 +54,11 @@ test("encrypted artifacts reach the emitter with and without hidden navigation f
         build.onLoad({ filter: /(?:\.inline\.ts|\.scss)$/ }, async args => ({ contents: await readFile(args.path, "utf8"), loader: "text" }))
       } }],
     })
-    const { probe } = await import(pathToFileURL(outfile).href)
+    const { probe, probeDraft } = await import(pathToFileURL(outfile).href)
+    const draftHTML = await probeDraft()
+    assert.match(draftHTML, /Draft fixture body/)
+    assert.match(draftHTML, /data-listed="false"/)
+    assert.match(draftHTML, /data-directory-count="1"/)
     for (const filtered of [false, true]) {
       const result = await probe(filtered)
       assert.equal(typeof result.payload, "string")

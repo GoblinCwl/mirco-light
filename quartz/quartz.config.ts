@@ -92,7 +92,8 @@ const config: QuartzConfig = {
       Plugin.Images({ imageEffects: true }),
       Plugin.ViewImage(),
     ],
-    filters: [Plugin.RemoveDrafts(),Plugin.ExplicitPublish()],
+    // Drafts retain direct access; contentVisibility excludes them from discovery.
+    filters: [Plugin.ExplicitPublish()],
     emitters: [
       Plugin.ComponentResources(),
       Plugin.ContentPage(),
