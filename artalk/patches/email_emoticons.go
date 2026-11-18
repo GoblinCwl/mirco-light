@@ -49,7 +49,7 @@ func inlineEmailEmoticons(body string) string {
 		}
 		token.Attr = append(attrs,
 			html.Attribute{Key: "height", Val: "32"},
-			html.Attribute{Key: "style", Val: "display:inline-block!important;height:32px!important;max-height:32px!important;width:auto!important;max-width:none!important;vertical-align:middle!important;margin:0 2px!important;"},
+			html.Attribute{Key: "style", Val: "display:inline-block!important;height:32px!important;max-height:32px!important;width:auto!important;max-width:none!important;vertical-align:text-bottom!important;margin:0 2px!important;"},
 		)
 		out.WriteString(token.String())
 	}

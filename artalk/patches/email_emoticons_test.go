@@ -20,6 +20,9 @@ func TestEmailEmoticonsSurviveMissingStylesheet(t *testing.T) {
 	if !strings.Contains(body, `height="32"`) || !strings.Contains(body, `height:32px!important`) || !strings.Contains(body, `width:auto!important`) {
 		t.Fatal(body)
 	}
+	if !strings.Contains(body, `vertical-align:text-bottom!important`) || strings.Contains(body, `vertical-align:middle`) {
+		t.Fatal("emoticon must align with the bottom of surrounding text:", body)
+	}
 	if !strings.Contains(body, `<img src="https://example.com/photo.png" width="180" height="120"`) {
 		t.Fatal("ordinary image modified:", body)
 	}
