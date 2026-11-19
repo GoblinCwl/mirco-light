@@ -24,6 +24,7 @@ import (
 	"goblincwl/quartz-server/internal/video"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -165,8 +166,52 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	controller.Social = runtime.videoSocial.Refresh
 	app.Video = &video.Service{Store: store, Client: client, Controller: controller, Social: runtime.videoSocial, Changed: runtime.requestVideoIndex}
 	artalk := &comments.Client{Settings: read, Sessions: &comments.SessionStore{Directory: options.AuthDirectory, Key: app.Credentials.Key}, CaptchaReset: func() time.Duration { return comments.CaptchaReset("/sources/artalk/artalk.yml") }}
-	app.Comments = &comments.Service{Client: artalk, Site: "GoblinCwl 的微光集", ResolvePage: func(_ context.Context, route string) (comments.PageTarget, error) {
-		return comments.ResolveArticle(options.PublicDirectory, app.Origin, route)
+	loadCommentPages := func(ctx context.Context) (func(context.Context, string) (comments.PageTarget, error), error) {
+		rows, err := app.DB.QueryContext(ctx, "SELECT href,title FROM content WHERE type IN ('repo','video')")
+		if err != nil {
+			return nil, err
+		}
+		pages := []comments.PageTarget{}
+		for rows.Next() {
+			var page comments.PageTarget
+			if err := rows.Scan(&page.URL, &page.Title); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			u, err := url.Parse(page.URL)
+			if err != nil {
+				rows.Close()
+				return nil, err
+			}
+			page.Key = u.EscapedPath()
+			page.URL = strings.TrimRight(app.Origin, "/") + page.URL
+			pages = append(pages, page)
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return nil, err
+		}
+		// Read local OpenList metadata, including protected shares, without fetching files.
+		entries, err := app.OpenList.Entries(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, entry := range entries {
+			if entry.Kind != "share" {
+				continue
+			}
+			key := comments.ShareKey(entry.ID)
+			pages = append(pages, comments.PageTarget{Key: key, Title: entry.Title, URL: strings.TrimRight(app.Origin, "/") + key, AdminOnly: !entry.Comment})
+		}
+		return comments.PageResolver(options.PublicDirectory, app.Origin, pages), nil
+	}
+	app.Comments = &comments.Service{Client: artalk, Site: "GoblinCwl 的微光集", LoadPageResolver: loadCommentPages, ResolvePage: func(ctx context.Context, route string) (comments.PageTarget, error) {
+		resolve, err := loadCommentPages(ctx)
+		if err != nil {
+			return comments.PageTarget{}, err
+		}
+		return resolve(ctx, route)
 	}}
 	app.Shares = &openlist.Shares{Adapter: app.OpenList, Artalk: artalk, Settings: read, Site: app.Comments.Site, Changed: func(_ context.Context, before, after string) {
 		app.Comments.Cache.Invalidate()

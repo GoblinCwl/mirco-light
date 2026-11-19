@@ -23,12 +23,10 @@ type PageTarget struct {
 var pageKeyAttribute = regexp.MustCompile(`data-page-key="([^"]+)"`)
 var pageTitleAttribute = regexp.MustCompile(`data-page-title="([^"]*)"`)
 
-// ResolveArticle reads the published comment identity, including aliases and encrypted pages.
-func ResolveArticle(directory, origin, route string) (PageTarget, error) {
-	var result PageTarget
+func pageURL(origin, route string) (*url.URL, error) {
 	base, err := url.Parse(origin)
 	if err != nil {
-		return result, errors.New("站点地址无效")
+		return nil, errors.New("站点地址无效")
 	}
 	raw := strings.TrimSpace(route)
 	if !strings.HasPrefix(raw, "/") && !strings.Contains(raw, ":") {
@@ -36,14 +34,25 @@ func ResolveArticle(directory, origin, route string) (PageTarget, error) {
 	}
 	target, err := base.Parse(raw)
 	if err != nil || target.Scheme != base.Scheme || target.Host != base.Host || target.User != nil || target.RawQuery != "" || target.Fragment != "" {
-		return result, errors.New("请填写本站文章路径或完整地址，不含查询参数和锚点")
+		return nil, errors.New("请填写本站文章路径或完整地址，不含查询参数和锚点")
 	}
 	path := strings.Trim(target.Path, "/")
 	for _, part := range strings.Split(path, "/") {
 		if part == "." || part == ".." || strings.ContainsAny(part, "\\\x00\r\n") {
-			return result, errors.New("文章路径无效")
+			return nil, errors.New("文章路径无效")
 		}
 	}
+	return target, nil
+}
+
+// ResolveArticle reads the published comment identity, including aliases and encrypted pages.
+func ResolveArticle(directory, origin, route string) (PageTarget, error) {
+	var result PageTarget
+	target, err := pageURL(origin, route)
+	if err != nil {
+		return result, err
+	}
+	path := strings.Trim(target.Path, "/")
 	if path == "" {
 		path = "index"
 	}
@@ -83,6 +92,31 @@ func ResolveArticle(directory, origin, route string) (PageTarget, error) {
 	}
 	result.AdminOnly = strings.Contains(string(data), `data-admin-only="true"`)
 	return result, nil
+}
+
+// PageResolver matches local dynamic metadata without fetching target pages.
+func PageResolver(directory, origin string, pages []PageTarget) func(context.Context, string) (PageTarget, error) {
+	indexed := map[string]PageTarget{}
+	for _, page := range pages {
+		if u, err := pageURL(origin, page.URL); err == nil {
+			indexed[strings.Trim(u.Path, "/")] = page
+		}
+	}
+	return func(_ context.Context, route string) (PageTarget, error) {
+		u, err := pageURL(origin, route)
+		if err != nil {
+			return PageTarget{}, err
+		}
+		path := strings.Trim(u.Path, "/")
+		kind := strings.Split(path, "/")[0]
+		if kind != "Repo" && kind != "Video" && kind != "Share" {
+			return ResolveArticle(directory, origin, route)
+		}
+		if page, ok := indexed[path]; ok {
+			return page, nil
+		}
+		return PageTarget{}, errors.New("内容不存在或当前不可用")
+	}
 }
 
 func (a *Service) allPages(ctx context.Context) ([]any, error) {
@@ -166,6 +200,13 @@ func (a *Service) AdminPages(ctx context.Context, page int, search, filter strin
 	if err != nil {
 		return nil, err
 	}
+	resolve := a.ResolvePage
+	if a.LoadPageResolver != nil {
+		resolve, err = a.LoadPageResolver(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
 	items := []any{}
 	search = strings.ToLower(strings.TrimSpace(search))
 	for _, raw := range list(snapshot["items"]) {
@@ -175,8 +216,8 @@ func (a *Service) AdminPages(ctx context.Context, page int, search, filter strin
 		}
 		item := pick(source, "id", "key", "title", "site_name", "admin_only", "comment_count")
 		normal := false
-		if a.ResolvePage != nil {
-			target, err := a.ResolvePage(ctx, text(item["key"]))
+		if resolve != nil {
+			target, err := resolve(ctx, text(item["key"]))
 			if err == nil {
 				item["url"] = target.URL
 				item["expected_key"] = target.Key

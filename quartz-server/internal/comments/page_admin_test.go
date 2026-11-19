@@ -121,3 +121,22 @@ func TestPageListAndMigrationPreserveExistingComments(t *testing.T) {
 		t.Fatal("destination policy not retained", policy)
 	}
 }
+
+func TestDynamicPageResolver(t *testing.T) {
+	resolve := PageResolver(t.TempDir(), "https://example.com", []PageTarget{
+		{Key: "/Repo/demo/", Title: "demo", URL: "https://example.com/Repo/demo/"},
+		{Key: "/Video/BV123/", URL: "https://example.com/Video/BV123/"},
+		{Key: ShareKey("加密分享"), Title: "加密分享", URL: "https://example.com" + ShareKey("加密分享"), AdminOnly: true},
+	})
+	for _, route := range []string{"/Repo/demo", "https://example.com/Video/BV123/", "/Share/分享/加密分享/"} {
+		page, err := resolve(context.Background(), route)
+		if err != nil || page.Key == "" {
+			t.Fatalf("%s: %+v %v", route, page, err)
+		}
+	}
+	for _, route := range []string{"/Repo/missing/", "/Repo/demo/file.sql", "/Share/分享/加密分享/file", "https://evil.test/Repo/demo/", "/Repo/demo/?path=file", "/Repo/../demo"} {
+		if _, err := resolve(context.Background(), route); err == nil {
+			t.Errorf("accepted invalid target %s", route)
+		}
+	}
+}

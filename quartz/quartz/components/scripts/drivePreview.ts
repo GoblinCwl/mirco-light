@@ -1,3 +1,4 @@
+import { videoStartTime } from "./videoStartTime"
 import {readPlayerAsset} from "./playerAssetCache"
 import {mountPlayerPanels,setupPlayerPanelHost} from "./playerPanels"
 import { mountPlayerFullscreen } from "./playerFullscreen"
@@ -243,6 +244,10 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, opt
         }
         if(access.mediaShare&&jellyfin&&extra.jellyfin&&!danmaku)danmaku=matchDanmaku()
         const data: SandboxPreview = { key, name: file.name, size: file.size, channel, url: direct.replace(`${DRIVE_ORIGIN}/d/`, `${DRIVE_ORIGIN}/p/`), theme: theme(), staticBase: new URL("/static/", location.href).href, matroskaReader: new URL(matroskaReaderUrl, location.href).href, colors: colors(), encoding: encoding.value, preferences, playerIcons, resumeTime: readVideoProgress(progressIdentity), danmuApi: Boolean(danmaku)&&Boolean(extra.jellyfin), ...extra }
+        if (!options.hover && !data.jellyfin && ["video", "aliyun_video"].includes(key)) {
+          data.startTime = videoStartTime(new URL(location.href))
+          if (data.startTime !== undefined) data.resumeTime = 0
+        }
         if(options.source)data.inlineText=options.source.text
         if (data.qualities && preferences.quality) data.url = initialVideoQuality(data.qualities.map(item=>({...item,id:item.html.match(/\d{3,4}/)?.[0] || "auto"})),preferences.quality)?.url || data.url
         if(data.jellyfin) {
@@ -255,7 +260,7 @@ html{color-scheme:${theme()};background:var(--background)}body{margin:0;padding:
 #preview:is([data-renderer="markdown"],[data-renderer="markdown_with_word_wrap"]){overflow-wrap:anywhere}
 #preview:is([data-renderer="markdown"],[data-renderer="markdown_with_word_wrap"]),#preview:is([data-renderer="markdown"],[data-renderer="markdown_with_word_wrap"]) :is(pre,code){font-family:"Microsoft YaHei","微软雅黑",sans-serif}
 </style></head><body><div id="preview"></div><script>(${previewSandboxRuntime.toString()})(${safeJSON(data)},${trackDriveResponse.toString()},${preferredSubtitle.toString()},${embeddedASSFont.toString()},${resumeSeekTarget.toString()},${safeJSON(playerStyles)},(${renderSandboxVideo.toString()}),(${mountPlayerFullscreen.toString()}),(${mountPlayerPanels.toString()})).catch(()=>{});</script></body></html>`
-        let qualityRequest = 0, videoStarted = false
+        let qualityRequest = 0, videoStarted = false, videoFrameReady = false
         let confirmedSelection = {quality:selectedQuality,audio:selectedAudio,subtitle:selectedSubtitleIndex,burn:forcedBurnIndex}
         let pendingSwitch: {request:number;session:string;selection:string;compatible:boolean;next:typeof confirmedSelection} | undefined
         window.addEventListener("message", event => {
@@ -321,6 +326,10 @@ html{color-scheme:${theme()};background:var(--background)}body{margin:0;padding:
           if (event.data.type === "fullscreenWeb" && ["video", "aliyun_video"].includes(key) && typeof event.data.active === "boolean") {
             webFullscreen.get(result)?.(event.data.active)
           }
+          if (event.data.type === "videoFrameReady" && !data.jellyfin) {
+            videoFrameReady = true
+            result.classList.remove("is-loading"); complete()
+          }
           if (event.data.type === "ready") {
             if (retainedPlayerError && ["video", "aliyun_video"].includes(key)) {
               result.classList.remove("is-loading"); complete()
@@ -328,7 +337,9 @@ html{color-scheme:${theme()};background:var(--background)}body{margin:0;padding:
               return
             }
 
-            result.classList.remove("is-loading"); complete()
+            if (data.jellyfin || !["video", "aliyun_video"].includes(key) || videoFrameReady) {
+              result.classList.remove("is-loading"); complete()
+            }
 
             if (["video", "aliyun_video"].includes(key) && !videoStarted) {
               videoStarted = true

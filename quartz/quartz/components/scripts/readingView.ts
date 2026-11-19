@@ -7,9 +7,10 @@ export function readingDestination(href:string){
  try{const target=new URL(href,'https://reading.invalid');if(target.origin!=='https://reading.invalid'||!href.startsWith('/')||href.startsWith('//')||href.includes('\\'))return '#';return target.pathname+target.search+target.hash}catch{return '#'}
 }
 
-export function readingFolder(href:string){
+export function readingFolder(href:string, item?:Pick<ReadingItem,'type'>){
  const destination=readingDestination(href)
  if(destination==='#')return null
+ if(item?.type==='share')return {label:'Share',href:'/Share/'}
  const path=new URL(destination,'https://reading.invalid').pathname
  const segments=path.split('/').filter(Boolean).slice(0,-1)
  try{return {label:segments.length?segments.map(segment=>decodeURIComponent(segment)).join(' / '):'首页',href:segments.length?'/'+segments.join('/')+'/':'/'}}catch{return null}

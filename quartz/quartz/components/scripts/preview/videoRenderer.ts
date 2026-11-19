@@ -587,11 +587,11 @@ export async function renderSandboxVideo(context: VideoRendererContext) {
         if (useNativeHls(video)) video.src = url
         else if (w.Hls?.isSupported()) {
           const position =
-            initialHlsSource && Number.isFinite(config.resumeTime) && config.resumeTime! >= 5
-              ? config.resumeTime!
+            initialHlsSource && (config.startTime !== undefined || Number.isFinite(config.resumeTime) && config.resumeTime! >= 5)
+              ? config.startTime ?? config.resumeTime!
               : -1
           initialHlsSource = false
-          mseResumeRequested = position >= 5
+          mseResumeRequested = position >= 0
           const bufferLength = 30
           const engine = (hls = new w.Hls({
             startPosition: position,
@@ -1856,6 +1856,25 @@ export async function renderSandboxVideo(context: VideoRendererContext) {
   )
   // Embedded mobile browsers may defer metadata until a user presses play.
   // Expose the controls now; metadata only refines the reserved aspect ratio.
+  let initialPositionPending = !config.jellyfin && Number.isFinite(config.startTime) && config.startTime! > 0
+  let initialFrameShown = false
+  const revealInitialFrame = () => {
+    if (config.jellyfin || initialFrameShown || video.readyState < 2 || video.seeking || initialPositionPending) return
+    fitVideo()
+    initialFrameShown = true
+    // Height is posted before revealing the iframe, so the first visible frame fits.
+    requestAnimationFrame(() => send("videoFrameReady"))
+  }
+  const seekInitialPosition = () => {
+    if (!initialPositionPending || !Number.isFinite(video.duration) || video.duration <= 0) return
+    const target = Math.min(config.startTime!, Math.max(0, video.duration - 1))
+    try {
+      if (!mseResumeRequested) video.currentTime = target
+      initialPositionPending = false
+    } catch { /* Retry when the media timeline becomes available. */ }
+  }
+  for (const event of ["loadedmetadata", "durationchange", "canplay"]) video.addEventListener(event, seekInitialPosition)
+  for (const event of ["loadeddata", "canplay", "seeked", "playing"]) video.addEventListener(event, revealInitialFrame)
   video.addEventListener("loadedmetadata", fitVideo)
   let subtitleLayoutFrame = 0
   let firstSubtitleFrame: number | undefined

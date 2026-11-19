@@ -165,7 +165,7 @@ document.addEventListener('nav',()=>{
   if(item.type==='article'){const fold=node('span','','reading-page-fold');fold.setAttribute('aria-hidden','true');fold.innerHTML='<svg viewBox="0 0 18 18" aria-hidden="true"><path class="reading-fold-under" d="M0 18 18 0v18H0Z"/><path class="reading-fold-back" d="M0 18V0h18L0 18Z"/><path class="reading-fold-crease" d="M0 18 18 0M0 18V0h18"/></svg>';sheet.append(fold)}
   const text=node('p',readingPreview(excerpt,item.excerptTruncated)||'这是一篇神秘的内容...','reading-opening')
   content.append(title,text)
-  const footer=node('footer','','reading-card-footer'),details=node('div','','reading-card-details'),folder=readingFolder(item.href)
+  const footer=node('footer','','reading-card-footer'),details=node('div','','reading-card-details'),folder=readingFolder(item.href,item)
   if(folder){const parent=node('a','','reading-folder'),folderIcon=node('span');folderIcon.innerHTML=fileTypeIcons.folder;folderIcon.setAttribute('aria-hidden','true');parent.href=folder.href;parent.dataset.noPopover='true';parent.title=`所属文件夹：${folder.label}`;parent.setAttribute('aria-label',parent.title);parent.append(folderIcon,node('span',folder.label));details.append(parent)}
   const updated=new Date((item.type==='share'?item.createdAt:item.updatedAt)||'')
   if(Number.isFinite(updated.getTime())){

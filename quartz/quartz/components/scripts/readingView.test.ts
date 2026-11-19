@@ -46,3 +46,10 @@ test('body line budgets consume free card space without overrunning the footer',
  assert.equal(readingFillLineCount(30*4+180,30),10)
  assert.equal(readingFillLineCount(120,0),0)
 })
+
+test('dynamic reading folders keep canonical parent routes without synthetic Share directory',async()=>{
+ const {readingFolder}=await import('./readingView')
+ assert.deepEqual(readingFolder('/Repo/demo/',{type:'repo'}),{label:'Repo',href:'/Repo/'})
+ assert.deepEqual(readingFolder('/Video/BV123/',{type:'video'}),{label:'Video',href:'/Video/'})
+ assert.deepEqual(readingFolder('/Share/%E5%88%86%E4%BA%AB/files/',{type:'share'}),{label:'Share',href:'/Share/'})
+})

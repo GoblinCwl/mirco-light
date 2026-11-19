@@ -26,6 +26,7 @@ export type SandboxPreview = {
   matroskaReader?: string
   preferences?: VideoPreferences
   playerIcons?: Record<string,string>
+  startTime?: number
   resumeTime?: number
   mediaType?: string
   videoAspectRatio?: number

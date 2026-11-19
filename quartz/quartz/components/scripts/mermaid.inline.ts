@@ -186,11 +186,14 @@ const cssVars = [
 ] as const
 
 let mermaidImport = undefined
-document.addEventListener("nav", async () => {
+const initializedDiagrams = new WeakSet<HTMLElement>()
+async function setupMermaid() {
   const center = document.querySelector(".center") as HTMLElement
-  const nodes = center.querySelectorAll("code.mermaid") as NodeListOf<HTMLElement>
+  if (!center) return
+  const nodes = Array.from(center.querySelectorAll<HTMLElement>("code.mermaid")).filter(node => !initializedDiagrams.has(node))
   if (nodes.length === 0) return
 
+  for (const node of nodes) initializedDiagrams.add(node)
   const moduleURL = new URL("/static/vendor/mermaid/11.4.0/dist/mermaid.esm.min.mjs", location.origin).href
   mermaidImport ||= await import(/* @vite-ignore */ moduleURL)
   const mermaid = mermaidImport.default
@@ -206,7 +209,7 @@ document.addEventListener("nav", async () => {
       node.removeAttribute("data-processed")
       const oldText = textMapping.get(node)
       if (oldText) {
-        node.innerHTML = oldText
+        node.textContent = oldText
       }
     }
 
@@ -250,13 +253,12 @@ document.addEventListener("nav", async () => {
     const clipboardBtn = pre.querySelector(".clipboard-button") as HTMLButtonElement
     const expandBtn = pre.querySelector(".expand-button") as HTMLButtonElement
 
-    const clipboardStyle = window.getComputedStyle(clipboardBtn)
-    const clipboardWidth =
-      clipboardBtn.offsetWidth +
-      parseFloat(clipboardStyle.marginLeft || "0") +
-      parseFloat(clipboardStyle.marginRight || "0")
+    if (!expandBtn) continue
+    const clipboardStyle = clipboardBtn ? window.getComputedStyle(clipboardBtn) : undefined
+    const clipboardWidth = clipboardBtn
+      ? clipboardBtn.offsetWidth + parseFloat(clipboardStyle?.marginLeft || "0") + parseFloat(clipboardStyle?.marginRight || "0")
+      : 0
 
-    // Set expand button position
     expandBtn.style.right = `calc(${clipboardWidth}px + 0.3rem)`
     pre.prepend(expandBtn)
 
@@ -298,4 +300,6 @@ document.addEventListener("nav", async () => {
       expandBtn.removeEventListener("click", showMermaid)
     })
   }
-})
+}
+document.addEventListener("nav", () => void setupMermaid())
+document.addEventListener("decryptComplete", () => void setupMermaid())
