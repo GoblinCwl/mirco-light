@@ -1239,7 +1239,7 @@ body[data-slug="index"] .home-attendance {
 body[data-slug="index"] .home-attendance .special-day .home-attendance-number::before {
   width: 0.75rem;
   height: 0.75rem;
-  background: var(--attendance-rest);
+  background: var(--special-day-color, var(--attendance-rest));
   opacity: 1;
   filter: none;
 }
@@ -1371,7 +1371,8 @@ body[data-slug="index"] .home-attendance {
     }
 
   }
-  [data-status="work"] .home-attendance-star { --star-color: var(--attendance-work); }
+  [data-status="work"] .home-attendance-star,
+  [data-status="overtime"] .home-attendance-star { --star-color: var(--attendance-work); }
   [data-status="business_trip"] .home-attendance-star { --star-color: var(--attendance-business-trip); }
   [data-status="onsite"] .home-attendance-star { --star-color: var(--attendance-onsite); }
   [data-status="fieldwork"] .home-attendance-star { --star-color: var(--attendance-fieldwork); }
@@ -1492,13 +1493,13 @@ body[data-slug="index"] .home-attendance {
     position: absolute;
     inset: -12%;
     pointer-events: none;
-    color: var(--attendance-rest);
+    color: var(--special-day-color, var(--attendance-rest));
     > svg { width: 100%; height: 100%; }
   }
   .special-gold-rays { color: inherit; fill: none; stroke: currentColor; opacity: .55; animation: special-gold-breathe 5.5s ease-in-out infinite; }
-  .special-gold-glint { fill: currentColor; transform-box: fill-box; transform-origin: center; animation: special-gold-glint 4.8s ease-in-out infinite; }
-  .glint-two { animation-delay: -1.6s; }
-  .glint-three { animation-delay: -3.2s; }
+  .special-gold-glint { fill: currentColor; transform-box: fill-box; transform-origin: center; animation: special-gold-glint 4.8s ease-in-out infinite, special-star-spin 9s linear infinite; }
+  .glint-two { animation-delay: -1.6s, -2s; animation-duration: 4.8s, 13s; animation-direction: normal, reverse; }
+  .glint-three { animation-delay: -3.2s, -4s; animation-duration: 4.8s, 11s; }
   @media (prefers-reduced-motion: reduce) {
     .special-gold-rays, .special-gold-glint { animation: none; }
   }
@@ -1507,6 +1508,9 @@ body[data-slug="index"] .home-attendance {
 @keyframes special-gold-breathe {
   0%, 100% { opacity: .3; }
   50% { opacity: .85; }
+}
+@keyframes special-star-spin {
+  to { rotate: 1turn; }
 }
 @keyframes special-gold-glint {
   0%, 100% { opacity: .8; transform: scale(.92); }
@@ -2237,7 +2241,7 @@ dialog.attendance-details {
     > button:not(:disabled):hover { background: var(--highlight); }
   }
   [data-status] { --day-color: var(--gray); }
-  [data-status="work"] { --day-color: var(--detail-work); }
+  [data-status="work"], [data-status="overtime"] { --day-color: var(--detail-work); }
   [data-status="business_trip"] { --day-color: var(--detail-business-trip); }
   [data-status="onsite"] { --day-color: var(--detail-onsite); }
   [data-status="fieldwork"] { --day-color: var(--detail-fieldwork); }
@@ -2445,10 +2449,10 @@ dialog.attendance-details .attendance-details-controls > .site-date-field {
 @keyframes site-date-appear { from { opacity: 0; translate: 0 3px; } to { opacity: 1; translate: 0 0; } }
 
 dialog.attendance-details {
-  .attendance-detail-heading > .attendance-detail-special { color: var(--detail-rest); white-space: nowrap; }
+  .attendance-detail-heading > .attendance-detail-special { color: var(--special-day-color, var(--detail-rest)); white-space: nowrap; }
   .attendance-details-days button.is-special {
     color: var(--day-color);
-    .attendance-special-marker { position: absolute; right: 2px; top: 0; font-size: 0.7rem; line-height: 1.2; color: var(--detail-rest); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--detail-rest) 50%, transparent)); }
+    .attendance-special-marker { position: absolute; right: 2px; top: 0; font-size: 0.7rem; line-height: 1.2; color: var(--special-day-color, var(--detail-rest)); filter: drop-shadow(0 0 3px color-mix(in srgb, currentColor 50%, transparent)); }
   }
 }
 

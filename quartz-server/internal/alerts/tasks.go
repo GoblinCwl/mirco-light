@@ -19,6 +19,6 @@ func TrackFailures(tracker *taskruns.Tracker) {
 		if message == "" {
 			message = "执行失败，请查看任务日志"
 		}
-		return (Store{DB: tracker.DB}).Record(ctx, Event{Kind: "task", Level: "error", Source: name, Title: title, Message: taskruns.Clean(message, 1000)})
+		return (Store{DB: tracker.DB}).Record(ctx, Event{TaskKey: key, Kind: "task", Level: "error", Source: name, Title: title, Message: taskruns.Clean(message, 1000)})
 	}
 }

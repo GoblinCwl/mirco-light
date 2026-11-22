@@ -2,8 +2,13 @@ import {readAttendanceMonth,peekAttendanceMonth,type AttendanceMonth} from './at
 import { showSiteDialog, closeSiteDialog } from "./siteDialog"
 import { createDatePicker } from "./datePicker"
 
-export type AttendanceDetail = { date: string; status?: string; holidayName?: string; specialName?: string; location?: string; weather?: string; bannerIcon?: string; preview?: boolean }
-const labels: Record<string, string> = { work: "出勤", business_trip: "出差", onsite: "驻场", fieldwork: "外勤", remote: "居家", comp_off: "调休", weekend: "周末", leave: "请假", holiday: "节假日" }
+export function applySpecialDayColor(element: HTMLElement, color?: string) {
+  if (color && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(color)) element.style.setProperty("--special-day-color", color)
+  else element.style.removeProperty("--special-day-color")
+}
+
+export type AttendanceDetail = { date: string; status?: string; holidayName?: string; specialName?: string; specialColor?: string; location?: string; weather?: string; bannerIcon?: string; preview?: boolean }
+const labels: Record<string, string> = { work: "出勤", overtime: "加班", business_trip: "出差", onsite: "驻场", fieldwork: "外勤", remote: "居家", comp_off: "调休", weekend: "周末", leave: "请假", holiday: "节假日" }
 const el = (tag: string, text = "", className = "") => {
   const node = document.createElement(tag)
   node.textContent = text
@@ -83,6 +88,7 @@ export function createAttendanceDetails(button: HTMLButtonElement | null, getSta
     const title = el("div", "", "attendance-detail-heading")
     const weekday = new Intl.DateTimeFormat("zh-CN", { weekday: "long", timeZone: "Asia/Shanghai" }).format(new Date(`${selected}T12:00:00+08:00`))
     title.append(el("strong", `${Number(selected.slice(5, 7))} 月 ${Number(selected.slice(8))} 日`), el("span", record?.specialName ? `✦ ${record.specialName}` : weekday, record?.specialName ? "attendance-detail-special" : ""))
+    applySpecialDayColor(title, record?.specialColor)
     const mood = el("span", record?.bannerIcon || "", "attendance-detail-mood")
     if (record?.bannerIcon) {
       mood.setAttribute("role", "img")
@@ -138,6 +144,7 @@ export function createAttendanceDetails(button: HTMLButtonElement | null, getSta
       if (entry?.specialName) {
         dayButton.classList.add("is-special")
         dayButton.title = entry.specialName
+        applySpecialDayColor(dayButton, entry.specialColor)
         const marker = el("span", "✦", "attendance-special-marker")
         marker.setAttribute("aria-hidden", "true")
         dayButton.append(marker)

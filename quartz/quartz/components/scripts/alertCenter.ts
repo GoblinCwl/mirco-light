@@ -8,6 +8,7 @@ type AlertRecord = {
   kind: string
   level: string
   source: string
+  muteKey?: string
   title: string
   message: string
   target: string
@@ -138,6 +139,10 @@ export function setupAlertCenter(
           node("span", "首次 " + stamp(record.firstSeen)),
           node("span", "最近 " + stamp(record.lastSeen)),
         )
+        const muteKey = record.muteKey || record.source
+        const muteSource = node("span", "静音来源 ")
+        muteSource.append(node("code", muteKey))
+        meta.append(muteSource)
         if (record.target) meta.append(node("span", record.target))
         if (record.code) meta.append(node("span", `错误码 ${record.code}`))
         copy.append(context, title)

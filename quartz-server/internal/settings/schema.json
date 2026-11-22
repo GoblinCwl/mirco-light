@@ -724,6 +724,17 @@
     "help": "自动审核通过，以及累计处理失败达到阈值时通知。"
   },
   {
+    "key": "notify.astrbot.mutedAlerts",
+    "public": false,
+    "group": "服务接入",
+    "category": "AstrBot",
+    "label": "告警通知静音",
+    "type": "textarea",
+    "default": "",
+    "max": 4000,
+    "help": "每行填写一个告警来源或任务 ID。填写 github-social 可静音 GitHub 动态刷新任务。告警仍保留在告警中心，仅影响新通知。"
+  },
+  {
     "key": "notify.astrbot.minLevel",
     "public": false,
     "group": "服务接入",

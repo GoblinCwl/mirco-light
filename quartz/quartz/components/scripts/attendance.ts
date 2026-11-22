@@ -1,7 +1,8 @@
 import {readAttendanceMonth} from './attendanceClient'
-import { createAttendanceDetails, type AttendanceDetail } from "./attendanceDetails"
+import { applySpecialDayColor, createAttendanceDetails, type AttendanceDetail } from "./attendanceDetails"
 
 const attendanceTypes = {
+  overtime: { label: "加班", icon: "☕" },
   work: { label: "出勤", icon: "🏢" },
   business_trip: { label: "出差", icon: "🧳" },
   onsite: { label: "驻场", icon: "🏢" },
@@ -22,7 +23,7 @@ export function setupAttendanceCalendar() {
     let month = today.slice(0, 7)
     let records = new Map<string, AttendanceType>()
     let holidayNames = new Map<string, string>()
-    let specialNames = new Map<string, string>()
+    let specialDays = new Map<string, AttendanceDetail>()
     let earliest = "2026-07"
     let latest = month
     let loaded = false
@@ -109,8 +110,10 @@ export function setupAttendanceCalendar() {
         const status = records.get(iso)
         const type = status ? attendanceTypes[status] : null
         const statusLabel = status === "holiday" ? holidayNames.get(iso)?.replace(/节$/, "") ?? type!.label : type?.label
-        const specialName = inside ? specialNames.get(iso) : undefined
+        const special = inside ? specialDays.get(iso) : undefined
+        const specialName = special?.specialName
         const cell = existingCells[index] || document.createElement("button")
+        applySpecialDayColor(cell, special?.specialColor)
         cell.type = "button"
         cell.setAttribute("aria-haspopup", "dialog")
         cell.disabled = !inside || (!status && iso > today)
@@ -236,7 +239,7 @@ export function setupAttendanceCalendar() {
       const counts = { work: 0, rest: 0, leave: 0 }
       records.forEach((status, date) => {
         if (!date.startsWith(month)) return
-        if (["work", "business_trip", "onsite", "fieldwork", "remote"].includes(status ?? "")) counts.work++
+        if (["work", "overtime", "business_trip", "onsite", "fieldwork", "remote"].includes(status ?? "")) counts.work++
         else if (status === "leave") counts.leave++
         else counts.rest++
       })
@@ -284,7 +287,7 @@ export function setupAttendanceCalendar() {
         detailRecords=result.records
         records=new Map(result.records.filter(record=>record.status&&Object.hasOwn(attendanceTypes,record.status)).map(record=>[record.date,record.status as AttendanceType]))
         holidayNames=new Map(result.records.filter(record=>record.status==='holiday'&&typeof record.holidayName==='string').map(record=>[record.date,record.holidayName!]))
-        specialNames=new Map(result.records.filter(record=>typeof record.specialName==='string'&&record.specialName).map(record=>[record.date,record.specialName!]))
+        specialDays = new Map(result.records.filter(record => record.specialName).map(record => [record.date, record]))
         earliest=result.earliest||earliest;latest=result.latest||today.slice(0,7);loaded=true
         if(note)note.textContent=result.stale?'上次同步记录':''
         render(rearrange);details.refresh()

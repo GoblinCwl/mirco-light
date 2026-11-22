@@ -27,9 +27,10 @@ var htmlTag = regexp.MustCompile(`<[^>]*>`)
 var markedAttendance = regexp.MustCompile(`(?s)<!--\s*diary:attendance:start\s*-->(.*?)<!--\s*diary:attendance:end\s*-->`)
 var markedWeather = regexp.MustCompile(`(?s)<!--\s*diary:weather:start\s*-->(.*?)<!--\s*diary:weather:end\s*-->`)
 var markedDay = regexp.MustCompile(`(?s)<!--\s*diary:day-label:start\s*-->(.*?)<!--\s*diary:day-label:end\s*-->`)
+var dayLabelColor = regexp.MustCompile(`(?i)<font\s+color=["'](#[0-9a-f]{3}|#[0-9a-f]{6})["']`)
 var ordinaryWeekday = regexp.MustCompile(`^(?:[日月火水木金土]曜日|(?:星期|周)[一二三四五六日天])$`)
 var holiday = regexp.MustCompile(`国庆节|中秋节|端午节|春节|元旦(?:节)?|清明节|劳动节|五一(?:劳动节)?|儿童节|妇女节|建军节|重阳节|元宵节|七夕节|除夕`)
-var attendanceLocation = regexp.MustCompile(`(?:出勤|出差|驻场|外勤|居家|远程)\s*[-—–:：]\s*([^\r\n]+)`)
+var attendanceLocation = regexp.MustCompile(`(?:加班|出勤|出差|驻场|外勤|居家|远程)\s*[-—–:：]\s*([^\r\n]+)`)
 
 func limited(value string, max int) string {
 	r := []rune(value)
@@ -94,12 +95,17 @@ func AttendanceRecord(filename, body string) map[string]any {
 		special := limited(strings.TrimSpace(strings.TrimPrefix(label, "🌟")), 40)
 		if special != "" {
 			record["specialName"] = special
+			if block := markedDay.FindStringSubmatch(body); len(block) > 1 {
+				if color := dayLabelColor.FindStringSubmatch(block[1]); len(color) > 1 {
+					record["specialColor"] = color[1]
+				}
+			}
 		}
 	}
 	text := marked(markedAttendance, body)
 	holidayName := holiday.FindString(text)
 	status := ""
-	for _, rule := range [][2]string{{"请假|病假|事假|年假", "leave"}, {"调休|补休", "comp_off"}, {"居家|远程", "remote"}, {"出差", "business_trip"}, {"驻场", "onsite"}, {"外勤", "fieldwork"}, {"出勤", "work"}, {"周末", "weekend"}} {
+	for _, rule := range [][2]string{{"请假|病假|事假|年假", "leave"}, {"调休|补休", "comp_off"}, {"居家|远程", "remote"}, {"出差", "business_trip"}, {"驻场", "onsite"}, {"外勤", "fieldwork"}, {"加班", "overtime"}, {"出勤", "work"}, {"周末", "weekend"}} {
 		if regexp.MustCompile(rule[0]).MatchString(text) {
 			status = rule[1]
 			break
@@ -114,7 +120,7 @@ func AttendanceRecord(filename, body string) map[string]any {
 	if status == "holiday" && holidayName != "" {
 		record["holidayName"] = holidayName
 	}
-	if status == "work" || status == "business_trip" || status == "onsite" || status == "fieldwork" || status == "remote" {
+	if status == "overtime" || status == "work" || status == "business_trip" || status == "onsite" || status == "fieldwork" || status == "remote" {
 		if location := attendanceLocation.FindStringSubmatch(text); len(location) > 1 {
 			value := limited(strings.TrimSpace(location[1]), 120)
 			if value != "" {

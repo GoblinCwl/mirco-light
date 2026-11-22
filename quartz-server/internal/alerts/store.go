@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"goblincwl/quartz-server/internal/notifications"
+	"goblincwl/quartz-server/internal/taskruns"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 )
 
 type Event struct {
+	TaskKey string `json:"-"`
 	Kind    string `json:"kind"`
 	Level   string `json:"level"`
 	Source  string `json:"source"`
@@ -23,7 +25,8 @@ type Event struct {
 	Code    int    `json:"code"`
 }
 type Record struct {
-	ID int64 `json:"id"`
+	MuteKey string `json:"muteKey"`
+	ID      int64  `json:"id"`
 	Event
 	FirstSeen   string `json:"firstSeen"`
 	LastSeen    string `json:"lastSeen"`
@@ -91,7 +94,7 @@ func RecordTx(ctx context.Context, tx *sql.Tx, event Event, now time.Time) error
 	if err == nil {
 		_, err = tx.ExecContext(ctx, "UPDATE alerts SET last_seen=GREATEST(last_seen,?),occurrences=occurrences+1,level=?,message=? WHERE id=?", stamp, event.Level, event.Message, id)
 		if err == nil && oldLevel != "error" && event.Level == "error" {
-			err = notifications.EnqueueTx(ctx, tx, notifications.Event{Kind: "alerts", RecordID: strconv.FormatInt(id, 10), Title: event.Title, Summary: event.Source + "：" + event.Message, Level: event.Level, Status: "级别升级"})
+			err = notifications.EnqueueTx(ctx, tx, notifications.Event{Kind: "alerts", Source: event.Source, TaskKey: event.TaskKey, RecordID: strconv.FormatInt(id, 10), Title: event.Title, Summary: event.Source + "：" + event.Message, Level: event.Level, Status: "级别升级"})
 		}
 		return err
 	}
@@ -106,7 +109,7 @@ func RecordTx(ctx context.Context, tx *sql.Tx, event Event, now time.Time) error
 	if err != nil {
 		return err
 	}
-	if err = notifications.EnqueueTx(ctx, tx, notifications.Event{Kind: "alerts", RecordID: strconv.FormatInt(id, 10), Title: event.Title, Summary: event.Source + "：" + event.Message, Level: event.Level, Status: "新告警"}); err != nil {
+	if err = notifications.EnqueueTx(ctx, tx, notifications.Event{Kind: "alerts", Source: event.Source, TaskKey: event.TaskKey, RecordID: strconv.FormatInt(id, 10), Title: event.Title, Summary: event.Source + "：" + event.Message, Level: event.Level, Status: "新告警"}); err != nil {
 		return err
 	}
 	// Retention is performed only when an incident is inserted, with no cleanup timer.
@@ -169,6 +172,15 @@ func (s Store) List(ctx context.Context, page int, kind, query string) (map[stri
 		var r Record
 		if err := rows.Scan(&r.ID, &r.Kind, &r.Level, &r.Source, &r.Title, &r.Message, &r.Target, &r.Code, &r.FirstSeen, &r.LastSeen, &r.Occurrences); err != nil {
 			return nil, err
+		}
+		r.MuteKey = r.Source
+		if r.Kind == "task" {
+			for _, task := range taskruns.Definitions {
+				if r.Source == task.Name || r.Source == task.Key || r.Source == TaskName(task.Key) {
+					r.MuteKey = task.Key
+					break
+				}
+			}
 		}
 		items = append(items, r)
 	}

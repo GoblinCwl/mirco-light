@@ -14,6 +14,8 @@ import (
 )
 
 type Event struct {
+	Source     string `json:"-"`
+	TaskKey    string `json:"-"`
 	Version    int    `json:"version"`
 	ID         string `json:"id"`
 	Kind       string `json:"kind"`
@@ -57,6 +59,24 @@ func EnqueueTx(ctx context.Context, tx *sql.Tx, e Event) error {
 	}
 	if err == nil && raw == "false" {
 		return nil
+	}
+	if e.Kind == "alerts" {
+		err := tx.QueryRowContext(ctx, "SELECT value FROM settings WHERE `key`='notify.astrbot.mutedAlerts'").Scan(&raw)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		if err == nil {
+			var muted string
+			if err := json.Unmarshal([]byte(raw), &muted); err != nil {
+				return err
+			}
+			for _, line := range strings.Split(muted, "\n") {
+				rule := strings.TrimSpace(line)
+				if rule != "" && (strings.EqualFold(rule, e.Source) || strings.EqualFold(rule, e.TaskKey)) {
+					return nil
+				}
+			}
+		}
 	}
 	if e.Kind == "alerts" && e.Level == "warning" {
 		err = tx.QueryRowContext(ctx, "SELECT value FROM settings WHERE `key`='notify.astrbot.minLevel'").Scan(&raw)
