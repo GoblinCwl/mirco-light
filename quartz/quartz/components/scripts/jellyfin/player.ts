@@ -93,7 +93,7 @@ export async function mountJellyfinPlayer(config: PlayerConfig) {
   const subtitleStatus = rightStatus.status(),
     danmakuStatus = rightStatus.status()
   const notice = (message: string) =>
-    leftStatus.notice(message, /^音量\s/.test(message) ? "volume" : message)
+    leftStatus.notice(message, /^弹幕已(?:开启|关闭)$/.test(message) ? "danmaku-visibility" : /^音量\s/.test(message) ? "volume" : message)
   const danmakuNotice = (message: string) => rightStatus.notice(message, "danmaku-result")
   let latest: PlaybackSource | undefined, lastDecodeFallbackSeek: number | undefined
   let subtitles: SubtitleManager
@@ -211,8 +211,8 @@ export async function mountJellyfinPlayer(config: PlayerConfig) {
         }),
       )
       danmaku = new DanmakuManager(player, config, bridge, danmakuStatus, danmakuNotice)
-      danmaku.mount()
-      window.dispatchEvent(new Event("quartz-danmaku-ready"))
+      const panels = danmaku.mount()
+      if (panels) window.dispatchEvent(new CustomEvent("quartz-danmaku-ready", { detail: panels }))
       void danmaku.load()
     } catch {
       if (!lifetime.signal.aborted) danmakuNotice("弹幕组件加载失败，视频可继续播放")

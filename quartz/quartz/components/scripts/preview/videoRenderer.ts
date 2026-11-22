@@ -5,6 +5,7 @@ import type { SandboxPreview } from "./sandboxTypes"
 import type { resumeSeekTarget } from "../videoResume"
 import type { preferredSubtitle } from "../driveSubtitleSelection"
 import type { embeddedASSFont } from "../assFonts"
+import type { animatePlayerNoticeUpdates } from "../jellyfin/statusStack"
 export type VideoRendererContext = {
   config: SandboxPreview
   w: Window & Record<string, any>
@@ -18,6 +19,7 @@ export type VideoRendererContext = {
   resumeTargetFor: typeof resumeSeekTarget
   chooseSubtitle: typeof preferredSubtitle
   mountPanels: typeof mountPlayerPanels
+  animateNotices: typeof animatePlayerNoticeUpdates
   mountFullscreen: typeof mountPlayerFullscreen
   findEmbeddedFont: typeof embeddedASSFont
   playerSkinCSS: string
@@ -41,6 +43,7 @@ export async function renderSandboxVideo(context: VideoRendererContext) {
     chooseSubtitle,
     mountFullscreen,
     mountPanels,
+    animateNotices,
     findEmbeddedFont,
     playerSkinCSS,
     element,
@@ -199,6 +202,7 @@ export async function renderSandboxVideo(context: VideoRendererContext) {
   })
   const statusLine = (text: string) => {
     const line = element("span", text)
+    line.className = "quartz-status-chip"
     line.setAttribute("role", "status")
     line.setAttribute("aria-live", "polite")
     Object.assign(line.style, {
@@ -206,7 +210,6 @@ export async function renderSandboxVideo(context: VideoRendererContext) {
       borderRadius: "4px",
       background: "var(--q-surface)",
       color: "var(--q-text)",
-      fontSize: "13px",
       maxWidth: "100%",
       boxSizing: "border-box",
       overflowWrap: "anywhere",
@@ -1346,6 +1349,12 @@ export async function renderSandboxVideo(context: VideoRendererContext) {
   const panelLifetime=new AbortController()
   addEventListener("pagehide",()=>panelLifetime.abort(),{once:true})
   mountPanels(player,root,config.channel,panelLifetime.signal)
+  animateNotices(player.template.$notice, panelLifetime.signal)
+  const settingsControl = playerElement.querySelector(".art-control-setting")
+  const syncSettingsHint = (open: boolean) =>
+    settingsControl?.setAttribute("aria-label", open ? "关闭播放设置" : "播放设置")
+  syncSettingsHint(player.setting.show)
+  player.on("setting", syncSettingsHint)
   const settingsHeading = element("div")
   settingsHeading.className = "quartz-settings-heading"
   const closeSettings = element("button")

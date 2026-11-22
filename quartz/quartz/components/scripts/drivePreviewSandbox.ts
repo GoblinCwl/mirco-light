@@ -5,6 +5,7 @@ import type { preferredSubtitle } from "./driveSubtitleSelection"
 import type { embeddedASSFont } from "./assFonts"
 import type { SandboxPreview } from "./preview/sandboxTypes"
 import type { renderSandboxVideo } from "./preview/videoRenderer"
+import type { animatePlayerNoticeUpdates } from "./jellyfin/statusStack"
 // This function is serialized into an isolated iframe. Keep runtime dependencies
 // local or explicitly passed: renderers never modify the site's globals or styles.
 export async function previewSandboxRuntime(
@@ -17,6 +18,7 @@ export async function previewSandboxRuntime(
   renderVideo: typeof renderSandboxVideo,
   mountFullscreen: typeof mountPlayerFullscreen,
   mountPanels: typeof mountPlayerPanels,
+  animateNotices: typeof animatePlayerNoticeUpdates,
 ) {
   const w = window as typeof window & Record<string, any>
   const root = document.getElementById("preview")!
@@ -467,6 +469,7 @@ export async function previewSandboxRuntime(
         chooseSubtitle,
         mountFullscreen,
         mountPanels,
+        animateNotices,
         findEmbeddedFont,
         playerSkinCSS,
         element,

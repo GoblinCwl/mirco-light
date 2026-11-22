@@ -1,3 +1,26 @@
+export function animatePlayerNoticeUpdates(container: HTMLElement, signal: AbortSignal) {
+  const observer = new MutationObserver((records) => {
+    const notices = new Set<HTMLElement>()
+    for (const { target } of records) {
+      const element = target instanceof Element ? target : target.parentElement
+      const notice = element?.closest<HTMLElement>(".art-notice-inner,.quartz-status-chip")
+      if (notice?.textContent) notices.add(notice)
+    }
+    for (const notice of notices) {
+      const animation = notice.getAnimations().find(
+        (entry) => entry instanceof CSSAnimation && entry.animationName === "quartz-player-status-enter",
+      )
+      // Updates during the entrance share the current animation.
+      if (animation?.playState === "finished") {
+        animation.currentTime = 0
+        animation.play()
+      }
+    }
+  })
+  observer.observe(container, { subtree: true, childList: true, characterData: true })
+  signal.addEventListener("abort", () => observer.disconnect(), { once: true })
+}
+
 /** One layout for both corners. Different notices coexist; repeated control
  * feedback (volume/seek) updates its existing row rather than filling the screen. */
 export function createStatusStack(root: HTMLElement, side: "left" | "right", signal: AbortSignal) {
@@ -16,21 +39,12 @@ export function createStatusStack(root: HTMLElement, side: "left" | "right", sig
     pointerEvents: "none",
   })
   root.append(element)
+  animatePlayerNoticeUpdates(element, signal)
   const row = () => {
     const item = document.createElement("span")
     item.setAttribute("role", "status")
-    Object.assign(item.style, {
-      display: "none",
-      maxWidth: "100%",
-      boxSizing: "border-box",
-      padding: "4px 8px",
-      fontSize: "12px",
-      lineHeight: "1.5",
-      borderRadius: "4px",
-      overflowWrap: "anywhere",
-      background: "var(--background)",
-      color: "var(--foreground)",
-    })
+    item.className = "quartz-status-chip"
+    item.style.display = "none"
     element.append(item)
     return item
   }
@@ -38,6 +52,7 @@ export function createStatusStack(root: HTMLElement, side: "left" | "right", sig
   const status = () => {
     const item = row()
     return (text: string) => {
+      if (item.textContent === text) return
       item.textContent = text
       item.style.display = text ? "block" : "none"
     }

@@ -21,7 +21,11 @@ export const settingIcon = (name: string) => {
       '<path d="M5 13v-2a7 7 0 0 1 14 0v2M5 11H3v7h4v-7H5m14 0h2v7h-4v-7h2m0 7a3 3 0 0 1-3 3h-3"/>',
     quartzCompactDanmuku:
       '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h6m3 0h1M7 13h2m3 0h5"/>',
-    quartzCompactDanmukuSettings:
+    quartzDanmakuOff:
+      '<path d="M10 5h9a2 2 0 0 1 2 2v8M3 7v10a2 2 0 0 0 2 2h12M3 3l18 18M7 13h2m3-4h5"/>',
+    quartzDanmakuMatching:
+      '<path d="M11 18H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4M7 9h8M7 13h4"/><circle cx="16.5" cy="16.5" r="3.5"/><path d="m19 19 2 2"/>',
+    quartzDanmakuDisplay:
       '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h10M7 14h10m-6-6v4m3 0v4"/>',
     skipIntroOutro: '<path d="m4 6 8 6-8 6V6Zm9 0 8 6-8 6V6ZM3 3h18M3 21h18"/>',
     "playback-rate": '<circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4V8Z"/>',
@@ -42,7 +46,7 @@ export const playerIcons = {
   fullscreenWebOff: settingIcon("fullscreenWebOff"),
   pip: settingIcon("pip"),
   loading: '<span class="quartz-buffering" role="status" aria-label="视频加载中"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="quartz-buffering-track" cx="20" cy="20" r="15"/><path class="quartz-buffering-orbit" d="M20 5a15 15 0 0 1 15 15"/><path class="quartz-buffering-star" d="m20 13 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z"/></svg></span>',
-  state: '<svg class="quartz-transport-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5.5 19 12 8 18.5Z"/></svg>',
+  state: '<svg viewBox="0 0 24 24" fill="currentColor" shape-rendering="geometricPrecision" aria-hidden="true"><path fill-rule="evenodd" d="M7 6.6C7 5.38 8.31 4.61 9.38 5.19L19.75 10.76C20.74 11.29 20.74 12.71 19.75 13.24L9.38 18.81C8.31 19.39 7 18.62 7 17.4ZM8.9 7.45C8.9 7.22 9.15 7.07 9.35 7.18L17.87 11.76C18.06 11.86 18.06 12.14 17.87 12.24L9.35 16.82C9.15 16.93 8.9 16.78 8.9 16.55Z"/></svg>',
   play: '<svg class="quartz-transport-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5.5 19 12 8 18.5Z"/></svg>',
   pause: '<svg class="quartz-transport-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="5" width="3" height="14" rx=".8"/><rect x="14" y="5" width="3" height="14" rx=".8"/></svg>',
 }

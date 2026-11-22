@@ -2,7 +2,7 @@
  * Serialized into ordinary previews: keep all runtime dependencies local. */
 export function mountPlayerPanels(player:any,root:HTMLElement,channel:string,signal:AbortSignal) {
   const element=player.template.$player as HTMLElement
-  let queued=0,last='',offset=0
+  let queued=0,last='',offset=0,settingsHomeHeight=0
   const originalMargin=root.style.marginTop
   const panels=()=>[...element.querySelectorAll<HTMLElement>('.art-settings,.apd-config-panel')]
   const update=()=>{
@@ -13,7 +13,14 @@ export function mountPlayerPanels(player:any,root:HTMLElement,channel:string,sig
     const fullscreen=!!(document.fullscreenElement || (document as any).webkitFullscreenElement || player.fullscreenWeb)
     const rect=element.getBoundingClientRect(),bottom=rect.width<600?8:60
     const inner=active?.querySelector<HTMLElement>('.apd-config-panel-inner')
-    const height=active?Math.min(420,(inner||active).scrollHeight+2):0
+    const scroller=active===settings?settings?.querySelector<HTMLElement>('.art-setting-panel.art-current'):null
+    const clipped=scroller?Math.max(0,scroller.scrollHeight-scroller.clientHeight):0
+    let height=active?Math.min(420,(inner||active).scrollHeight+clipped+2):0
+    if(active===settings&&active){
+      if(player.setting.active===player.setting.option)settingsHomeHeight=height
+      // Keep room for returning from a shorter submenu before the host can resize.
+      height=Math.max(height,settingsHomeHeight)
+    }else settingsHomeHeight=0
     const menu=active?.getBoundingClientRect()
     const message={channel,type:'playerPanel',open:!!active&&!fullscreen,height,bottom,mediaHeight:Math.round(rect.height),left:Math.max(0,menu?.left??rect.left),width:menu?.width||288}
     const serialized=JSON.stringify(message)
@@ -34,9 +41,9 @@ export function mountPlayerPanels(player:any,root:HTMLElement,channel:string,sig
     if(Number.isFinite(space)&&space>=0&&space<=1000&&Number.isFinite(height)&&height>0&&height<=1200)apply(space,height)
   }
   const observer=new MutationObserver(records=>{
-    if(records.some(record=>record.target instanceof Element&&record.target.matches('.art-video-player,.art-setting-panel,.apd-config')))schedule()
+    if(records.some(record=>record.target instanceof Element&&record.target.matches('.art-video-player,.art-setting-panel,.apd-config,.quartz-danmuku-search-panel,.quartz-danmuku-source')))schedule()
   })
-  observer.observe(element,{subtree:true,attributes:true,attributeFilter:['class']})
+  observer.observe(element,{subtree:true,attributes:true,attributeFilter:['class','hidden']})
   player.on('setting',schedule)
   addEventListener('message',receive,{signal})
   addEventListener('resize',schedule,{signal})

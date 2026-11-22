@@ -1,3 +1,4 @@
+import { mountSettingsRange } from "./settingsRange"
 import { settingIcon } from "./icons"
 import { mountTimeline } from "./timeline"
 import { mountTrackMarquee } from "./trackMarquee"
@@ -44,6 +45,30 @@ export function mountControls(
   const persist = (patch: Record<string, unknown>) => bridge.send("videoPreference", { patch })
   const video = controller.video,
     element = player.template.$player as HTMLElement
+  // ArtPlayer updates built-in checks asynchronously after rebuilding settings.
+  // Keep those updates in their own list when the user has opened another panel.
+  const setting = player.setting
+  const originalCheck = setting.check
+  let clickedSetting: Element | null = null
+  element.addEventListener("click", event => {
+    clickedSetting = event.target instanceof Element
+      ? event.target.closest(".art-settings .art-setting-item")
+      : null
+    queueMicrotask(() => { clickedSetting = null })
+  }, { capture: true, signal: lifetime.signal })
+  setting.check = function (item: any) {
+    if (!this.show || !item?.$parent || !Array.isArray(item.$option) || (clickedSetting && clickedSetting === item.$item)) {
+      return originalCheck.call(this, item)
+    }
+    item.$parent.tooltip = item.html
+    for (const option of item.$option) {
+      option.default = option === item
+      option.$item?.classList.toggle("art-current", option.default)
+    }
+  }
+  const playControl = element.querySelector(".art-control-playAndPause")
+  playControl?.classList.add("hint--top", "hint--rounded")
+  playControl?.setAttribute("aria-label", controller.playing ? "暂停播放" : "播放")
   const togglePlayback = () => {
     if (controller.playing) controller.pause()
     else void controller.play().catch((error) => notice(error.message))
@@ -207,28 +232,8 @@ export function mountControls(
     name,
     html: label,
     mounted: (row: HTMLElement) => {
-      row.classList.add("quartz-subtitle-style-row")
-      const input = document.createElement("input"),
-        output = document.createElement("output")
-      input.type = "range"
-      input.min = String(min)
-      input.max = String(max)
-      input.step = String(step)
-      input.value = String(value)
-      input.setAttribute("aria-label", label)
-      output.textContent = String(value)
-      const caption = document.createElement("label")
-      caption.textContent = label
-      caption.append(input)
-      row.replaceChildren(caption, output)
-      sliders.set(name, { input, output })
-      input.oninput = () => {
-        const v = Number(input.value)
-        output.textContent = String(v)
-        change(v)
-      }
+      sliders.set(name, mountSettingsRange(row, label, min, max, step, value, change))
       row.addEventListener("click", (event) => event.stopImmediatePropagation(), true)
-      row.addEventListener("keydown", (event) => event.stopPropagation())
     },
   })
   let subtitlesEditable = false
@@ -469,7 +474,6 @@ export function mountControls(
           control.setAttribute("aria-label", label)
           control.setAttribute("aria-disabled", String(!target))
           control.tabIndex = target ? 0 : -1
-          control.title = target ? `${label}：${target.name}` : `没有${label}`
           control.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault()
@@ -482,148 +486,133 @@ export function mountControls(
     }
   }
 
+  const settingsControl = element.querySelector(".art-control-setting")
+  const syncSettingsHint = (open: boolean) =>
+    settingsControl?.setAttribute("aria-label", open ? "关闭播放设置" : "播放设置")
+  syncSettingsHint(player.setting.show)
+  player.on("setting", syncSettingsHint)
+  const settingsPanel = element.querySelector<HTMLElement>(".art-settings")
   const heading = document.createElement("div")
-  heading.className = "quartz-settings-heading"
-  const caption = document.createElement("span")
-  caption.textContent = "播放设置"
+  heading.className = "quartz-settings-heading quartz-settings-heading-with-back"
+  const headingTitle = document.createElement("div")
+  headingTitle.className = "quartz-settings-heading-title"
+  const back = document.createElement("button")
+  back.type = "button"
+  back.className = "quartz-settings-back"
+  back.setAttribute("aria-label", "返回上一级")
+  back.append(player.icons.arrowLeft.cloneNode(true))
+  back.hidden = true
+  const label = document.createElement("span")
+  back.append(label)
+  const rootTitle = document.createElement("span")
+  rootTitle.textContent = "播放设置"
+  headingTitle.append(back, rootTitle)
   const close = document.createElement("button")
   close.type = "button"
+  close.className = "quartz-settings-close"
   close.innerHTML = settingIcon("close")
   close.setAttribute("aria-label", "关闭播放设置")
-  close.onclick = () => {
-    player.setting.show = false
+  close.onclick = () => { player.setting.show = false }
+  heading.append(headingTitle, close)
+  settingsPanel?.prepend(heading)
+  const activePanel = () =>
+    settingsPanel?.querySelector<HTMLElement>(":scope > .art-setting-panel.art-current")
+  const nativeBack = (panel?: HTMLElement | null) =>
+    panel?.querySelector<HTMLElement>(":scope > .art-setting-item-back")
+  const searchPanel = (panel?: HTMLElement | null) =>
+    panel?.querySelector<HTMLElement>(".quartz-danmuku-search-panel:not([hidden])")
+  const syncHeading = () => {
+    const panel = activePanel()
+    const backRow = nativeBack(panel)
+    const search = searchPanel(panel)
+    const searchOpen = Boolean(search)
+    const hideBack = !backRow && !searchOpen
+    const title = search ? (search.hasAttribute("data-episodes") ? "选择剧集" : "搜索结果")
+      : backRow?.textContent?.trim() || "播放设置"
+    if (back.hidden !== hideBack) back.hidden = hideBack
+    if (rootTitle.hidden === hideBack) rootTitle.hidden = !hideBack
+    if (label.textContent !== title) label.textContent = title
   }
-  heading.append(caption, close)
-  element.querySelector(".art-settings")?.prepend(heading)
+  back.onclick = () => {
+    const panel = activePanel()
+    const search = searchPanel(panel)
+    if (search) search.dispatchEvent(new Event("quartz-danmaku-search-back"))
+    else nativeBack(panel)?.click()
+    syncHeading()
+  }
+  const headingObserver = new MutationObserver(syncHeading)
+  if (settingsPanel) headingObserver.observe(settingsPanel, {
+    childList: true, subtree: true, attributes: true, attributeFilter: ["class", "hidden", "data-episodes"],
+  })
   mountTrackMarquee(player, element, lifetime.signal)
-  let danmaku: HTMLElement | null = null,
-    panel: HTMLElement | null = null,
-    toggle: HTMLElement | null = null
   let pendingDanmakuMenu: (() => void) | undefined
-  const placePanel = () => {
-    if (!panel) return
-    const bounds = element.getBoundingClientRect(),
-      anchor = danmaku!.getBoundingClientRect(),
-      compact = bounds.width < 600,
-      width = Math.min(320, bounds.width - 16),
-      bottom = compact ? 8 : 60
-    panel.style.width = `${width}px`
-    element.style.setProperty(
-      "--quartz-danmuku-left",
-      `${bounds.right - 8 - width - anchor.left}px`,
-    )
-    element.style.setProperty(
-      "--quartz-danmuku-bottom",
-      `${anchor.bottom - bounds.bottom + bottom}px`,
-    )
-    element.style.setProperty("--quartz-danmuku-height", `${bounds.height - bottom - 8}px`)
-  }
-  const closeDanmaku = () => {
-    danmaku?.classList.remove("quartz-danmuku-open")
-    toggle?.setAttribute("aria-expanded", "false")
-  }
   player.on("setting", (open: boolean) => {
-    if (open) closeDanmaku()
-    else if (pendingDanmakuMenu) {
+    if (!open && pendingDanmakuMenu) {
       const install = pendingDanmakuMenu
       pendingDanmakuMenu = undefined
       if (!lifetime.signal.aborted) install()
     }
   })
-  document.addEventListener(
-    "pointerdown",
-    (event) => {
-      if (event.target instanceof Node && !danmaku?.contains(event.target)) closeDanmaku()
-    },
-    { signal: lifetime.signal },
-  )
-  const danmakuReady = () => {
-    danmaku = element.querySelector(".apd-config")
-    panel = danmaku?.querySelector(".apd-config-panel") || null
-    toggle = danmaku?.querySelector(".apd-config-icon") || null
-    if (toggle && !toggle.parentElement?.classList.contains("quartz-danmuku-settings-trigger")) {
-      const trigger = document.createElement("span")
-      trigger.className = "quartz-danmuku-settings-trigger hint--top hint--rounded"
-      trigger.setAttribute("aria-label", "弹幕设置")
-      toggle.before(trigger)
-      trigger.append(toggle)
-    }
-    const inner = panel?.querySelector(".apd-config-panel-inner")
-    if (inner) {
-      const heading = document.createElement("div")
-      heading.className = "quartz-danmuku-heading"
-      const label = document.createElement("span")
-      label.textContent = "弹幕设置"
-      const close = document.createElement("button")
-      close.type = "button"
-      close.innerHTML = settingIcon("close")
-      close.setAttribute("aria-label", "关闭弹幕设置")
-      close.onclick = closeDanmaku
-      heading.append(label, close)
-      inner.prepend(heading)
-    }
-    for (const [selector, name, off] of [
-      [".apd-toggle-on", "quartzCompactDanmuku", false],
-      [".apd-toggle-off", "quartzCompactDanmuku", true],
-      [".apd-config-icon", "quartzCompactDanmukuSettings", false],
-    ] as const) {
-      const icon = element.querySelector<SVGElement>(selector)
-      if (!icon) continue
-      const source = document.createElement("span")
-      source.innerHTML = settingIcon(name)
-      icon.innerHTML =
-        source.querySelector("svg")!.innerHTML + (off ? '<path d="m3 3 18 18"/>' : "")
-      icon.setAttribute("viewBox", "0 0 24 24")
-      icon.setAttribute("fill", "none")
-      icon.setAttribute("stroke", "currentColor")
-      icon.setAttribute("stroke-width", "1.7")
-      icon.setAttribute("stroke-linecap", "round")
-      icon.setAttribute("stroke-linejoin", "round")
-      icon.classList.add("quartz-danmuku-icon")
-    }
-    toggle?.addEventListener(
-      "click",
-      (event) => {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        player.setting.show = false
-        placePanel()
-        const active = danmaku?.classList.toggle("quartz-danmuku-open")
-        toggle?.setAttribute("aria-expanded", String(active))
-      },
-      true,
-    )
+  const danmakuReady = (event: Event) => {
+    const { matching, display, sourceLabelText } = (event as CustomEvent<{
+      matching: HTMLElement
+      display: HTMLElement
+      sourceLabelText: () => string
+    }>).detail
+    element.classList.add("quartz-danmaku-in-settings")
     const engine = player.plugins.artplayerPluginDanmuku
+    const displaySummary = () =>
+      engine.isHide ? "关闭" : `开启 · ${engine.option.modes.length} 类`
     const installMenu = () => {
-      player.setting.add({
-        name: "quartzCompactDanmuku",
-        html: "显示弹幕",
-        icon: settingIcon("quartzCompactDanmuku"),
-        switch: !engine.isHide,
-        onSwitch: () => {
-          const show = engine.isHide
-          show ? engine.show() : engine.hide()
-          return show
-        },
-      })
-      player.setting.add({
-        name: "quartzCompactDanmukuSettings",
-        html: "弹幕设置",
-        icon: settingIcon("quartzCompactDanmukuSettings"),
-        mounted: (row: HTMLElement) =>
-          row.addEventListener(
-            "click",
-            (event) => {
-              event.stopImmediatePropagation()
-              player.setting.show = false
-              placePanel()
-              danmaku?.classList.add("quartz-danmuku-open")
-            },
-            { capture: true },
-          ),
-      })
-      const sync = () =>
-        player.setting.update({ name: "quartzCompactDanmuku", switch: !engine.isHide })
+      const visibilityRow = document.createElement("div")
+      visibilityRow.className = "quartz-danmuku-visibility"
+      const group = document.createElement("div")
+      group.className = "apd-modes"
+      const visibility = document.createElement("button")
+      visibility.type = "button"
+      visibility.className = "apd-mode"
+      const renderVisibility = () => {
+        const pressed = String(!engine.isHide)
+        if (visibility.getAttribute("aria-pressed") === pressed) return
+        visibility.innerHTML = settingIcon(engine.isHide ? "quartzDanmakuOff" : "quartzCompactDanmuku")
+        visibility.append("弹幕开关")
+        visibility.setAttribute("aria-pressed", pressed)
+      }
+      renderVisibility()
+      visibility.onclick = () => {
+        const show = engine.isHide
+        show ? engine.show() : engine.hide()
+        notice(show ? "弹幕已开启" : "弹幕已关闭")
+      }
+      group.append(visibility)
+      visibilityRow.append(group)
+      display.prepend(visibilityRow)
+      for (const [name, title, content] of [
+        ["quartzDanmakuMatching", "弹幕匹配", matching],
+        ["quartzDanmakuDisplay", "弹幕显示", display],
+      ] as const) {
+        content.addEventListener("click", event => event.stopPropagation())
+        player.setting.add({
+          name,
+          html: title,
+          icon: settingIcon(name),
+          tooltip: content === matching ? sourceLabelText() : displaySummary(),
+          selector: [{
+            name: name + "Content",
+            html: content,
+          }],
+        })
+      }
+      const sync = () => {
+        renderVisibility()
+        const submenu = player.setting.find("quartzDanmakuDisplay")
+        if (submenu) submenu.tooltip = displaySummary()
+      }
+      matching.addEventListener("quartz-danmaku-source-changed", () => {
+        const submenu = player.setting.find("quartzDanmakuMatching")
+        if (submenu) submenu.tooltip = sourceLabelText()
+      }, { signal: lifetime.signal })
+      player.on("artplayerPluginDanmuku:config", sync)
       player.on("artplayerPluginDanmuku:show", sync)
       player.on("artplayerPluginDanmuku:hide", sync)
     }
@@ -631,19 +620,19 @@ export function mountControls(
     // plugin becoming ready must not kick the user out of a quality submenu.
     if (player.setting.show) pendingDanmakuMenu = installMenu
     else installMenu()
-    placePanel()
   }
   window.addEventListener("quartz-danmaku-ready", danmakuReady)
   const observer = new ResizeObserver(() => {
     element.classList.toggle("quartz-player-compact", element.clientWidth < 600)
-    placePanel()
   })
   observer.observe(element)
   return () => {
     lifetime.abort()
+    setting.check = originalCheck
     window.removeEventListener("quartz-danmaku-ready", danmakuReady)
     window.removeEventListener("quartz-subtitle-selection", subtitleSelection)
     observer.disconnect()
+    headingObserver.disconnect()
     video.removeEventListener("timeupdate", skipAtTime)
     void context?.close()
   }
