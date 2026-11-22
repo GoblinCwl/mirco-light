@@ -49,6 +49,11 @@ func (c *Client) BrowserSession(ctx context.Context) (map[string]any, error) {
 	}
 	browser := c.browser
 	c.mu.Unlock()
+	// User lookup can return HTTP 200 and an administrator profile even when
+	// the bearer token has expired. Probe a guarded endpoint before issuing it.
+	if _, err := browser.Do(ctx, "/api/v2/pages?limit=1", true, "GET", nil); err != nil {
+		return nil, err
+	}
 	profile, err := browser.Do(ctx, "/api/v2/user?email="+url.QueryEscape(text(credentials["email"])), true, "GET", nil)
 	if err != nil {
 		return nil, err
@@ -76,8 +81,9 @@ func str(values map[string]any, key, fallback string) string {
 }
 
 type responseError struct {
-	status  int
-	captcha bool
+	status    int
+	captcha   bool
+	needLogin bool
 }
 
 func (e *responseError) Error() string {
@@ -148,7 +154,8 @@ func (c *Client) request(ctx context.Context, base, path, method, token string, 
 		var value map[string]any
 		_ = json.Unmarshal(raw, &value)
 		captcha := value["need_captcha"] == true || object(value["data"])["need_captcha"] == true
-		return nil, response.StatusCode, &responseError{response.StatusCode, captcha}
+		needLogin := value["need_login"] == true || object(value["data"])["need_login"] == true
+		return nil, response.StatusCode, &responseError{status: response.StatusCode, captcha: captcha, needLogin: needLogin}
 	}
 	if len(raw) == 0 {
 		return map[string]any{}, response.StatusCode, nil
@@ -244,7 +251,9 @@ func (c *Client) Do(ctx context.Context, path string, authenticated bool, method
 			}
 		}
 		value, status, err := c.request(ctx, base, path, method, token, body)
-		if authenticated && status == 401 {
+		var response *responseError
+		loginRequired := status == 401 || status == 403 && errors.As(err, &response) && response.needLogin && !response.captcha
+		if authenticated && loginRequired {
 			c.mu.Lock()
 			if c.key == key && c.token == token {
 				c.token = ""

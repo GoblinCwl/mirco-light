@@ -170,3 +170,36 @@ func TestCaptchaResetConfiguration(t *testing.T) {
 		}
 	}
 }
+
+func TestAdminGuardLoginRequiredRefreshesPersistedSession(t *testing.T) {
+	for _, body := range []string{`{"data":{"need_login":true}}`, `{"need_login":true}`} {
+		t.Run(body, func(t *testing.T) {
+			logins := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/api/v2/user/access_token" {
+					logins++
+					json.NewEncoder(w).Encode(map[string]any{"token": "fresh"})
+					return
+				}
+				if r.Header.Get("Authorization") != "Bearer fresh" {
+					w.WriteHeader(403)
+					w.Write([]byte(body))
+					return
+				}
+				json.NewEncoder(w).Encode(map[string]any{"ok": true})
+			}))
+			defer server.Close()
+			client := Client{Settings: func(context.Context) (map[string]any, error) {
+				return map[string]any{"api.artalk.url": server.URL, "api.artalk.email": "admin@example.test", "api.artalk.password": "password"}, nil
+			}, Sessions: &SessionStore{}}
+			_, _, key, _ := client.configuration(context.Background())
+			client.key, client.token = key, "expired"
+			client.Sessions.load()
+			client.Sessions.state.Sessions["backend"] = cachedSession{key, "expired"}
+			result, err := client.Do(context.Background(), "/api/v2/pages", true, "GET", nil)
+			if err != nil || result["ok"] != true || logins != 1 {
+				t.Fatalf("result=%v err=%v logins=%d", result, err, logins)
+			}
+		})
+	}
+}
