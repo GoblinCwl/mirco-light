@@ -4,7 +4,7 @@ import {showPasswordToast} from './passwordFeedback'
 import { parseShareMetadata } from "../../util/shareMetadata.mjs"
 import { node } from "./driveUi"
 
-export function setupDriveShareSettings(body: HTMLElement, remark: string | undefined, signal: AbortSignal) {
+export function setupDriveShareSettings(body: HTMLElement, remark: string | undefined, signal: AbortSignal, creating = false) {
   const initial = parseShareMetadata(remark), selected = new Set(initial.tags)
   const section = node("section", "", "drive-share-settings")
   const orderLabel = node("label", "排序"), order = node("input")
@@ -12,7 +12,7 @@ export function setupDriveShareSettings(body: HTMLElement, remark: string | unde
   order.setAttribute("aria-label", "分享排序"); order.required = true
   orderLabel.append(order, node("small", "数值越小越靠前，默认 100", "drive-action-note"))
   const toggle = node("label", "", "drive-share-comment"), comment = node("input")
-  comment.type = "checkbox"; comment.checked = initial.comment; comment.setAttribute("role", "switch"); comment.setAttribute("aria-label", "允许普通用户评论")
+  comment.type = "checkbox"; comment.checked = creating || initial.comment; comment.setAttribute("role", "switch"); comment.setAttribute("aria-label", "允许普通用户评论")
   const explanation = node("span"); explanation.append(node("span", "允许普通用户评论"), node("small", "关闭时仅管理员可评论"))
   toggle.append(explanation, comment)
   const mediaToggle = node("label", "", "drive-share-comment"), jellyfin = node("input")

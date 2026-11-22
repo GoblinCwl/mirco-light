@@ -298,7 +298,7 @@ func (s *Shares) Operate(ctx context.Context, operation string, input map[string
 	}
 	if raw, exists := input["metadataPatch"]; operation == "share-update" && exists {
 		if role != 2 {
-			return nil, &Problem{403, "仅管理员可管理分享标签与评论权限"}
+			return nil, &Problem{403, "仅管理员可管理分享设置"}
 		}
 		patch, ok := raw.(map[string]any)
 		if !ok || len(patch) == 0 {
@@ -312,7 +312,7 @@ func (s *Shares) Operate(ctx context.Context, operation string, input map[string
 		var fields map[string]any
 		json.Unmarshal(encoded, &fields)
 		for key, value := range patch {
-			if key != "tags" && key != "comment" {
+			if key != "tags" && key != "comment" && key != "order" {
 				return nil, errors.New("不支持的分享元数据字段")
 			}
 			fields[key] = value

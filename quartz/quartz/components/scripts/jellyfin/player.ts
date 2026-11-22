@@ -274,7 +274,7 @@ export async function mountJellyfinPlayer(config: PlayerConfig) {
     lastDecodeFallbackSeek = controller.seekVersion
     try {
       await changeSource("jellyfinFallback", { position: controller.position }, "兼容播放")
-      notice("已由 Jellyfin 重新协商播放")
+      notice("播放异常，已自动调整播放方式")
       return true
     } catch {
       return false

@@ -372,7 +372,10 @@ document.addEventListener("nav", () => {
           try{const id=driveRoute(new URL(entry.target,location.origin)).share,current=await driveRequest<{remark?:string}>(`share/get?id=${encodeURIComponent(id)}`,undefined,{token:driveToken(),signal:lifecycle.signal});const allow=!parseShareMetadata(current.remark).comment;toggle.dataset.operation=allow?'allow-share-comments':'deny-share-comments';toggle.append(node('span',allow?'允许普通用户评论':'禁止普通用户评论'))}
           catch(error){toggle.disabled=true;toggle.dataset.operation='unavailable-share-comments';toggle.append(node('span','评论权限暂不可用'));if(!lifecycle.signal.aborted)showPasswordToast(error instanceof Error?error.message:'评论权限读取失败',true)}
         }
-        buttons.push(button,tags,toggle,remove)
+        const order = button.cloneNode(true) as HTMLButtonElement
+        order.dataset.operation = "edit-share-order"
+        order.lastElementChild!.textContent = "编辑排序"
+        buttons.push(button, tags, order, toggle, remove)
       }
       return { name: entry.name, buttons, prepare, execute: kind => execute(kind, { view, path, share, name: entry.name, directory: directoryPage, user: accountUser, selected: [entry], entries: tableEntries.filter(item => !item.portal) }) }
     }

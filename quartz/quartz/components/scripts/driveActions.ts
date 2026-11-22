@@ -55,7 +55,7 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
   const monitor = setupDriveTaskMonitor(signal, refresh)
   return async (kind: string, context: ActionContext) => {
     if (active || signal.aborted || isSpaceRootOperationDisabled(context.view, context.path, kind)) return
-    if(['edit-share','delete-share','edit-share-tags','allow-share-comments','deny-share-comments'].includes(kind)){
+    if(['edit-share','delete-share','edit-share-tags','edit-share-order','allow-share-comments','deny-share-comments'].includes(kind)){
       const target=managedShareTarget(context)
       if(!target||context.user?.role!==2){showPasswordToast('请选择自己创建的分享',true);return}
       context={...context,selected:[target]}
@@ -224,17 +224,43 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
           showPasswordToast("分享已取消"); await changed()
         }); return
       }
-      if(['edit-share-tags','allow-share-comments','deny-share-comments'].includes(kind)){
+      if(['edit-share-tags','edit-share-order','allow-share-comments','deny-share-comments'].includes(kind)){
         const id=targets[0].name,current=await api<ShareDetails>(`share/get?id=${encodeURIComponent(id)}`),metadata=parseShareMetadata(current.remark)
         if(current.creator!==user?.username||user?.role!==2)throw Error('只能编辑自己创建的分享')
+        const updateMetadata = async (metadataPatch: { tags?: string[]; comment?: boolean; order?: number }) => {
+          checkAccount()
+          const response = await fetch("/api/drive/share-update", {
+            method: "POST", credentials: "omit", signal,
+            headers: { "Content-Type": "application/json", Authorization: token },
+            body: JSON.stringify({ id, metadataPatch }),
+          })
+          const result = await response.json().catch(() => null)
+          if (!response.ok || result?.code !== 200) {
+            throw new Error(result?.message || "分享设置保存失败")
+          }
+        }
+        if (kind === "edit-share-order") {
+          const ui = open("编辑排序")
+          const order = ui.field("排序", String(metadata.order ?? 100), "number")
+          order.required = true
+          order.step = "1"
+          ui.note("数值越小越靠前，默认 100")
+          ui.run(async () => {
+            if (!Number.isSafeInteger(order.valueAsNumber)) throw new Error("排序必须是整数")
+            await updateMetadata({ order: order.valueAsNumber })
+            showPasswordToast("排序已保存")
+            await changed()
+          })
+          return
+        }
         if(kind==='edit-share-tags'){
           await readContentCatalog().catch(()=>undefined)
           tagDialogOpen=true
-          const dialog=openContentTagDialog(id,metadata.tags,metadata.tags,signal,async tags=>{await api('share-update',{id,metadataPatch:{tags}});showPasswordToast('标签已保存');await changed()})
+          const dialog=openContentTagDialog(id,metadata.tags,metadata.tags,signal,async tags=>{await updateMetadata({tags});showPasswordToast('标签已保存');await changed()})
           dialog.addEventListener('close',()=>{active=false},{once:true});return
         }
         const allow=kind==='allow-share-comments'
-        await api('share-update',{id,metadataPatch:{comment:allow}});showPasswordToast(allow?'已允许普通用户评论':'已禁止普通用户评论');await changed();return
+        await updateMetadata({comment:allow});showPasswordToast(allow?'已允许普通用户评论':'已禁止普通用户评论');await changed();return
       }
       if (kind === "share" || kind === "edit-share") {
         if (!user || user.role !== 2 && !((user.permission || 0) & (1 << 14))) throw new Error("当前账号没有分享权限")
@@ -270,7 +296,7 @@ export function setupDriveActions(signal: AbortSignal, changed: (target?: string
         const description = (label: string, placeholder: string, value = "") => createDriveHtmlField(ui.body, { label, placeholder, value, signal })
         const header = description("顶部说明（可选）", "展示在分享目录首页顶部", current?.header)
         const readme = description("底部说明（可选）", "展示在分享目录首页底部", current?.readme)
-        const metadata = setupDriveShareSettings(ui.body, current?.remark, signal)
+        const metadata = setupDriveShareSettings(ui.body, current?.remark, signal, !editing)
         ui.run(async () => {
           const id = idInput.value.trim()
           if (id && !isDriveShareId(id)) throw new Error("分享名仅支持文字、数字、下划线和连字符，长度为 1–64 个字符")
