@@ -1,3 +1,4 @@
+import { attendanceStarSvg } from "./attendanceStar"
 import {readAttendanceMonth,peekAttendanceMonth,type AttendanceMonth} from './attendanceClient'
 import { showSiteDialog, closeSiteDialog } from "./siteDialog"
 import { createDatePicker } from "./datePicker"
@@ -84,7 +85,13 @@ export function createAttendanceDetails(button: HTMLButtonElement | null, getSta
     }
     const symbol = el("span", "", "attendance-detail-star")
     symbol.setAttribute("aria-hidden", "true")
-    symbol.innerHTML = '<svg viewBox="0 0 48 48" fill="currentColor"><path d="M24 3 28.5 19.5 45 24 28.5 28.5 24 45 19.5 28.5 3 24 19.5 19.5Z"/><path d="m24 14 2.5 7.5L34 24l-7.5 2.5L24 34l-2.5-7.5L14 24l7.5-2.5Z" fill="var(--light)"/></svg>'
+    if (record?.specialName) {
+      symbol.classList.add("attendance-star", "has-star-frost")
+      applySpecialDayColor(symbol, record.specialColor)
+      symbol.innerHTML = attendanceStarSvg()
+    } else {
+      symbol.innerHTML = '<svg viewBox="0 0 48 48" fill="currentColor"><path d="M24 3 28.5 19.5 45 24 28.5 28.5 24 45 19.5 28.5 3 24 19.5 19.5Z"/><path d="m24 14 2.5 7.5L34 24l-7.5 2.5L24 34l-2.5-7.5L14 24l7.5-2.5Z" fill="var(--light)"/></svg>'
+    }
     const title = el("div", "", "attendance-detail-heading")
     const weekday = new Intl.DateTimeFormat("zh-CN", { weekday: "long", timeZone: "Asia/Shanghai" }).format(new Date(`${selected}T12:00:00+08:00`))
     title.append(el("strong", `${Number(selected.slice(5, 7))} 月 ${Number(selected.slice(8))} 日`), el("span", record?.specialName ? `✦ ${record.specialName}` : weekday, record?.specialName ? "attendance-detail-special" : ""))

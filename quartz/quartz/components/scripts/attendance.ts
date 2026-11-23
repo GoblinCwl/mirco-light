@@ -1,3 +1,4 @@
+import { attendanceStarSvg } from "./attendanceStar"
 import {readAttendanceMonth} from './attendanceClient'
 import { applySpecialDayColor, createAttendanceDetails, type AttendanceDetail } from "./attendanceDetails"
 
@@ -14,7 +15,6 @@ const attendanceTypes = {
   holiday: { label: "节假日", icon: "🏖️" },
 }
 type AttendanceType = keyof typeof attendanceTypes
-
 export function setupAttendanceCalendar() {
   document.querySelectorAll<HTMLElement>("[data-home-attendance]").forEach((calendar) => {
     const today = new Intl.DateTimeFormat("sv-SE", {
@@ -91,7 +91,7 @@ export function setupAttendanceCalendar() {
         for (const cell of grid.querySelectorAll<HTMLElement>(".home-attendance-day:not(.outside)")) {
           const star = cell.querySelector<HTMLElement>(".home-attendance-star")!
           const style = getComputedStyle(star)
-          oldStars.set(cell.dataset.slot!, { color: style.getPropertyValue("--star-color").trim(), opacity: style.opacity, filter: getComputedStyle(star.querySelector("svg")!).filter, strokes: [...star.querySelectorAll("path")].map(path => getComputedStyle(path).stroke), cell })
+          oldStars.set(cell.dataset.slot!, { color: style.getPropertyValue("--star-color").trim(), opacity: style.opacity, filter: getComputedStyle(star.querySelector("svg")!).filter, strokes: [...star.querySelectorAll("svg > path")].map(path => getComputedStyle(path).stroke), cell })
         }
       }
 
@@ -140,9 +140,10 @@ export function setupAttendanceCalendar() {
         state.className = "home-attendance-state"
         state.textContent = inside && type ? `${type.icon} ${statusLabel}` : ""
         const star = cell.querySelector<HTMLElement>(".home-attendance-star") || document.createElement("span")
-        star.className = "home-attendance-star"
+        star.className = "home-attendance-star attendance-star"
         star.setAttribute("aria-hidden", "true")
-        if (!star.firstChild) star.innerHTML = '<span class="home-day-star-rotor"><svg viewBox="0 0 48 48" aria-hidden="true"><path class="calendar-star-outline" d="M24 3 28.5 19.5 43 24 28.5 28.5 24 45 19.5 28.5 5 24 19.5 19.5Z"/><path class="calendar-star-inner" d="M24 3 28.5 19.5 43 24 28.5 28.5 24 45 19.5 28.5 5 24 19.5 19.5Z"/><path class="calendar-star-core" d="M24 12 26.6 21.4 34 24 26.6 26.6 24 36 21.4 26.6 14 24 21.4 21.4Z"/></svg></span>'
+        star.classList.toggle("has-star-frost", Boolean(specialName))
+        if (!star.firstChild) star.innerHTML = `<span class="home-day-star-rotor">${attendanceStarSvg()}</span>`
         // Stable offsets add an organic rhythm while keeping weekday columns intact.
         let starSeed = 17
         for (const char of `calendar-slot-${index}`) starSeed = Math.imul(starSeed, 31) + char.charCodeAt(0) | 0
@@ -163,30 +164,8 @@ export function setupAttendanceCalendar() {
         cell.dataset.preview = String(preview)
         if (iso > today && !preview) cell.classList.add("future-day")
         if (!existingCells[index]) cell.append(day, state, star)
-        let satellite = cell.querySelector<HTMLElement>(".home-day-special-aura")
-        if (specialName && !satellite) {
-          satellite = document.createElement("span")
-          satellite.className = "home-day-special-aura"
-          satellite.setAttribute("aria-hidden", "true")
-          satellite.innerHTML = '<svg viewBox="0 0 80 80" fill="none"><g class="special-gold-rays" stroke="currentColor" stroke-width="1" stroke-linecap="round"><path d="m17 19 8 8m31-2 7-9m-7 39 8 7M24 55l-6 7"/></g><g fill="currentColor"><path class="special-gold-glint glint-one" d="M63 5 65 12 72 14 65 16 63 23 61 16 54 14 61 12Z"/><path class="special-gold-glint glint-two" d="M14 27.5 15.75 33.25 21.5 35 15.75 36.75 14 42.5 12.25 36.75 6.5 35 12.25 33.25Z"/><path class="special-gold-glint glint-three" d="M61 57.5 62.5 62.5 67.5 64 62.5 65.5 61 70.5 59.5 65.5 54.5 64 59.5 62.5Z"/></g></svg>'
-          star.append(satellite)
-          if (motionAllowed) {
-            animateStar(satellite, [{ opacity: 0 }, { opacity: 1 }], { duration: 1000, easing: "ease-out" })
-          }
-        } else if (!specialName && satellite) {
-          if (motionAllowed) {
-            const retiringOrbit = satellite
-            const animation = animateStar(retiringOrbit, [{ opacity: getComputedStyle(retiringOrbit).opacity }, { opacity: 0 }],
-              { duration: 900, easing: "ease-in-out", fill: "forwards" })
-            animation.onfinish = () => {
-              if (!cell.dataset.specialName) retiringOrbit.remove()
-              rearrangements.delete(animation)
-            }
-          } else satellite.remove()
-        }
         if (specialName) {
           cell.dataset.specialName = specialName
-          cell.classList.add("special-day")
           day.title = specialName
           day.setAttribute("aria-label", `${date.getUTCDate()}日 · ${specialName}`)
           cell.title = `${label} · ${specialName}`
@@ -204,11 +183,14 @@ export function setupAttendanceCalendar() {
             for (const path of star.querySelectorAll(".calendar-star-outline, .calendar-star-inner")) {
               animateStar(path, [{ fill: previous.color }, { fill: color }], options)
             }
-            star.querySelectorAll("path").forEach((path, index) => {
+            star.querySelectorAll("svg > path").forEach((path, index) => {
               animateStar(path, [{ stroke: previous.strokes[index] }, { stroke: getComputedStyle(path).stroke }], options)
             })
             const svg = star.querySelector("svg")!
-            animateStar(svg, [{ filter: previous.filter }, { filter: getComputedStyle(svg).filter }], options)
+            const filter = getComputedStyle(svg).filter
+            if (previous.filter !== "none" && filter !== "none") {
+              animateStar(svg, [{ filter: previous.filter }, { filter }], options)
+            }
             // End at the actual future-date opacity instead of flashing back from 100%.
             animateStar(star, [{ opacity: previous.opacity }, { opacity: getComputedStyle(star).opacity }], options)
             oldStars.delete(cell.dataset.slot!)
@@ -223,11 +205,14 @@ export function setupAttendanceCalendar() {
           for (const path of star.querySelectorAll(".calendar-star-outline, .calendar-star-inner")) {
             animateStar(path, [{ fill: previous.color }, { fill: fadedColor }], options)
           }
-          star.querySelectorAll("path").forEach((path, index) => {
+          star.querySelectorAll("svg > path").forEach((path, index) => {
             animateStar(path, [{ stroke: previous.strokes[index] }, { stroke: getComputedStyle(path).stroke }], options)
           })
           const svg = star.querySelector("svg")!
-          animateStar(svg, [{ filter: previous.filter }, { filter: getComputedStyle(svg).filter }], options)
+          const filter = getComputedStyle(svg).filter
+          if (previous.filter !== "none" && filter !== "none") {
+            animateStar(svg, [{ filter: previous.filter }, { filter }], options)
+          }
           const animation = animateStar(star, [{ opacity: previous.opacity }, { opacity: 0 }], options)
           animation.onfinish = () => {
             rearrangements.delete(animation)
