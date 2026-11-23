@@ -1,0 +1,33 @@
+{{define "approved-card"}}
+<tr><td class="mail-padding" style="padding:0 30px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;max-width:365px;table-layout:fixed"><tr><td background="{{.SiteURL}}/static/mail/friends-cord-v1.png" style="padding:30px 0 15px 4px;background-image:url('{{.SiteURL}}/static/mail/friends-cord-v1.png');background-position:top center;background-repeat:no-repeat;background-size:100% 60px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%"><tr>
+<td align="left" valign="top" style="width:1%">
+<div style="position:relative;transform:rotate(-2deg);transform-origin:50% 6px">
+<span class="mail-approved-clip" aria-hidden="true" style="position:absolute;left:50%;top:-4px;width:7px;height:11px;border:1px solid #a59880;border-radius:2px;background-color:#fff;transform:translateX(-50%) rotate(6deg)"></span>
+<table class="mail-approved-site" role="presentation" width="172" cellpadding="0" cellspacing="0" style="width:172px;background-color:#fafbfc;border:1px solid #dbe2e5;border-radius:2px;border-collapse:separate">
+<tr><td style="padding:4px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td class="mail-stamp-edge" style="padding:3px;background-color:#f4f6f7;border:1px dashed #d1dadf;background-image:radial-gradient(circle at 0 5px,#fafbfc 2px,transparent 2.8px),radial-gradient(circle at 100% 5px,#fafbfc 2px,transparent 2.8px),radial-gradient(circle at 5px 0,#fafbfc 2px,transparent 2.8px),radial-gradient(circle at 5px 100%,#fafbfc 2px,transparent 2.8px);background-position:left top,right top,left top,left bottom;background-size:4px 10px,4px 10px,10px 4px,10px 4px;background-repeat:repeat-y,repeat-y,repeat-x,repeat-x">
+<table class="mail-stamp" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;table-layout:fixed;background-color:#edf2f5;border:1px solid #becdd5">
+<tr><td class="mail-stamp-head" style="border-bottom:1px solid #becdd5"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td class="mail-name" style="padding:6px 5px;font-size:13px;line-height:1.5;color:#25313a;font-weight:700;overflow-wrap:anywhere;word-break:break-word">{{.Name}}</td>
+{{if .CardNumber}}<td class="mail-card-number" align="right" width="41" style="width:41px;padding:6px 5px 6px 0;font-size:10px;line-height:1.5;color:#546e7e;font-variant-numeric:tabular-nums;white-space:nowrap">{{.CardNumber}}</td>{{end}}
+</tr></table></td></tr>
+<tr><td style="padding:2px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td class="mail-stamp-image" align="center" valign="middle" height="150" style="background-color:#e6edf1;color:#647f90;font-size:36px;height:150px">
+{{if .Avatar}}<img class="mail-stamp-avatar" src="{{.Avatar}}" width="150" height="150" alt="{{.Name}}" style="display:block;width:150px;height:150px;object-fit:cover;border:0;border-radius:2px">{{else}}{{.Initial}}{{end}}
+</td></tr></table></td></tr>
+</table></td></tr></table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;table-layout:fixed"><tr>
+<td class="mail-stamp-caption" style="padding:3px 2px 1px;font-size:10px;line-height:1.4;color:#5c7686;overflow-wrap:anywhere;word-break:break-word">{{.Domain}}</td>
+<td width="25" align="right" aria-hidden="true" style="width:25px;padding:3px 2px 0 1px"><span class="mail-postmark" style="display:inline-block;width:19px;height:19px;text-align:center;line-height:19px;font-size:12px;color:#5c7686;border:1px dashed #7995a6;border-radius:50%">✦</span></td>
+</tr></table></td></tr></table>
+</div>
+</td>
+<td class="mail-approved-gap" width="14" style="width:14px;font-size:0">&nbsp;</td>
+<td valign="top" style="padding-top:55px">
+{{if .Description}}<div class="mail-approved-bubble" style="position:relative;padding:10px 12px;background-color:#fff;border:1px solid #e5e5e5;border-radius:6px;color:#2b2b2b;font-size:13px;line-height:1.75;overflow-wrap:anywhere;word-break:break-word;white-space:pre-wrap"><span class="mail-approved-tail" aria-hidden="true" style="position:absolute;left:-5px;top:14px;width:8px;height:8px;background-color:#fff;border-left:1px solid #e5e5e5;border-bottom:1px solid #e5e5e5;transform:rotate(45deg)"></span>{{.Description}}</div>{{end}}
+</td>
+</tr></table>
+</td></tr></table>
+</td></tr>
+{{end}}

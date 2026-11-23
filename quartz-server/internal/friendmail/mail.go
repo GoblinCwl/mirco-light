@@ -15,25 +15,34 @@ import (
 	"net"
 	"net/mail"
 	"net/smtp"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 //go:embed result.html
 var source string
 
+//go:embed approved.html
+var approvedSource string
+
 //go:embed feedback.html
 var feedbackSource string
 var feedbackLayout = template.Must(template.New("feedback-resolved").Parse(feedbackSource))
-var layout = template.Must(template.New("friend-review").Parse(source))
+var layout = template.Must(template.New("friend-review").Parse(source + approvedSource))
 
 type Message struct {
 	ID, To, Name, Reason string
 	Kind                 string
 	Accepted             bool
 	Attempts             int
+	FriendNumber         int64
+	FriendURL            string
+	FriendAvatar         string
+	FriendDescription    string
 }
 type Store struct {
 	DB                 *sql.DB
@@ -44,7 +53,7 @@ type Store struct {
 func Render(m Message, origin string) (string, string, error) {
 	heading := "友链申请未予收录"
 	if m.Accepted {
-		heading = "友链申请已通过"
+		heading = "友链已添加"
 	}
 	if m.Kind == "friends-removed" {
 		heading = "友链已移除"
@@ -52,21 +61,39 @@ func Render(m Message, origin string) (string, string, error) {
 	origin = strings.TrimRight(origin, "/")
 	selected := layout
 	action := origin
-	reason := m.Reason
+	cardNumber := ""
+	var domain, avatar string
 	if m.Kind != "feedback" && m.Accepted {
 		action = origin + "/friends/"
-		reason = "你的站点已加入微光集友链，现在可以在友链页面查看。"
+		if m.FriendNumber > 0 {
+			cardNumber = fmt.Sprintf("#%03d", m.FriendNumber)
+			action += "?card=" + url.QueryEscape(cardNumber)
+		}
+		if site, err := url.Parse(m.FriendURL); err == nil {
+			domain = strings.TrimPrefix(site.Host, "www.")
+		}
+		if base, err := url.Parse(origin + "/"); err == nil && m.FriendAvatar != "" {
+			if image, err := base.Parse(m.FriendAvatar); err == nil && image.Hostname() != "" && image.User == nil && (image.Scheme == "https" || image.Scheme == "http") {
+				avatar = image.String()
+			}
+		}
 	}
 	if m.Kind == "feedback" {
 		heading = "反馈已处理"
 		selected = feedbackLayout
 		action = origin
 	}
+	initial := ""
+	if m.Name != "" {
+		first, _ := utf8.DecodeRuneInString(m.Name)
+		initial = string(first)
+	}
 	var b bytes.Buffer
 	err := selected.Execute(&b, struct {
-		Name, Heading, Reason, SiteURL, FriendsURL string
-		Accepted                                   bool
-	}{m.Name, heading, reason, origin, action, m.Accepted})
+		Name, Heading, Reason, SiteURL, FriendsURL, CardNumber string
+		Domain, Avatar, Description, Initial                   string
+		Accepted                                               bool
+	}{m.Name, heading, m.Reason, origin, action, cardNumber, domain, avatar, m.FriendDescription, initial, m.Accepted})
 	category := "友链审核"
 	if m.Kind == "feedback" {
 		category = "问题反馈"
@@ -170,7 +197,15 @@ func (s Store) smtpSend(ctx context.Context, m Message) error {
 }
 func (s Store) Deliver(ctx context.Context) (bool, error) {
 	var m Message
-	err := s.DB.QueryRowContext(ctx, "SELECT id,recipient,name,accepted,reason,attempts,kind FROM friend_mail_outbox WHERE state='pending' AND available_at<=? ORDER BY created_at,id LIMIT 1", time.Now().UnixMilli()).Scan(&m.ID, &m.To, &m.Name, &m.Accepted, &m.Reason, &m.Attempts, &m.Kind)
+	err := s.DB.QueryRowContext(ctx, `
+		SELECT mail.id, mail.recipient, mail.name, mail.accepted, mail.reason, mail.attempts, mail.kind,
+			COALESCE(f.number, 0), COALESCE(f.url, ''), COALESCE(f.avatar, ''), COALESCE(f.description, '')
+		FROM friend_mail_outbox mail
+		LEFT JOIN friends f ON f.id = mail.friend_id AND mail.kind = 'friends' AND mail.accepted = 1
+		WHERE mail.state = 'pending' AND mail.available_at <= ?
+		ORDER BY mail.created_at, mail.id LIMIT 1
+	`, time.Now().UnixMilli()).Scan(&m.ID, &m.To, &m.Name, &m.Accepted, &m.Reason, &m.Attempts, &m.Kind,
+		&m.FriendNumber, &m.FriendURL, &m.FriendAvatar, &m.FriendDescription)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}

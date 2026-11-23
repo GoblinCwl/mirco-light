@@ -91,6 +91,10 @@ services:
     container_name: quartz-server
     restart: unless-stopped
     user: "1000:1000"
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+      - 9.9.9.9
     environment:
       HTTP_ADDR: :8080
       SITE_ORIGIN: https://goblincwl.site

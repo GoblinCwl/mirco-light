@@ -6,6 +6,7 @@ import (
 	"goblincwl/quartz-server/internal/community"
 	"goblincwl/quartz-server/internal/friendmail"
 	"goblincwl/quartz-server/internal/settings"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -117,11 +118,21 @@ func TestFriendReviewMailAndPeriodicFailures(t *testing.T) {
 		t.Fatal("mail not retried")
 	}
 	db.Exec("UPDATE friend_mail_outbox SET available_at=0")
-	mails.Send = func(context.Context, friendmail.Message) error { return nil }
+	var cardNumbers []int64
+	mails.Send = func(_ context.Context, mail friendmail.Message) error {
+		cardNumbers = append(cardNumbers, mail.FriendNumber)
+		if mail.Accepted && (mail.FriendURL != public[0].URL || mail.FriendAvatar != public[0].Avatar || mail.FriendDescription != public[0].Description) {
+			t.Fatal("approved mail missing the public friend card details")
+		}
+		return nil
+	}
 	for i := 0; i < 3; i++ {
 		if _, err := mails.Deliver(ctx); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if public[0].Number <= 0 || !reflect.DeepEqual(cardNumbers, []int64{public[0].Number, 0, 0}) {
+		t.Fatal("unexpected card numbers in review mail", cardNumbers)
 	}
 	db.QueryRow("SELECT count(*) FROM friend_mail_outbox WHERE state='sent'").Scan(&n)
 	if n != 3 {
