@@ -9,8 +9,8 @@
 <tr><td style="padding:4px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td class="mail-stamp-edge" style="padding:3px;background-color:#f4f6f7;border:1px dashed #d1dadf;background-image:radial-gradient(circle at 0 5px,#fafbfc 2px,transparent 2.8px),radial-gradient(circle at 100% 5px,#fafbfc 2px,transparent 2.8px),radial-gradient(circle at 5px 0,#fafbfc 2px,transparent 2.8px),radial-gradient(circle at 5px 100%,#fafbfc 2px,transparent 2.8px);background-position:left top,right top,left top,left bottom;background-size:4px 10px,4px 10px,10px 4px,10px 4px;background-repeat:repeat-y,repeat-y,repeat-x,repeat-x">
 <table class="mail-stamp" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;table-layout:fixed;background-color:#edf2f5;border:1px solid #becdd5">
-<tr><td class="mail-stamp-head" style="border-bottom:1px solid #becdd5"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td class="mail-name" style="padding:6px 5px;font-size:13px;line-height:1.5;color:#25313a;font-weight:700;overflow-wrap:anywhere;word-break:break-word">{{.Name}}</td>
+<tr><td class="mail-stamp-head" style="border-bottom:1px solid #becdd5"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;table-layout:fixed"><tr>
+<td class="mail-name" nowrap="nowrap" style="padding:6px 5px;font-size:13px;line-height:1.5;color:#25313a;font-weight:700"><span title="{{.Name}}" style="display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{.Name}}</span></td>
 {{if .CardNumber}}<td class="mail-card-number" align="right" width="41" style="width:41px;padding:6px 5px 6px 0;font-size:10px;line-height:1.5;color:#546e7e;font-variant-numeric:tabular-nums;white-space:nowrap">{{.CardNumber}}</td>{{end}}
 </tr></table></td></tr>
 <tr><td style="padding:2px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td class="mail-stamp-image" align="center" valign="middle" height="150" style="background-color:#e6edf1;color:#647f90;font-size:36px;height:150px">
