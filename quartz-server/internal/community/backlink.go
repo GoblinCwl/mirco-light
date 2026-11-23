@@ -56,6 +56,10 @@ func attr(n *html.Node, key string) string {
 	return ""
 }
 func inert(n *html.Node) bool {
+	return inertExceptTabPanel(n, false)
+}
+
+func inertExceptTabPanel(n *html.Node, selectedPanel bool) bool {
 	if n.Type != html.ElementNode {
 		return false
 	}
@@ -64,13 +68,44 @@ func inert(n *html.Node) bool {
 		return true
 	}
 	for _, a := range n.Attr {
-		if a.Key == "hidden" || a.Key == "inert" || a.Key == "aria-hidden" && strings.EqualFold(a.Val, "true") {
+		if a.Key == "hidden" && !selectedPanel || a.Key == "inert" || a.Key == "aria-hidden" && strings.EqualFold(a.Val, "true") {
 			return true
 		}
 	}
 	style := strings.ToLower(strings.ReplaceAll(attr(n, "style"), " ", ""))
 	return strings.Contains(style, "display:none") || strings.Contains(style, "visibility:hidden")
 }
+
+// When the proof URL selects a tab, restrict the search to that public panel.
+// Without a fragment, consider every panel controlled by a public tab.
+func backlinkTabPanels(root *html.Node, fragment string) map[string]bool {
+	panels := make(map[string]bool)
+	var visit func(*html.Node)
+	visit = func(n *html.Node) {
+		if inert(n) {
+			return
+		}
+		if n.Type == html.ElementNode && attr(n, "role") == "tab" && !strings.EqualFold(attr(n, "aria-disabled"), "true") {
+			disabled := false
+			for _, a := range n.Attr {
+				if a.Key == "disabled" {
+					disabled = true
+					break
+				}
+			}
+			controls := strings.Fields(attr(n, "aria-controls"))
+			if !disabled && len(controls) == 1 && (fragment == "" || controls[0] == fragment || attr(n, "id") == fragment || attr(n, "data-tab") == fragment) {
+				panels[controls[0]] = true
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			visit(c)
+		}
+	}
+	visit(root)
+	return panels
+}
+
 func pageBacklink(data []byte, contentType string, page, site *url.URL) (bool, error) {
 	reader, err := charset.NewReader(bytes.NewReader(data), contentType)
 	if err != nil {
@@ -105,9 +140,11 @@ func pageBacklink(data []byte, contentType string, page, site *url.URL) (bool, e
 		return false
 	}
 	findBase(root)
+	var panels map[string]bool
 	var visit func(*html.Node) bool
 	visit = func(n *html.Node) bool {
-		if inert(n) {
+		selectedPanel := n.Type == html.ElementNode && attr(n, "role") == "tabpanel" && panels[attr(n, "id")]
+		if inertExceptTabPanel(n, selectedPanel) {
 			return false
 		}
 		if source, ok := markdownSource(n); ok && markdownBacklink(source, base, site, true) {
@@ -127,7 +164,11 @@ func pageBacklink(data []byte, contentType string, page, site *url.URL) (bool, e
 		}
 		return false
 	}
-	return visit(root), nil
+	if visit(root) {
+		return true, nil
+	}
+	panels = backlinkTabPanels(root, page.Fragment)
+	return len(panels) > 0 && visit(root), nil
 }
 
 // CheckBacklink performs a bounded, public-network HTML read. JavaScript is not executed.
@@ -164,7 +205,11 @@ func CheckBacklink(ctx context.Context, friend Friend, origin string, client *ht
 	if mediaType != "text/html" && mediaType != "application/xhtml+xml" {
 		return BacklinkResult{Message: "友链地址未返回网页，请人工审核"}, nil
 	}
-	found, err := pageBacklink(response.Data, response.ContentType, response.URL, site)
+	proofPage := *response.URL
+	if proofPage.Fragment == "" {
+		proofPage.Fragment = page.Fragment
+	}
+	found, err := pageBacklink(response.Data, response.ContentType, &proofPage, site)
 	if err != nil {
 		return BacklinkResult{}, err
 	}

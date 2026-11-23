@@ -41,6 +41,44 @@ func TestBacklinkRequiresRealHomepageAnchor(t *testing.T) {
 		}
 	}
 }
+
+func TestBacklinkChecksPublicTabPanels(t *testing.T) {
+	const link = `<a href="https://goblincwl.site/">微光集</a>`
+	const tab = `<button role="tab" id="tab-neighbors" data-tab="neighbors" aria-controls="panel-neighbors">左邻右舍</button>`
+	const panel = `<section role="tabpanel" id="panel-neighbors" hidden>` + link + `</section>`
+	site, _ := url.Parse("https://goblincwl.site/")
+	for _, tc := range []struct {
+		name, fragment, body string
+		want                 bool
+	}{
+		{"tab key", "neighbors", tab + panel, true},
+		{"tab ID", "tab-neighbors", tab + panel, true},
+		{"panel ID", "panel-neighbors", tab + panel, true},
+		{"no fragment", "", tab + panel, true},
+		{"different fragment", "feed", tab + panel, false},
+		{"no public tab", "panel-neighbors", panel, false},
+		{"uncontrolled panel without fragment", "", panel, false},
+		{"unrelated tab without fragment", "", strings.Replace(tab, "panel-neighbors", "panel-other", 1) + panel, false},
+		{"hidden tab", "neighbors", `<div hidden>` + tab + `</div>` + panel, false},
+		{"disabled tab", "neighbors", strings.Replace(tab, "<button ", "<button disabled ", 1) + panel, false},
+		{"ordinary hidden section", "neighbors", tab + strings.Replace(panel, `role="tabpanel" `, "", 1), false},
+		{"hidden parent", "neighbors", tab + `<div hidden>` + panel + `</div>`, false},
+		{"hidden link", "neighbors", tab + strings.Replace(panel, link, `<span hidden>`+link+`</span>`, 1), false},
+		{"hidden link without fragment", "", tab + strings.Replace(panel, link, `<span hidden>`+link+`</span>`, 1), false},
+		{"inert panel", "neighbors", tab + strings.Replace(panel, " hidden", " hidden inert", 1), false},
+		{"inline hidden panel", "neighbors", tab + strings.Replace(panel, " hidden", ` hidden style="display:none"`, 1), false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			page, _ := url.Parse("https://applicant.example/links/")
+			page.Fragment = tc.fragment
+			found, err := pageBacklink([]byte(tc.body), "text/html; charset=utf-8", page, site)
+			if err != nil || found != tc.want {
+				t.Fatalf("found %v, want %v (error: %v)", found, tc.want, err)
+			}
+		})
+	}
+}
+
 func TestBacklinkFetchChecksApplicantAndFinalPage(t *testing.T) {
 	const origin = "https://goblincwl.site"
 	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -54,6 +92,11 @@ func TestBacklinkFetchChecksApplicantAndFinalPage(t *testing.T) {
 		switch r.URL.Path {
 		case "/redirect":
 			http.Redirect(w, r, other.URL+"/", http.StatusFound)
+		case "/links":
+			http.Redirect(w, r, "/links/", http.StatusMovedPermanently)
+		case "/links/":
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte(`<button role="tab" data-tab="neighbors" aria-controls="panel-neighbors">左邻右舍</button><section role="tabpanel" id="panel-neighbors" hidden><a href="https://goblincwl.site/">微光集</a></section>`))
 		case "/json":
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"content":"<a href='https://goblincwl.site/'>site</a>"}`))
@@ -69,6 +112,11 @@ func TestBacklinkFetchChecksApplicantAndFinalPage(t *testing.T) {
 	result, err := CheckBacklink(context.Background(), friend, origin, server.Client())
 	if err != nil || !result.Found {
 		t.Fatal(result, err)
+	}
+	friend.BacklinkURL = server.URL + "/links#neighbors"
+	result, err = CheckBacklink(context.Background(), friend, origin, server.Client())
+	if err != nil || !result.Found {
+		t.Fatal("lost the selected tab on redirect", result, err)
 	}
 	for _, route := range []string{"/redirect", "/json"} {
 		friend.BacklinkURL = server.URL + route
