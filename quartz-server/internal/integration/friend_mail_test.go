@@ -138,6 +138,45 @@ func TestFriendReviewMailAndPeriodicFailures(t *testing.T) {
 	if n != 3 {
 		t.Fatal("mail not delivered", n)
 	}
+	records, err := mails.Records(ctx, "sent", 999)
+	if err != nil || records.Total != 3 || records.Page != 1 || len(records.Items) != 3 {
+		t.Fatalf("unexpected sent records: %+v, %v", records, err)
+	}
+	for _, record := range records.Items {
+		if record.SMTPCode != 250 || record.Attempts < 1 || record.Recipient != "fixture@example.test" {
+			t.Fatalf("unexpected delivery record: %+v", record)
+		}
+	}
+	if _, err := db.Exec("UPDATE friend_mail_outbox SET state='failed',last_error='SMTP 550 · 收件人被拒绝' WHERE friend_id=? AND accepted=1", approved.ID); err != nil {
+		t.Fatal(err)
+	}
+	records, err = mails.Records(ctx, "failed", 1)
+	if err != nil || len(records.Items) != 1 || records.Items[0].SMTPCode != 550 || records.Items[0].Title != "友链已添加" {
+		t.Fatalf("unexpected failed records: %+v, %v", records, err)
+	}
+	failed := records.Items[0]
+	if queued, err := mails.Retry(ctx, failed.ID); !failed.CanRetry || !queued || err != nil {
+		t.Fatalf("failed message did not requeue: %t, %v", queued, err)
+	}
+	records, err = mails.Records(ctx, "pending", 1)
+	if err != nil || len(records.Items) != 1 || records.Items[0].ID != failed.ID || records.Items[0].Attempts != 0 || records.Items[0].CanRetry {
+		t.Fatalf("unexpected requeued record: %+v, %v", records, err)
+	}
+	if queued, err := mails.Retry(ctx, failed.ID); queued || err != nil {
+		t.Fatalf("immediate duplicate retry: %t, %v", queued, err)
+	}
+	if _, err := db.Exec("UPDATE friend_mail_outbox SET attempts=1, available_at=? WHERE id=?", time.Now().Add(time.Hour).UnixMilli(), failed.ID); err != nil {
+		t.Fatal(err)
+	}
+	if queued, err := mails.Retry(ctx, failed.ID); !queued || err != nil {
+		t.Fatalf("mail waiting for automatic retry did not requeue: %t, %v", queued, err)
+	}
+	if worked, err := mails.Deliver(ctx); !worked || err != nil {
+		t.Fatalf("requeued mail not delivered: %t, %v", worked, err)
+	}
+	if queued, err := mails.Retry(ctx, failed.ID); queued || err != nil {
+		t.Fatalf("sent mail was requeued: %t, %v", queued, err)
+	}
 	legacy := newFriend("legacy")
 	db.Exec("UPDATE friends SET email='',processing_failures=3 WHERE id=?", legacy.ID)
 	if _, err = store.UpdateFriend(ctx, legacy.ID, community.Friend{}, "abandon", 0); err == nil {

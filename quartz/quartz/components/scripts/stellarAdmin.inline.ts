@@ -12,6 +12,7 @@ import { setupContentPublishing } from './contentPublishing'
 import { setupNavigationManager } from './navigationManager'
 import { setupFriendManager } from './friendManager'
 import { setupFeedbackManager } from './feedbackManager'
+import { setupMailManager } from './mailManager'
 import { refreshSiteSettings } from './siteSettings'
 import { showSiteDialog } from './siteDialog'
 type Field = { key: string; group: string; label: string; type: string; category?: string; min?: number; max?: number; step?: number; maxLength?: number; options?: [string,string][]; help?: string }
@@ -43,6 +44,7 @@ document.addEventListener('nav', () => {
     result.schema.push({key:'friends.manage',group:'友链管理',label:'友链',type:'friends'})
     result.schema.push({key:'feedback.manage',group:'反馈管理',label:'反馈',type:'feedback'})
     result.schema.push({key:'comments.manage',group:'评论管理',label:'评论与用户',type:'comments'})
+    result.schema.push({key:'mail.records',group:'邮件管理',label:'邮件投递',type:'mail'})
     result.schema.push({key:'upstreams.credentials',group:'服务接入',label:'平台凭据',type:'credentials'})
     fields.replaceChildren()
     const navigation = root.querySelector<HTMLElement>('[data-stellar-modules]')!; navigation.replaceChildren()
@@ -56,6 +58,7 @@ document.addEventListener('nav', () => {
       '友链管理': {id:'friends',title:'友链',description:'管理友链资料与申请审核，卡片按最近更新时间排列。',icon:'<path d="m9 15 6-6m-5-3 2-2a5 5 0 0 1 7 7l-2 2M7 11l-2 2a5 5 0 0 0 7 7l2-2"/>'},
       '反馈管理': {id:'feedback',title:'反馈',description:'查看访客反馈并管理处理状态。',icon:'<path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 9h10M7 13h6"/>'},
       '评论管理': {id:'comments',title:'评论',description:'管理 Artalk 评论与用户，支持审核、编辑及账号维护。',icon:'<path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 9h10M7 13h6"/>'},
+      '邮件管理': {id:'mail',title:'邮件',description:'查看友链与反馈邮件的投递结果。',icon:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>'},
       '告警中心': {id:'alerts',title:'告警',description:'查看服务异常、交互请求的外部接口失败及运行异常。',icon:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/><path d="M12 6v4m0 3h.01"/>'},
       '内容发布': {id:'publishing',title:'内容',description:'控制构建排除与隐藏展示，保存后手动重载生效。',icon:'<path d="M4 4h16v16H4zM8 9h8M8 13h5"/><path d="m16 16 2 2 3-3"/>'},
       '账户安全':{id:'security',title:'账户',description:'管理管理员密码、验证器、恢复码与本站 API 凭据。',icon:'<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/>'},
@@ -108,6 +111,12 @@ document.addEventListener('nav', () => {
       if(name==='告警中心'){
         let refresh:(()=>void)|undefined
         activators[index]=()=>{if(!refresh)refresh=setupAlertCenter(panel,signal,request);else refresh()}
+        continue
+      }
+      if(name==='邮件管理'){
+        const content=document.createElement('div');panel.append(content)
+        let refresh:(()=>void)|undefined
+        activators[index]=()=>{if(refresh)refresh();else refresh=setupMailManager(content,signal,request)}
         continue
       }
       const managedContent=(content:HTMLElement,setup:(content:HTMLElement,own:AbortSignal)=>void)=>{

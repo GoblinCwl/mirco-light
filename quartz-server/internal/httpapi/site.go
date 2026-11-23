@@ -135,6 +135,10 @@ func (s *Server) site(mux *http.ServeMux) {
 			s.siteAPIToken(w, r)
 		case strings.HasPrefix(path, "/admin/notifications"):
 			s.siteNotifications(w, r, path)
+		case path == "/admin/mail":
+			s.siteMail(w, r)
+		case strings.HasPrefix(path, "/admin/mail/retry/"):
+			s.retryMail(w, r, strings.TrimPrefix(path, "/admin/mail/retry/"))
 		case strings.HasPrefix(path, "/admin/comments/"):
 			s.siteCommentsAdmin(w, r, path)
 		case path == "/admin/comments-session" && r.Method == "POST":

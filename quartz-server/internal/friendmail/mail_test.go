@@ -1,9 +1,17 @@
 package friendmail
 
 import (
+	"net/textproto"
 	"strings"
 	"testing"
 )
+
+func TestMailFailureKeepsSMTPCodeAndSafeStage(t *testing.T) {
+	reply := &textproto.Error{Code: 550, Msg: "recipient@example.test: mailbox unavailable"}
+	if got := mailFailure("SMTP 收件人被拒绝", reply).Error(); got != "SMTP 550 · 收件人被拒绝" {
+		t.Fatalf("unexpected delivery error: %q", got)
+	}
+}
 
 func TestReviewTemplateEscapesContent(t *testing.T) {
 	for _, accepted := range []bool{true, false} {

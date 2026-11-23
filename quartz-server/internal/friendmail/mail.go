@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/mail"
 	"net/smtp"
+	"net/textproto"
 	"net/url"
 	"os"
 	"strconv"
@@ -50,14 +51,42 @@ type Store struct {
 	Send               func(context.Context, Message) error
 }
 
+type deliveryError struct {
+	stage string
+	code  int
+}
+
+func (e *deliveryError) Error() string {
+	if e.code != 0 {
+		return fmt.Sprintf("SMTP %d · %s", e.code, strings.TrimPrefix(e.stage, "SMTP "))
+	}
+	return e.stage
+}
+
+func mailFailure(stage string, err error) error {
+	failure := &deliveryError{stage: stage}
+	var reply *textproto.Error
+	if errors.As(err, &reply) {
+		failure.code = reply.Code
+	}
+	return failure
+}
+
+func mailHeading(kind string, accepted bool) string {
+	switch kind {
+	case "feedback":
+		return "反馈已处理"
+	case "friends-removed":
+		return "友链已移除"
+	}
+	if accepted {
+		return "友链已添加"
+	}
+	return "友链申请未予收录"
+}
+
 func Render(m Message, origin string) (string, string, error) {
-	heading := "友链申请未予收录"
-	if m.Accepted {
-		heading = "友链已添加"
-	}
-	if m.Kind == "friends-removed" {
-		heading = "友链已移除"
-	}
+	heading := mailHeading(m.Kind, m.Accepted)
 	origin = strings.TrimRight(origin, "/")
 	selected := layout
 	action := origin
@@ -79,7 +108,6 @@ func Render(m Message, origin string) (string, string, error) {
 		}
 	}
 	if m.Kind == "feedback" {
-		heading = "反馈已处理"
 		selected = feedbackLayout
 		action = origin
 	}
@@ -118,27 +146,27 @@ func (s Store) smtpSend(ctx context.Context, m Message) error {
 	}
 	raw, err := os.ReadFile(s.ConfigPath)
 	if err != nil {
-		return errors.New("无法读取邮件配置")
+		return mailFailure("无法读取邮件配置", err)
 	}
 	if yaml.Unmarshal(raw, &config) != nil {
-		return errors.New("邮件配置无效")
+		return mailFailure("邮件配置无效", nil)
 	}
 	c := config.Email
 	if !c.Enabled || c.SendType != "smtp" || c.SMTP.Host == "" {
-		return errors.New("请启用现有 SMTP 邮件服务")
+		return mailFailure("SMTP 邮件服务未启用", nil)
 	}
 	from, err := mail.ParseAddress(c.Address)
 	if err != nil {
-		return errors.New("发件地址无效")
+		return mailFailure("发件地址无效", err)
 	}
 	from.Name = c.Name
 	to, err := mail.ParseAddress(m.To)
 	if err != nil {
-		return errors.New("收件地址无效")
+		return mailFailure("收件地址无效", err)
 	}
 	subject, body, err := Render(m, s.Origin)
 	if err != nil {
-		return err
+		return mailFailure("邮件模板渲染失败", err)
 	}
 	port := c.SMTP.Port
 	if port == 0 {
@@ -148,7 +176,7 @@ func (s Store) smtpSend(ctx context.Context, m Message) error {
 	dialer := &net.Dialer{Timeout: 10 * time.Second}
 	conn, err := dialer.DialContext(ctx, "tcp", address)
 	if err != nil {
-		return errors.New("SMTP 连接失败")
+		return mailFailure("SMTP 连接失败", err)
 	}
 	defer conn.Close()
 	conn.SetDeadline(time.Now().Add(30 * time.Second))
@@ -156,41 +184,44 @@ func (s Store) smtpSend(ctx context.Context, m Message) error {
 	if port == 465 {
 		secure := tls.Client(conn, tlsConfig)
 		if err = secure.HandshakeContext(ctx); err != nil {
-			return errors.New("SMTP TLS 连接失败")
+			return mailFailure("SMTP TLS 连接失败", err)
 		}
 		conn = secure
 	}
 	client, err := smtp.NewClient(conn, c.SMTP.Host)
 	if err != nil {
-		return errors.New("SMTP 握手失败")
+		return mailFailure("SMTP 握手失败", err)
 	}
 	defer client.Close()
 	if port != 465 {
 		if ok, _ := client.Extension("STARTTLS"); !ok {
-			return errors.New("SMTP 服务未提供 TLS")
+			return mailFailure("SMTP 服务未提供 TLS", nil)
 		}
-		if client.StartTLS(tlsConfig) != nil {
-			return errors.New("SMTP TLS 升级失败")
+		if err := client.StartTLS(tlsConfig); err != nil {
+			return mailFailure("SMTP TLS 升级失败", err)
 		}
 	}
 	if c.SMTP.Username != "" {
-		if client.Auth(smtp.PlainAuth("", c.SMTP.Username, c.SMTP.Password, c.SMTP.Host)) != nil {
-			return errors.New("SMTP 认证失败")
+		if err := client.Auth(smtp.PlainAuth("", c.SMTP.Username, c.SMTP.Password, c.SMTP.Host)); err != nil {
+			return mailFailure("SMTP 认证失败", err)
 		}
 	}
-	if client.Mail(from.Address) != nil || client.Rcpt(to.Address) != nil {
-		return errors.New("SMTP 收发件地址被拒绝")
+	if err := client.Mail(from.Address); err != nil {
+		return mailFailure("SMTP 发件人被拒绝", err)
+	}
+	if err := client.Rcpt(to.Address); err != nil {
+		return mailFailure("SMTP 收件人被拒绝", err)
 	}
 	writer, err := client.Data()
 	if err != nil {
-		return errors.New("SMTP 无法提交邮件")
+		return mailFailure("SMTP 拒绝提交邮件", err)
 	}
 	data := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMessage-ID: <%s@goblincwl.site>\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n%s\r\n", from.String(), to.String(), mime.QEncoding.Encode("UTF-8", subject), time.Now().Format(time.RFC1123Z), m.ID, encodeBody(body))
 	if _, err = writer.Write([]byte(data)); err != nil {
-		return errors.New("SMTP 发送失败")
+		return mailFailure("SMTP 写入邮件失败", err)
 	}
-	if writer.Close() != nil {
-		return errors.New("SMTP 未确认接收邮件")
+	if err := writer.Close(); err != nil {
+		return mailFailure("SMTP 未确认接收邮件", err)
 	}
 	client.Quit()
 	return nil
@@ -227,7 +258,12 @@ func (s Store) Deliver(ctx context.Context) (bool, error) {
 		if m.Attempts+1 >= 10 {
 			state = "failed"
 		}
-		_, err = s.DB.ExecContext(ctx, "UPDATE friend_mail_outbox SET state=?,attempts=attempts+1,available_at=?,last_error=? WHERE id=?", state, time.Now().Add(min(time.Minute*time.Duration(1<<min(m.Attempts, 6)), time.Hour)).UnixMilli(), "邮件发送失败，请检查 SMTP 服务", m.ID)
+		message := "邮件发送失败，请检查 SMTP 服务"
+		var failure *deliveryError
+		if errors.As(sendErr, &failure) {
+			message = failure.Error()
+		}
+		_, err = s.DB.ExecContext(ctx, "UPDATE friend_mail_outbox SET state=?,attempts=attempts+1,available_at=?,last_error=? WHERE id=?", state, time.Now().Add(min(time.Minute*time.Duration(1<<min(m.Attempts, 6)), time.Hour)).UnixMilli(), message, m.ID)
 	}
 	return true, err
 }

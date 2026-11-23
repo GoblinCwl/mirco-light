@@ -393,6 +393,8 @@
   :is(.friend-admin-fields,.data-admin-fields) { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.85rem 1rem; margin:.85rem 0; }
   :is(.friend-admin-fields > label,.data-admin-field) { display:flex; flex-direction:column; gap:.4rem; min-width:0; color:var(--darkgray); font-size:.78rem; font-weight:500; line-height:1.5; }
   .data-admin-toolbar { margin-bottom:.85rem; }
+  .mail-admin-toolbar > select { flex: 0 1 12rem; }
+  .mail-admin-error { color: var(--stellar-danger); }
   .data-admin-table { tr:last-child td { border-bottom:0; } .data-admin-row-actions { >button { @include adminButton; min-height:2rem; padding:.3rem .55rem; } } th:last-child { width:9rem; } }
   .stellar-admin-pagination > button, .stellar-list-message > button { @include adminButton; }
   .stellar-navigation-actions > button:not(.stellar-navigation-save) { @include adminButton; }
