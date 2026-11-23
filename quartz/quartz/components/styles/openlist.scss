@@ -187,12 +187,9 @@ body[data-slug^="Share/"] {
     > .drive-preview-note { margin-top: .5rem; }
   }
   .drive-preview-note { color: var(--darkgray); font-size: .85rem; }
-  button.drive-archive-back { display: inline-flex; align-items: center; align-self: flex-start; gap: .4rem; min-height: 2.25rem; margin: 0 0 .8rem; padding: .35rem .75rem; border: 1px solid var(--secondary); border-radius: 5px; background: var(--secondary); color: var(--light); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer;
-    > svg { width: 1rem; height: 1rem; }
-    &:hover:not(:disabled) { border-color: var(--tertiary); background: var(--tertiary); color: var(--light); text-decoration: none; }
-  }
   .drive-archive-preview { box-sizing: border-box; padding: 1rem 1.25rem .25rem; }
   .drive-archive-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; padding-bottom: .9rem; }
+  .drive-archive-file-path { flex-shrink: 0; padding: 1rem 1.25rem .9rem; border-radius: 6px; background: var(--moreLight); }
   .drive-archive-path { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; min-width: 0; font-size: .85rem; line-height: 1.6; overflow-wrap: anywhere;
     :is(button, .drive-archive-current) { display: inline-flex; align-items: center; gap: .4rem; min-width: 0; }
     button { padding: 0; border: 0; color: var(--secondary); background: transparent; font: inherit; cursor: pointer; &:hover { background: transparent; text-decoration: underline; text-underline-offset: .2em; } }
@@ -251,13 +248,15 @@ body[data-slug^="Share/"] {
   .drive-preview-body {
     display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
     height: var(--drive-preview-height, 50dvh); min-height: 0; overflow: hidden;
+    @media (min-width: 1200px) {
+      &:has(> :is(.drive-preview-download, .drive-archive-preview)) { min-height: 15rem; }
+    }
   }
   .drive-preview-content { flex: 0 1 auto; min-height: 0; max-height: 100%; overflow: auto; }
   .drive-preview-content:has(> .drive-renderer-frame) { flex: 1; height: 100%; overflow: hidden; background: transparent; }
   .drive-renderer-frame { height: 100%; min-height: 0; }
   .drive-renderer-frame.is-content-sized:not(.is-web-fullscreen) { height: min(100%, var(--drive-content-height)); }
   .drive-preview-download { box-sizing: border-box; height: 100%; justify-content: flex-start; padding-top: clamp(2rem, 10dvh, 6rem); overflow: auto; }
-  .drive-archive-back { flex-shrink: 0; }
   .drive-image-viewer { max-height: var(--drive-preview-height); display: flex; flex-direction: column; }
   .drive-image-viewport { height: auto; min-height: 0; max-height: calc(var(--drive-preview-height) - 3rem); > img { max-height: calc(var(--drive-preview-height) - 3rem); } }
   .drive-image-controls { flex-shrink: 0; }
@@ -311,8 +310,14 @@ body.jit-fullscreen-host {
 }
 
 // Renderer readiness is part of the page loader, with no second indicator or mask.
-.drive-page[data-drive-loading] [data-drive-content] { opacity: 0; pointer-events: none; }
-.drive-page :is(.drive-preview-body, .drive-preview-content)[aria-busy="true"] { opacity: 0; pointer-events: none; }
+.drive-page[data-drive-loading] [data-drive-content]:not(:has(.drive-archive-path)),
+.drive-page :is(.drive-preview-body, .drive-preview-content)[aria-busy="true"]:not(:has(.drive-archive-path)) {
+  opacity: 0; pointer-events: none;
+}
+.drive-page:has(.drive-archive-path) [data-drive-page-loading] .drive-loading-badge {
+  animation: drive-archive-loading-in 100ms ease-out 180ms backwards;
+}
+@keyframes drive-archive-loading-in { from { opacity: 0; } }
 .drive-page .drive-renderer-frame.is-loading { opacity: 0; pointer-events: none; }
 
 // Transition from the existing hidden state instead of restarting a keyframe
@@ -329,7 +334,7 @@ body.jit-fullscreen-host {
 }
 
 @media (max-width: 500px) {
-  .drive-page .drive-archive-preview { padding-inline: .85rem; }
+  .drive-page :is(.drive-archive-preview, .drive-archive-file-path) { padding-inline: .85rem; }
   .drive-page .drive-archive-row { gap: .6rem; }
   .drive-page .drive-archive-columns { padding-left: 1.8rem; }
 }

@@ -34,11 +34,14 @@
     display: grid; place-items: center; z-index: 2;
     background: var(--moreLight); border-radius: inherit;
   }
+  .drive-hover-file:has(.drive-archive-path) [data-drive-page-loading] { background: transparent; }
   .drive-hover-preview-body { display: flex; flex-direction: column; overflow: hidden; }
+  .drive-hover-preview-body:has(> .drive-archive-file-path) { justify-content: flex-start; align-items: stretch; }
+  .drive-preview-download { min-height: 0; overflow: auto; }
   .drive-preview-content { flex: 1; min-height: 0; max-height: 100%; overflow: auto; }
   .drive-preview-content:has(> .drive-renderer-frame) { overflow: hidden; }
   .drive-renderer-frame { display: block; width: 100%; height: 100%; min-height: 0; max-height: 100%; border-radius: 0; }
   .drive-image-viewer { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .drive-image-viewport { flex: 1; height: 0; min-height: 0; overflow: hidden; }
-  .drive-image-controls, .drive-archive-back { flex-shrink: 0; }
+  .drive-image-controls { flex-shrink: 0; }
 }

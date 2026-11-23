@@ -28,7 +28,7 @@ import {previewSandboxRuntime} from "./drivePreviewSandbox"
 import type {SandboxPreview} from "./preview/sandboxTypes"
 import {renderSandboxVideo} from "./preview/videoRenderer"
 import { matroskaReaderUrl } from "./matroskaReaderVersion"
-import { renderDriveArchive, type PreviewAccess } from "./driveArchivePreview"
+import { archiveBreadcrumbs, renderDriveArchive, type PreviewAccess } from "./driveArchivePreview"
 import { fallbackVideoScope, readVideoPreferences, saveVideoPreferences, type VideoScope } from "./driveVideoPreferences"
 let cached: { at: number; value: PreviewSettings } | undefined
 export async function drivePreviewSettings(signal: AbortSignal) {
@@ -92,14 +92,21 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, opt
   })
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["saved-theme"] })
   lifecycle.addEventListener("abort", () => { clear(); themeObserver.disconnect() }, { once: true })
-  const load = async (file: PreviewFile, direct: string, access: PreviewAccess, signal: AbortSignal, returnToArchive?: () => void, archiveDirectory?: string) => {
+  const load = async (file: PreviewFile, direct: string, access: PreviewAccess, signal: AbortSignal, archiveParent?: { directory: string; navigate: (path: string) => void }, archiveDirectory?: string) => {
 
     fileController?.abort(); fileController = new AbortController()
     const fileSignal = AbortSignal.any([lifecycle, signal, fileController.signal])
     const finishPreparation = beginDriveLoading(body, fileSignal)
     body.setAttribute("aria-busy", "true")
-    prepare(file)
-    stop(); body.replaceChildren()
+    const archiveNavigation = (archiveParent || archiveDirectory !== undefined) && body.querySelector(".drive-archive-path")
+    if (archiveNavigation) {
+      select.disabled = true
+      select.setAttribute("aria-busy", "true")
+    } else {
+      prepare(file)
+      stop()
+      body.replaceChildren()
+    }
     try {
     let config: PreviewSettings
     try { config = await drivePreviewSettings(fileSignal) }
@@ -122,7 +129,7 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, opt
     let danmaku:ReturnType<typeof matchDanmaku>|undefined
     type JellyfinMatch = { match: string; defaultSubtitleStreamIndex?: number; videoCodec?:string; scopes?: VideoScope; timeline?: SandboxPreview["timeline"]; subtitles?: { index?: number; key?: string; name: string; language: string; type: string; url: string; nativeUrl?: string; isDefault?: boolean; burn?:boolean }[]; videoAspectRatio?: number; qualities: { id: string; name: string; bitrate: number }[]; audioTracks: { index: number; key?: string; name: string }[]; audioStreamIndex?: number }
     let jellyfin: JellyfinMatch | undefined
-    if (!returnToArchive && access.mediaShare && (file.type === 2 || drivePreviewKind(file.name) === "video")) {
+    if (!archiveParent && access.mediaShare && (file.type === 2 || drivePreviewKind(file.name) === "video")) {
       try {
         const value = await driveRequest<JellyfinMatch & { matched: boolean }>("public/quartz/jellyfin/lookup", { path: access.requestPath, password: access.password }, { anonymous: access.view !== "storage", signal: AbortSignal.any([fileSignal, AbortSignal.timeout(5000)]) })
 
@@ -134,8 +141,10 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, opt
     const preferenceScope = jellyfin?.scopes || fallbackVideoScope(access.requestPath, `${access.view}:${access.user?.base_path || ""}`)
     const allowed = access.view === "share" ? String(config.share_archive_preview ?? "true") === "true"
       : Boolean(access.user && (access.user.role === 2 || (access.user.permission || 0) & (1 << 12)))
-    const choices = previewChoices(file, config, access.view === "share" || access.view === "repo", allowed && !returnToArchive)
-    const available = choices.filter(item => (!options.hover || item.key !== "download") && !item.external && (item.key !== "pdf_native" || navigator.pdfViewerEnabled !== false))
+    const choices = previewChoices(file, config, access.view === "share" || access.view === "repo", allowed && !archiveParent)
+    const selectable = choices.filter(item => !item.external && (item.key !== "pdf_native" || navigator.pdfViewerEnabled !== false))
+    const hoverRenderers = selectable.filter(item => item.key !== "download")
+    const available = options.hover && hoverRenderers.length ? hoverRenderers : selectable
     if (jellyfin && available.some(item => item.key === "video")) available.unshift({ key: "jellyfin", name: "Jellyfin 播放器" })
     select.replaceChildren(...available.map(item => { const option = node("option", item.name); option.value = item.key; return option }))
     select.disabled = false; select.removeAttribute("aria-busy")
@@ -170,7 +179,12 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, opt
       const hlsMode = jellyfin ? await jellyfinHlsMode(jellyfin.timeline?.duration || 1,jellyfin.videoCodec) : undefined
       const subtitleBurnIn = jellyfin ? await jellyfinSubtitleBurnIn(preferences.subtitleBurnIn) : preferences.subtitleBurnIn
       if(jellyfin)jellyfin={...jellyfin,subtitles:jellyfin.subtitles?.map(track=>({...track,burn:track.burn||subtitleNeedsBurn(track.type,subtitleBurnIn)}))}
-      stop(); current = new AbortController()
+      if (fileSignal.aborted) return
+      const selected = available.find(item => item.key === key) || available[0]
+      const deferArchive = selected.key === "archive" && Boolean(body.querySelector(".drive-archive-path"))
+      if (deferArchive) current?.abort()
+      else stop()
+      current = new AbortController()
       const renderSignal = AbortSignal.any([fileSignal, current.signal])
       if (renderSignal.aborted) return
       const finishLoading = beginDriveLoading(body, renderSignal)
@@ -184,17 +198,22 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, opt
         progress.clear(); finishLoading()
       }
       renderSignal.addEventListener("abort", () => clearTimeout(timeout), { once: true })
-      const selected = available.find(item => item.key === key) || available[0]
       select.value = selected.key
       encodingLabel.hidden = !["markdown", "markdown_with_word_wrap", "text_editor", "html", "url_open"].includes(selected.key)
-      body.replaceChildren()
-      if (returnToArchive) {
-        const back = node("button", "", "drive-archive-back"); back.type = "button"
-        back.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg>'
-        back.append(node("span", "返回压缩包")); back.onclick = returnToArchive; body.append(back)
+      const nodes: HTMLElement[] = []
+      if (archiveParent) {
+        const header = node("header", "", "drive-archive-header drive-archive-file-path")
+        header.append(archiveBreadcrumbs(archiveParent.directory, archiveParent.navigate, file.name))
+        nodes.push(header)
       }
-      const output = node("div", "", "drive-preview-content"); body.append(output)
-      if (!options.hover && actions.childElementCount && !["download", "ipa", "plist", "url_open"].includes(selected.key)) body.append(actions.cloneNode(true))
+      const output = node("div", "", "drive-preview-content")
+      nodes.push(output)
+      if (!options.hover && actions.childElementCount && !["download", "ipa", "plist", "url_open"].includes(selected.key)) nodes.push(actions.cloneNode(true) as HTMLElement)
+      const mountPreview = () => {
+        if (deferArchive) activeFrame = undefined
+        body.replaceChildren(...nodes)
+      }
+      if (!deferArchive) mountPreview()
       let retainedPlayerError = ""
       const fail = (reason: string) => {
         if (renderSignal.aborted) return
@@ -213,6 +232,7 @@ export function setupDrivePreview(body: HTMLElement, lifecycle: AbortSignal, opt
           const message = node("div", reason, "drive-player-error"); message.setAttribute("role", "alert"); output.append(message)
           return
         }
+        if (deferArchive) mountPreview()
         complete()
         stop(); select.value = "download"; encodingLabel.hidden = true; output.replaceChildren(); output.remove()
         body.querySelector(":scope > .drive-file-actions")?.remove()
@@ -393,7 +413,7 @@ html{color-scheme:${theme()};background:var(--background)}body{margin:0;padding:
             const target = data.episodes?.[event.data.direction as "previous" | "next"]
             if (target) void window.spaNavigate(new URL(target.url, location.href))
           }
-          if(event.data.type==='jellyfinRetry'&&!jellyfin){void load(file,direct,access,signal,returnToArchive,archiveDirectory);return}
+          if(event.data.type==='jellyfinRetry'&&!jellyfin){void load(file,direct,access,signal,archiveParent,archiveDirectory);return}
           if ((event.data.type === "jellyfinQuality" || event.data.type === "jellyfinAudio" || event.data.type === "jellyfinSubtitle" || event.data.type==='jellyfinRetry') && jellyfin) {
             if (event.data.type === "jellyfinQuality" && jellyfin.qualities.some(item => item.id === event.data.quality)) selectedQuality = event.data.quality
             else if (event.data.type === "jellyfinAudio" && jellyfin.audioTracks.some(item => item.index === event.data.audioStreamIndex)) selectedAudio = event.data.audioStreamIndex
@@ -493,9 +513,13 @@ html{color-scheme:${theme()};background:var(--background)}body{margin:0;padding:
         }
         if (kind === "archive") {
           await renderDriveArchive(output, direct, access, renderSignal, (entry, url, directory) => {
-            const reopen = () => { void load(file, direct, access, signal, undefined, directory) }
-            void load(entry, url, access, signal, reopen)
-          }, archiveDirectory); complete(); return
+            const navigate = (path: string) => { void load(file, direct, access, signal, undefined, path) }
+            void load(entry, url, access, signal, { directory, navigate })
+          }, archiveDirectory)
+          if (renderSignal.aborted) return
+          if (deferArchive) mountPreview()
+          complete()
+          return
         }
         if (kind === "aliyun_video") {
           const data = await driveRequest<{ video_preview_play_info: { live_transcoding_task_list: { url: string; template_name: string; template_height: number }[] } }>("fs/other", { path: access.requestPath, password: access.password, method: "video_preview" }, { anonymous: access.view === "share" || access.view === "guest", signal: renderSignal })
@@ -506,7 +530,7 @@ html{color-scheme:${theme()};background:var(--background)}body{margin:0;padding:
         }
         if (["markdown", "markdown_with_word_wrap", "text_editor"].includes(kind) && file.size > 32 * 1024 * 1024) throw new Error("文本文件超过在线预览大小限制")
         let related: Partial<SandboxPreview> = {}
-        if (["video", "jellyfin", "audio"].includes(kind) && !returnToArchive && !(access.view === "share" && /^\/@s\/[^/]+$/.test(access.requestPath))) {
+        if (["video", "jellyfin", "audio"].includes(kind) && !archiveParent && !(access.view === "share" && /^\/@s\/[^/]+$/.test(access.requestPath))) {
           try {
             const directory = access.requestPath.slice(0, access.requestPath.lastIndexOf("/")) || "/"
             const listing = await driveRequest<{ content: PreviewFile[] | null }>("fs/list", { path: directory, password: access.password, page: 1, per_page: 0 }, { anonymous: access.view === "share" || access.view === "guest", signal: renderSignal })
