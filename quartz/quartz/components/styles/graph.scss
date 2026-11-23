@@ -156,4 +156,4 @@
   }
 }
 
-.global-graph-container >.graph-load-error{position:absolute;inset:40% 1rem auto;text-align:center;color:var(--gray);font:.85rem/1.6 var(--bodyFont);}
+:is(.graph-container,.global-graph-container) >.graph-load-error{position:absolute;inset:40% 1rem auto;text-align:center;color:var(--gray);font:.85rem/1.6 var(--bodyFont);}

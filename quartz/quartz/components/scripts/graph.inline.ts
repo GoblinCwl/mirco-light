@@ -1,6 +1,6 @@
 import {hasReadingUnlock} from "./readingUnlock"
 import {graphPalette} from '../../util/graphPalette'
-import {readContentCatalog} from './contentCatalog'
+import {peekContentCatalog, readContentCatalog} from './contentCatalog'
 import { videoRoute } from "./videoLibrary"
 import { repoRoute } from "./repoShared"
 import { repoGraphSlug } from "./repoGraph"
@@ -120,8 +120,20 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
     idleMotion,
   } = JSON.parse(graph.dataset["cfg"]!) as D3Config
 
+  let catalog
+  try {
+    catalog = await readContentCatalog()
+  } catch {
+    if (!current()) return
+    catalog = peekContentCatalog()
+    if (!catalog) {
+      await new Promise(resolve => setTimeout(resolve, 500))
+      if (!current()) return
+      catalog = await readContentCatalog()
+    }
+  }
   const data: Map<SimpleSlug, ContentDetails> = new Map(
-    Object.entries<ContentDetails>((await readContentCatalog()).pages).map(([k, v]) => [
+    Object.entries<ContentDetails>(catalog.pages).map(([k, v]) => [
       /^(Share|Repo|Video)\//.test(k)?k as SimpleSlug:simplifySlug(k as FullSlug),
       v,
     ]),
@@ -449,22 +461,30 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
   tweens.forEach((tween) => tween.stop())
   tweens.clear()
 
-  const app = new Application()
+  let app = new Application()
+  const rendererOptions = {
+    width,
+    height,
+    antialias: true,
+    autoStart: false,
+    autoDensity: true,
+    backgroundAlpha: 0,
+    resolution: window.devicePixelRatio,
+    eventMode: "static",
+    failIfMajorPerformanceCaveat: false,
+  } as const
   try {
-    await app.init({
-      width,
-      height,
-      antialias: true,
-      autoStart: false,
-      autoDensity: true,
-      backgroundAlpha: 0,
-      preference: "webgpu",
-      resolution: window.devicePixelRatio,
-      eventMode: "static",
-    })
+    // Some Chromium GPU backends initialize WebGPU but present a blank canvas.
+    await app.init({ ...rendererOptions, preference: "webgl" })
   } catch (error) {
-    simulation.stop()
-    throw error
+    if (!current()) { simulation.stop(); return }
+    app = new Application()
+    try {
+      await app.init({ ...rendererOptions, preference: "webgpu" })
+    } catch {
+      simulation.stop()
+      throw error
+    }
   }
   if (!current()) { simulation.stop(); app.destroy(); return }
   graph.appendChild(app.canvas)
@@ -1142,12 +1162,24 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
       if(force||!graph.isConnected||record.slug!==slug){graphRequests.delete(graph);record.cleanup();localGraphCleanups.delete(graph)}
     }
     const localGraphContainers = document.getElementsByClassName("graph-container")
-    for (const container of localGraphContainers) {
-      if (!(container as HTMLElement).offsetWidth || localGraphCleanups.has(container as HTMLElement)) continue
-      const cleanup = await renderGraph(container as HTMLElement, slug)
-      if (cleanup) {
-        const graph=container as HTMLElement;graph.dataset.graphReady=""
-        localGraphCleanups.set(graph,{slug,cleanup:()=>{delete graph.dataset.graphReady;cleanup()}})
+    for (const graph of Array.from(localGraphContainers) as HTMLElement[]) {
+      if (!graph.offsetWidth || localGraphCleanups.has(graph)) continue
+      const rendering = renderGraph(graph, slug)
+      const request = graphRequests.get(graph)
+      try {
+        const cleanup = await rendering
+        if (cleanup) {
+          graph.dataset.graphReady = ""
+          localGraphCleanups.set(graph,{slug,cleanup:()=>{delete graph.dataset.graphReady;cleanup()}})
+        }
+      } catch (error) {
+        if (disposed || !graph.isConnected || graphRequests.get(graph) !== request) continue
+        console.error("Unable to render local graph", error)
+        const message = document.createElement("p")
+        message.className = "graph-load-error"
+        message.setAttribute("role", "status")
+        message.textContent = "星轨图暂时未能加载。"
+        graph.append(message)
       }
     }
   }
@@ -1165,8 +1197,7 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
     document.removeEventListener("video-graph-ready", videoGraphReady)
     document.removeEventListener("repo-graph-ready", repoGraphReady)
   })
-  await renderLocalGraph()
-  if (disposed) return
+  void renderLocalGraph()
   const graphLayouts = [window.matchMedia("(max-width: 800px)"), window.matchMedia("(min-width: 1200px)")]
   let layoutFrame: number | undefined
   const handleLayoutChange = () => {
