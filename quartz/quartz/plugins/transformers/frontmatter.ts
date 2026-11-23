@@ -122,6 +122,10 @@ export const FrontMatter: QuartzTransformerPlugin<Partial<Options>> = (userOpts)
 
             if (socialImage) data.socialImage = socialImage
 
+            const aiSummary = typeof data.ai_summary === "string" ? data.ai_summary.trim() : ""
+            if (aiSummary) data.ai_summary = aiSummary
+            else delete data.ai_summary
+
             // Remove duplicate slugs
             const uniqueSlugs = [...new Set(allSlugs)]
             allSlugs.splice(0, allSlugs.length, ...uniqueSlugs)
@@ -167,6 +171,7 @@ declare module "vfile" {
         created: string
         published: string
         description: string
+        ai_summary: string
         socialDescription: string
         publish: boolean | string
         deprecated: boolean
