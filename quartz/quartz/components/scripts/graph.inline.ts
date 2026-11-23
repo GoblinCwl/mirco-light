@@ -310,9 +310,12 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
 
   let hoveredNodeId: string | null = null
   let hoveredNeighbours: Set<string> = new Set()
+  let hoveredLabel: { label: Text; alpha: number } | undefined
   const linkRenderData: LinkRenderData[] = []
   const nodeRenderData: NodeRenderData[] = []
-  function updateHoverInfo(newHoveredId: string | null) {
+  function updateHoverInfo(newHoveredId: string | null, label?: Text) {
+    if (hoveredLabel) hoveredLabel.label.alpha = hoveredLabel.alpha
+    hoveredLabel = label && { label, alpha: label.alpha }
     hoveredNodeId = newHoveredId
 
     if (newHoveredId === null) {
@@ -469,6 +472,11 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
   fullTitle.className = "graph-node-title"
   fullTitle.hidden = true
   if (expandedLayout) graph.appendChild(fullTitle)
+  const clearNodeHover = () => {
+    fullTitle.hidden = true
+    updateHoverInfo(null)
+    renderPixiFromD3()
+  }
 
   const stage = new Container()
   app.stage.addChild(stage)
@@ -526,7 +534,6 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
     })
     label.scale.set(1 / scale)
 
-    let oldLabelOpacity = 0
     const isTagNode = nodeId.startsWith("tags/")
     const gfx = new Graphics({
       interactive: true,
@@ -537,23 +544,14 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
     })
       .circle(0, 0, nodeRadius(n))
       .fill({ color: isTagNode ? computedStyleMap["--light"] : color(n) })
-      .on("pointerover", (e) => {
-        if (dragging) return
+      .on("pointerover", () => {
+        if (dragging || hoveredNodeId === nodeId) return
         if (expandedLayout) { fullTitle.textContent = n.text; fullTitle.hidden = false }
-        updateHoverInfo(e.target.label)
-        oldLabelOpacity = label.alpha
-        if (!dragging) {
-          renderPixiFromD3()
-        }
+        updateHoverInfo(nodeId, label)
+        renderPixiFromD3()
       })
       .on("pointerleave", () => {
-        if (dragging) return
-        fullTitle.hidden = true
-        updateHoverInfo(null)
-        label.alpha = oldLabelOpacity
-        if (!dragging) {
-          renderPixiFromD3()
-        }
+        if (!dragging && hoveredNodeId === nodeId) clearNodeHover()
       })
 
     if (settings["graph.loneStars"] !== false && isolatedArticles.has(nodeId)) {
@@ -727,12 +725,11 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
           event.subject.fx = event.subject === homeNode ? 0 : null
           event.subject.fy = event.subject === homeNode ? 0 : null
           dragging = false
-          updateHoverInfo(null)
-          fullTitle.hidden = true
+          clearNodeHover()
           if (event.subject === anchorNode) requestAnimationFrame(() => returnAnchorToView?.())
 
           // if the time between mousedown and mouseup is short, we consider it a click
-          if (Date.now() - dragStartTime < 500 && dragDistance < 6) {
+          if (event.sourceEvent.type !== "touchcancel" && Date.now() - dragStartTime < 500 && dragDistance < 6) {
             const node = graphData.nodes.find((n) => n.id === event.subject.id) as NodeData
             const targ = nodeHref(node.id)
             // @ts-ignore
@@ -878,8 +875,7 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug, kinds?: Reado
       visibilityTargets.set(id,visible?1:0)
       n.gfx.eventMode=visible?'static':'none'
     }
-    fullTitle.hidden=true
-    updateHoverInfo(null);renderNodes();renderLinks();renderLabels()
+    clearNodeHover()
   }
   if(kinds){updateVisibility(kinds);graphVisibility.set(graph,updateVisibility)}
   let visibilityFrame=performance.now()
