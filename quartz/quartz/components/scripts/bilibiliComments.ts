@@ -46,8 +46,17 @@ export function setupBilibiliComments(root:HTMLElement,bvid:string,signal:AbortS
   previous.type=next.type='button';previous.disabled=value.page<=1;next.disabled=value.hasMore===undefined?value.page>=value.pages:!value.hasMore;previous.onclick=()=>load(value.page-1);next.onclick=()=>load(value.page+1);host.append(previous,info,next)
  }
  const renderReply=(reply:Reply,nested=false)=>{
-  const row=node('article','','bili-comment'+(nested?' is-reply':'')),avatar=node('span',Array.from(reply.name||'?')[0],'bili-comment-avatar'),content=node('div','','bili-comment-content'),meta=node('div','','bili-comment-meta'),name=node('a',reply.name||'Bilibili 用户')
-  if(/^[1-9][0-9]*$/.test(reply.mid)){name.href='https://space.bilibili.com/'+reply.mid;name.target='_blank';name.rel='noopener noreferrer';name.dataset.noPopover='true'}
+  const userName=reply.name||'Bilibili 用户'
+  const profileURL=/^[1-9][0-9]*$/.test(reply.mid)?'https://space.bilibili.com/'+reply.mid:''
+  const row=node('article','','bili-comment'+(nested?' is-reply':'')),avatar=node(profileURL?'a':'span',Array.from(reply.name||'?')[0],'bili-comment-avatar'),content=node('div','','bili-comment-content'),meta=node('div','','bili-comment-meta'),name=node('a',userName)
+  const nameMark=node('span','','bili-comment-name-mark');nameMark.innerHTML=homeIcons.bilibili;name.append(nameMark)
+  if(avatar instanceof HTMLAnchorElement){
+   const profileTitle=userName+'的个人空间'
+   for(const link of [name,avatar]){
+    link.href=profileURL;link.target='_blank';link.rel='noopener noreferrer';link.dataset.noPopover='true';link.dataset.externalLinkTitle=profileTitle
+   }
+   avatar.setAttribute('aria-label',profileTitle)
+  }
   const src=imageURL(reply.avatar);if(src){const image=node('img');image.src=src;image.alt='';image.dataset.noLightbox='true';image.loading='lazy';image.referrerPolicy='no-referrer';image.onerror=()=>image.remove();avatar.append(image)}
   if(reply.owner)name.classList.add('bili-comment-owner');meta.append(name);if(reply.pinned)meta.append(node('span','置顶','bili-comment-badge'))
   const date=node('time',reply.createdAt?new Date(reply.createdAt*1000).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false}):'');if(reply.createdAt)date.dateTime=new Date(reply.createdAt*1000).toISOString();meta.append(date);setCommentLikes(meta,reply.likes)

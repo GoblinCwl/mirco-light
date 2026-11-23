@@ -190,8 +190,7 @@ html[data-theme="dark"] .artalk .atk-textarea-wrap .atk-textarea {
   background-color: var(--artalk-custom-morelight) !important;
 }
 
-/* Keep comment headers minimal; omit custom text badges such as administrator labels. */
-#artalk-comments .atk-main-editor input[name="link"] {
+#artalk-comments .atk-main-editor input[name="link"][aria-readonly="true"] {
   display: none !important;
 }
 
@@ -201,6 +200,32 @@ html[data-theme="dark"] .artalk .atk-textarea-wrap .atk-textarea {
   text-decoration: none;
 }
 
+#artalk-comments .atk-header :is(.atk-nick a[href], a.atk-nick[href]) {
+  cursor: pointer;
+}
+
+#artalk-comments .comment-nick-link-mark {
+  display: none;
+}
+
+#artalk-comments .atk-header :is(a[href] > .comment-nick-link-mark, .atk-nick > .comment-admin-mark) {
+  @include comment.name-mark;
+  &:is(.is-friend, .comment-admin-mark) { width: 1.12em; height: 1.12em; vertical-align: -.21em; }
+}
+
+#artalk-comments .atk-header .atk-nick.comment-admin-name .comment-nick-link-mark {
+  display: none;
+}
+
+#artalk-comments .atk-comment > .atk-avatar > a {
+  position: absolute;
+  inset: 0;
+  > img { display: block; width: 100%; height: 100%; margin: 0; border-radius: 0; object-fit: cover; }
+  &[href], &[href] > img { cursor: pointer; }
+  &:focus-visible { outline: 2px solid var(--secondary); outline-offset: -2px; }
+}
+
+/* Keep comment headers minimal; omit custom text badges such as administrator labels. */
 #artalk-comments .atk-header .atk-badge,
 #artalk-comments .atk-header .atk-region-badge {
   display: none !important;
@@ -224,15 +249,25 @@ html[data-theme="dark"] .artalk .atk-textarea-wrap .atk-textarea {
   > .atk-main > .atk-header {
     @include comment.header;
     .atk-item { margin: 0; }
+    > .atk-item.atk-nick { display: block; }
+    > .atk-badge-wrap { display: contents; }
     .atk-item.atk-nick, .atk-item.atk-nick a { @include comment.name; }
+    > .atk-item.atk-nick:is(a[href][data-external-link-title]),
+    > .atk-item.atk-nick a[href][data-external-link-title] {
+      color: var(--comment-friend-name-color, #08765e);
+    }
     .atk-date { @include comment.metadata; }
     .atk-reply-at {
       font-size: 13px;
       opacity: 1;
       .atk-nick { @include comment.name; opacity: 1; }
+      .atk-nick.comment-friend-name { color: var(--comment-friend-name-color, #08765e); }
     }
   }
-  > .atk-main > .atk-body > .atk-content { @include comment.content; }
+  > .atk-main > .atk-body > .atk-content {
+    @include comment.content;
+    a[href] { color: var(--secondary); }
+  }
   > .atk-main > .atk-footer {
     margin-top: 0;
     .atk-actions { @include comment.actions; }
@@ -253,7 +288,11 @@ html[data-theme="dark"] .artalk .atk-textarea-wrap .atk-textarea {
   > .atk-comment-wrap + .atk-comment-wrap { margin-top: 0; }
 }
 
-/* Administrator identity is expressed through nickname color only. */
+:root[saved-theme="dark"] #artalk-comments {
+  --comment-friend-name-color: #55c9a3;
+}
+
+/* The administrator mark inherits the nickname color. */
 #artalk-comments .atk-comment > .atk-main > .atk-header .atk-nick.comment-admin-name,
 #artalk-comments .atk-comment > .atk-main > .atk-header .atk-nick.comment-admin-name a {
   @include comment.admin-name;
@@ -294,6 +333,10 @@ html[data-theme="dark"] .artalk .atk-textarea-wrap .atk-textarea {
 #artalk-comments .atk-comment .atk-reply-to .atk-nick.comment-admin-name,
 #artalk-comments .atk-comment .atk-reply-to .atk-nick.comment-admin-name a {
   @include comment.admin-name;
+}
+
+#artalk-comments .atk-comment .atk-reply-to .atk-nick.comment-friend-name {
+  color: var(--comment-friend-name-color, #08765e);
 }
 
 /* Prevent the notification iframe's light first paint from flashing in dark mode. */
@@ -391,19 +434,13 @@ body:not([data-slug="index"]):not([data-slug^="Share/"]) .center:has(#artalk-com
 .page-footer:has(#artalk-comments[hidden]) { display: none; }
 #artalk-comments[hidden] { display: none !important; }
 
-// Preserve native Artalk reply handling while making the body its entry point.
+// The header buttons invoke the native Artalk actions.
 #artalk-comments .comment-inline-action { display: none !important; }
-#artalk-comments .comment-click-reply {
-  cursor: pointer;
-  &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; }
-}
 
 // The shared toolbar replaces Artalk’s native counter and sorting dropdown.
 #artalk-comments .atk-comment-count {
   display: none !important;
 }
-
-#artalk-comments .atk-avatar.comment-click-reply > img { cursor: pointer; }
 
 .page-footer:has(#artalk-comments:not([hidden])) {
   @include comment.page-end;
@@ -428,30 +465,55 @@ body:not([data-slug="index"]):not([data-slug^="Share/"]) .center:has(#artalk-com
 #artalk-comments .atk-list:has(.comment-load-stage) > .atk-loading { display: none !important; }
 #artalk-comments .comment-load-stage :is(.atk-comment, .atk-fade-in) { animation: none !important; }
 
-// Reuse the inline count position, exposing the site's native voting action.
-#artalk-comments .comment-like-button {
+#artalk-comments .comment-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  &:empty { display: none; }
+  .comment-like-count { margin-inline-start: 0; }
+}
+
+#artalk-comments :is(.comment-like-button, .comment-reply-button) {
   box-sizing: border-box;
-  min-width: 2.5rem;
+  display: inline-flex;
+  align-items: center;
   min-height: 1.5rem;
   justify-content: center;
   padding: .15rem .3rem;
   border: 0;
   border-radius: 4px;
   background: transparent;
+  color: var(--gray);
   cursor: pointer;
   transition: opacity .15s ease, color .15s ease, background-color .15s ease;
   &:hover, &:focus-visible { color: var(--secondary); background: var(--highlight); }
   &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; }
+}
+#artalk-comments .comment-like-button {
+  min-width: 2.5rem;
   &[aria-pressed="true"] { color: var(--secondary); }
   &[aria-pressed="true"] path { fill: color-mix(in srgb, var(--secondary) 18%, transparent); }
   &:disabled { cursor: wait; opacity: .6; }
 }
+#artalk-comments .comment-reply-button {
+  gap: .25rem;
+  font: .75rem/1.5 var(--bodyFont);
+  white-space: nowrap;
+  svg { display: block; width: .85rem; height: .85rem; }
+}
 @media (hover: hover) and (pointer: fine) {
   #artalk-comments .comment-like-button.is-zero { opacity: 0; }
+  #artalk-comments .comment-reply-button { opacity: 0; pointer-events: none; }
   #artalk-comments .atk-comment:is(:hover, :focus-within) > .atk-main > .atk-header .comment-like-button,
   #artalk-comments .comment-like-button:is(:focus-visible, [aria-pressed="true"], [aria-busy="true"]) { opacity: 1; }
+  #artalk-comments .atk-comment:is(:hover, :focus-within) > .atk-main > .atk-header .comment-reply-button {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
-@media (prefers-reduced-motion: reduce) { #artalk-comments .comment-like-button { transition: none; } }
+@media (prefers-reduced-motion: reduce) { #artalk-comments :is(.comment-like-button, .comment-reply-button) { transition: none; } }
 
 // Artalk clears native rows before a sort request. Its temporary empty state
 // must stay hidden behind the local loader until the actual response arrives.

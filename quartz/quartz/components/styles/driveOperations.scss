@@ -434,7 +434,7 @@ dialog.external-link-dialog {
   .external-link-address {
     margin: .9rem 0 0; padding-top: .8rem; border-top: 1px solid var(--lightgray);
     max-height: 6rem; overflow-y: auto; overflow-wrap: anywhere; user-select: text;
-    color: var(--gray); font: .8rem/1.7 var(--bodyFont); scrollbar-width: thin;
+    color: var(--secondary); font: .8rem/1.7 var(--bodyFont); scrollbar-width: thin;
   }
   .drive-action-footer {
     padding: .85rem 1.25rem; gap: .6rem;

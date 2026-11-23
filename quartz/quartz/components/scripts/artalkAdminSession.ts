@@ -15,7 +15,7 @@ let generation = 0
 let current: Instance | undefined
 
 function lockIdentity(instance: Instance | undefined, locked: boolean) {
-  for (const input of instance?.getEl?.().querySelectorAll<HTMLInputElement>('.atk-main-editor input[name="name"], .atk-main-editor input[name="email"]') ?? []) {
+  for (const input of instance?.getEl?.().querySelectorAll<HTMLInputElement>('.atk-main-editor input:is([name="name"], [name="email"], [name="link"])') ?? []) {
     input.readOnly = locked
     if (locked) {
       input.setAttribute("aria-readonly", "true")
@@ -126,7 +126,7 @@ export async function syncArtalkAdminSession(instance: Instance) {
     verifying = false
     // Artalk fills editor identity fields on mount, not on later user updates.
     // Set values without input events: those events deliberately log the user out.
-    for (const name of ["name", "email"] as const) {
+    for (const name of ["name", "email", "link"] as const) {
       const input = instance.getEl?.().querySelector<HTMLInputElement>(`.atk-main-editor input[name="${name}"]`)
       if (input) input.value = cached.user[name]
     }

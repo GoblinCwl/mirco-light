@@ -7,12 +7,52 @@ import { syncArtalkNotificationTheme } from "./artalkNotificationTheme"
 import { commentAvatar, observeArtalkIdenticons } from "./identicon"
 import { alignCommentLayout } from "./commentLayout"
 import { observeArtalkAdminLogout, syncArtalkAdminSession, useSiteArtalkAdminVerifier } from "./artalkAdminSession"
+import { homeIcons } from "../../home/icons"
+import { parseFriends } from "../../util/friends.mjs"
+import { RequestCache } from "./sharedRequest"
+
+type FriendSite = { name: string; url: URL }
+const friendSitesCache = new RequestCache<FriendSite[]>(60_000, 1)
+const paperclipMark = `<svg viewBox="0 0 24 24" fill="none">
+  <path d="m17.8 12.1-7.1 7.1a4.6 4.6 0 0 1-6.5-6.5l8.4-8.4a3.2 3.2 0 0 1 4.5 4.5l-7.7 7.7a1.55 1.55 0 0 1-2.2-2.2L14 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <path d="M20 15q.5 2 2.5 2.5Q20.5 18 20 20q-.5-2-2.5-2.5Q19.5 17 20 15Z" fill="currentColor"/>
+</svg>`
+let friendMarkMaskIndex = 0
+
+function friendMark() {
+  const maskId = `comment-friend-star-cutout-${++friendMarkMaskIndex}`
+  const frontStar = "M15 6Q17 12 23 14Q17 16 15 22Q13 16 7 14Q13 12 15 6Z"
+  return `<svg viewBox="0 0 24 24" fill="currentColor">
+    <mask id="${maskId}" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+      <rect width="24" height="24" fill="white"/>
+      <path d="${frontStar}" fill="black" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+    </mask>
+    <path d="M9 4Q11 10 17 12Q11 14 9 20Q7 14 1 12Q7 10 9 4Z" mask="url(#${maskId})"/>
+    <path d="${frontStar}"/>
+  </svg>`
+}
+
+function isAdminBadge(name: string | undefined) {
+  return ["管理员", "拾光者"].includes(name?.trim() || "")
+}
+
+function findFriendSite(link: Pick<URL, "host" | "pathname">, sites: FriendSite[]) {
+  const host = link.host.replace(/^www\./, "")
+  return sites.find(({ url }) => {
+    const path = url.pathname.replace(/\/$/, "")
+    return url.host.replace(/^www\./, "") === host &&
+      (link.pathname === path || link.pathname.startsWith(`${path}/`))
+  })
+}
 
 // Keep labels consistent after Artalk renders, paginates or updates a vote.
 function observeCommentLabels(root: HTMLElement, instance: any) {
   let localLoading: ReturnType<typeof commentLoading> | undefined
   let sorting = false
   let selectedOrder: CommentOrder = "hot"
+  const friendSitesController = new AbortController()
+  let friendSites = friendSitesCache.peek("friends")
+  let friendSitesRequested = false
   const votes = new Map<HTMLElement, { count: number; active: boolean; pending: boolean; timer?: ReturnType<typeof setTimeout> }>()
   const finishSorting = () => {
     if (!sorting) return
@@ -22,6 +62,23 @@ function observeCommentLabels(root: HTMLElement, instance: any) {
   }
   instance.on("list-fetched", finishSorting)
   let toolbar: ReturnType<typeof commentToolbar> | undefined
+  const loadFriendSites = () => {
+    if (friendSitesRequested) return
+    friendSitesRequested = true
+    void friendSitesCache.read("friends", async signal => {
+      const response = await fetch("/api/site/friends", {
+        signal: AbortSignal.any([signal, AbortSignal.timeout(4000)]),
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const { friends } = await response.json()
+      return parseFriends(friends).filter(friend => !friend.example)
+        .map(friend => ({ name: friend.name, url: new URL(friend.url) }))
+    }, { signal: friendSitesController.signal }).catch(() => []).then(sites => {
+      if (friendSitesController.signal.aborted) return
+      friendSites = sites
+      update()
+    })
+  }
   const update = (records: MutationRecord[] = []) => {
     for (const [action, state] of votes) {
       if (!root.contains(action)) { clearTimeout(state.timer); votes.delete(action) }
@@ -58,14 +115,32 @@ function observeCommentLabels(root: HTMLElement, instance: any) {
     for (const content of root.querySelectorAll<HTMLElement>(".atk-notify-wrap .atk-notify-content")) {
       if (["内容已自动恢复", "Content has been restored", "內容已自動恢復"].includes(content.textContent?.trim() || "")) content.closest(".atk-notify")?.remove()
     }
-    for (const input of root.querySelectorAll<HTMLInputElement>('.atk-main-editor input[name="link"]')) {
-      input.value = ""
-      input.disabled = true
-    }
-    for (const link of root.querySelectorAll<HTMLAnchorElement>(".atk-avatar a, .atk-nick a")) {
-      link.removeAttribute("href")
-      link.removeAttribute("target")
-      link.removeAttribute("tabindex")
+    for (const link of root.querySelectorAll<HTMLAnchorElement>(".atk-avatar a[href], a.atk-avatar[href], .atk-header :is(.atk-nick a[href], a.atk-nick[href])")) {
+      if ((link.protocol !== "http:" && link.protocol !== "https:") || link.username || link.password) {
+        link.removeAttribute("href")
+        continue
+      }
+      const avatar = link.closest(".atk-avatar")
+      if (!avatar && !link.matches(".atk-header > .atk-nick a, .atk-header > a.atk-nick")) continue
+      if (avatar) {
+        const name = link.closest(".atk-comment")?.querySelector(":scope > .atk-main > .atk-header .atk-nick")?.textContent?.trim()
+        link.setAttribute("aria-label", name ? `${name} 的网站` : "评论者的网站")
+      }
+      if (!friendSites) {
+        loadFriendSites()
+        continue
+      }
+      const friend = findFriendSite(link, friendSites)
+      if (friend) link.dataset.externalLinkTitle = friend.name
+      else delete link.dataset.externalLinkTitle
+      if (!avatar && !link.querySelector(".comment-nick-link-mark")) {
+        const mark = document.createElement("span")
+        mark.className = "comment-nick-link-mark"
+        if (friend) mark.classList.add("is-friend")
+        mark.setAttribute("aria-hidden", "true")
+        mark.innerHTML = friend ? friendMark() : paperclipMark
+        link.append(mark)
+      }
     }
     for (const label of root.querySelectorAll<HTMLElement>(".atk-collapsed .atk-text")) {
       if (label.textContent?.trim() === "该评论已被系统或管理员折叠") {
@@ -73,23 +148,65 @@ function observeCommentLabels(root: HTMLElement, instance: any) {
       }
     }
     for (const badge of root.querySelectorAll<HTMLElement>(".atk-header .atk-badge")) {
-      const admin = ["管理员", "拾光者"].includes(badge.textContent?.trim() || "")
-      badge.closest(".atk-header")?.querySelector(".atk-nick")?.classList.toggle("comment-admin-name", admin)
+      const admin = isAdminBadge(badge.textContent ?? undefined)
+      const nick = badge.closest(".atk-header")?.querySelector(":scope > .atk-nick")
+      if (!nick) continue
+      nick.classList.toggle("comment-admin-name", admin)
+      const existingMark = nick.querySelector(":scope > .comment-admin-mark")
+      if (admin && !existingMark) {
+        const mark = document.createElement("span")
+        mark.className = "comment-admin-mark"
+        mark.setAttribute("aria-hidden", "true")
+        mark.innerHTML = homeIcons.reading
+        nick.append(mark)
+      } else if (!admin) {
+        existingMark?.remove()
+      }
     }
-    const adminNames = new Set([...root.querySelectorAll<HTMLElement>(".atk-header > .atk-nick.comment-admin-name")]
-      .map(nick => nick.textContent?.trim()).filter(Boolean))
-    for (const nick of root.querySelectorAll<HTMLElement>(".atk-reply-at .atk-nick, .atk-reply-to .atk-nick")) {
-      nick.classList.toggle("comment-admin-name", adminNames.has(nick.textContent?.trim()))
+    for (const comment of instance.ctx?.getCommentNodes?.() ?? []) {
+      const replyTo = comment.getOpts().replyTo
+      if (!replyTo) continue
+      const nick = comment.getEl().querySelector(":scope > .atk-comment > .atk-main :is(.atk-reply-at, .atk-reply-to) .atk-nick")
+      if (!nick) continue
+      nick.classList.toggle("comment-admin-name", isAdminBadge(replyTo.badge_name))
+      if (!friendSites && replyTo.link) loadFriendSites()
+      const url = URL.canParse(replyTo.link) ? new URL(replyTo.link) : undefined
+      const friend = url && /^https?:$/.test(url.protocol) && !url.username && !url.password &&
+        friendSites && findFriendSite(url, friendSites)
+      nick.classList.toggle("comment-friend-name", Boolean(friend))
     }
+    const replies = new Set<HTMLButtonElement>()
     for (const action of root.querySelectorAll<HTMLElement>(".atk-actions > .atk-common-action-btn")) {
       const label = action.textContent?.trim() || ""
       const reply = ["回复", "回覆", "Reply"].includes(label)
       const vote = action.dataset.commentVote === "true" || /^(赞同|共鸣|讚同|Vote|Upvote)(?:\s|\(|$)/i.test(label)
       action.classList.toggle("comment-inline-action", reply || vote)
-      if (reply) action.dataset.commentReply = "true"
+      if (!reply && !vote) continue
+      const header = action.closest(".atk-main")?.querySelector<HTMLElement>(":scope > .atk-header")
+      if (!header) continue
+      let controls = header.querySelector<HTMLElement>(":scope > .comment-header-actions")
+      if (!controls) {
+        controls = document.createElement("div")
+        controls.className = "comment-header-actions"
+        header.append(controls)
+      }
+      if (reply) {
+        let button = controls.querySelector<HTMLButtonElement>(".comment-reply-button")
+        if (!button) {
+          button = document.createElement("button")
+          button.type = "button"
+          button.className = "comment-reply-button"
+          button.title = "回复"
+          button.setAttribute("aria-label", "回复此评论")
+          button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6-6 6 6 6v-4h4a6 6 0 0 1 6 4v-3a5 5 0 0 0-5-5h-5V6Z"/></svg>'
+          button.append("回复")
+          controls.prepend(button)
+        }
+        button.onclick = () => action.click()
+        replies.add(button)
+      }
       if (vote) {
         action.dataset.commentVote = "true"
-        const header = action.closest(".atk-main")?.querySelector<HTMLElement>(":scope > .atk-header")
         const raw = label.match(/\(([\d,]+)\)/)?.[1]?.replaceAll(",", "")
         let state = votes.get(action)
         if (!state) { state = { count: Number(raw || 0), active: false, pending: false }; votes.set(action, state) }
@@ -101,7 +218,7 @@ function observeCommentLabels(root: HTMLElement, instance: any) {
           } else { showPasswordToast("点赞失败，请重试", true) }
         }
         if (raw !== undefined) state.count = Number(raw)
-        if (header) setCommentLikes(header, state.count, {
+        setCommentLikes(controls, state.count, {
           active: state.active, pending: state.pending,
           click: () => {
             const current = votes.get(action)!
@@ -118,52 +235,29 @@ function observeCommentLabels(root: HTMLElement, instance: any) {
         })
       }
     }
-    for (const content of root.querySelectorAll<HTMLElement>(".atk-comment > .atk-main > .atk-body > .atk-content, .atk-comment > .atk-avatar")) {
-      const reply = content.closest(".atk-comment")?.querySelector(":scope > .atk-main > .atk-footer [data-comment-reply]")
-      if (!reply) continue
-      content.tabIndex = 0
-      content.setAttribute("role", "button")
-      content.setAttribute("aria-label", "回复此评论")
-      content.classList.add("comment-click-reply")
+    for (const button of root.querySelectorAll<HTMLButtonElement>(".comment-reply-button")) {
+      if (!replies.has(button)) button.remove()
     }
   }
   const observer = new MutationObserver(update)
   observer.observe(root, { childList: true, subtree: true, characterData: true })
   update()
-  const preventIdentityNavigation = (event: Event) => {
-    if (!(event.target instanceof Element) || !event.target.closest(".atk-avatar, .atk-nick, .atk-reply-at")) return
-    if (event.type === "click" && event.target.closest(".atk-avatar")) replyFromContent(event as MouseEvent)
+  const preventMentionClick = (event: Event) => {
+    if (!(event.target instanceof Element) || !event.target.closest(".atk-reply-at")) return
     event.preventDefault()
     event.stopImmediatePropagation()
   }
-  const replyFromContent = (event: MouseEvent | KeyboardEvent) => {
-    if (!(event.target instanceof Element)) return
-    const content = event.target.closest<HTMLElement>(".comment-click-reply")
-    if (!content) return
-    const avatar = content.classList.contains("atk-avatar")
-    if (!avatar && event.target.closest("a, button, input, textarea, select, img, video, audio, pre, code, [contenteditable]")) return
-    if (event instanceof KeyboardEvent) {
-      if (event.target !== content || !["Enter", " "].includes(event.key)) return
-    } else if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || window.getSelection()?.toString()) return
-    const reply = content.closest(".atk-comment")?.querySelector<HTMLElement>(":scope > .atk-main > .atk-footer [data-comment-reply]")
-    if (!reply) return
-    event.preventDefault()
-    reply.click()
-  }
-  root.addEventListener("click", replyFromContent)
-  root.addEventListener("keydown", replyFromContent)
-  root.addEventListener("click", preventIdentityNavigation, true)
-  root.addEventListener("auxclick", preventIdentityNavigation, true)
+  root.addEventListener("click", preventMentionClick, true)
+  root.addEventListener("auxclick", preventMentionClick, true)
   return () => {
+    friendSitesController.abort()
     observer.disconnect()
     for (const state of votes.values()) clearTimeout(state.timer)
     votes.clear()
     instance.off("list-fetched", finishSorting)
     localLoading?.dispose()
-    root.removeEventListener("click", replyFromContent)
-    root.removeEventListener("keydown", replyFromContent)
-    root.removeEventListener("click", preventIdentityNavigation, true)
-    root.removeEventListener("auxclick", preventIdentityNavigation, true)
+    root.removeEventListener("click", preventMentionClick, true)
+    root.removeEventListener("auxclick", preventMentionClick, true)
   }
 }
 

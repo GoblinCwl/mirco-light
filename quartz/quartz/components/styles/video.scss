@@ -116,12 +116,23 @@ body[data-slug^="Video/"] {
  .atk-list-no-comment { @include comment.empty; }
  .bili-comment {@include comment.row;margin-bottom:0;padding:0;border:0;}
  .bili-comment-list > .bili-comment + .bili-comment {margin-top:1rem;}
- .bili-comment-avatar {@include comment.avatar;}
+ .bili-comment-avatar {
+  @include comment.avatar;
+  &[href] {
+   cursor:pointer;text-decoration:none;
+   > img {cursor:inherit;}
+   &:focus-visible {outline:2px solid var(--secondary);outline-offset:2px;}
+  }
+ }
  .bili-comment-content {min-width:0;}
  .bili-comment-meta {
   @include comment.header;
   > a {@include comment.name;text-decoration:none;}
   > a.bili-comment-owner {@include comment.admin-name;}
+  .bili-comment-name-mark {
+   @include comment.name-mark;
+   > svg {fill:currentColor;}
+  }
   time {@include comment.metadata;}
  }
  .bili-comment-badge {@include comment.pinned-badge;}
