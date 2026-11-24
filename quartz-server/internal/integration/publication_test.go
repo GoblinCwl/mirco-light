@@ -10,9 +10,71 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 )
+
+func TestKnowledgeSnapshotUsesIndexedWorkIDAndReplacesOldFiles(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	root := t.TempDir()
+	snapshot := &content.ArticleSnapshot{
+		Store: content.Store{DB: db, Origin: "https://site.test"},
+		Path:  filepath.Join(root, "snapshot.json"), KnowledgeDirectory: filepath.Join(root, "knowledge"),
+	}
+	articles := []content.Item{
+		{SourceID: "note", Slug: "note", Title: "Example"},
+		{SourceID: "locked", Slug: "locked", Title: "Locked", Encrypted: true},
+	}
+	if err := snapshot.Store.Sync(ctx, "article", articles); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("UPDATE content SET id='article:existing-id' WHERE source_id='note'"); err != nil {
+		t.Fatal(err)
+	}
+	write := func(source, path string) {
+		t.Helper()
+		raw, err := json.Marshal(map[string]any{
+			"articles":  articles,
+			"knowledge": []map[string]string{{"sourceId": source, "path": path, "metadata": "custom: false\ncount: 3", "body": "## Heading\n"}},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(snapshot.Path, raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	current := filepath.Join(snapshot.KnowledgeDirectory, "current")
+	write("note", "Memo/old.md")
+	if err := snapshot.Import(ctx); err != nil {
+		t.Fatal(err)
+	}
+	old := filepath.Join(current, "Memo", "old.md")
+	raw, err := os.ReadFile(old)
+	if err != nil || !strings.Contains(string(raw), "work_id: \"article:existing-id\"\nsource_url: \"https://site.test/note/\"") ||
+		!strings.Contains(string(raw), "metadata:\n  custom: false\n  count: 3\n---\n\n## Heading") {
+		t.Fatalf("incorrect knowledge Markdown: %s (%v)", raw, err)
+	}
+	write("locked", "Memo/locked.md")
+	if err := snapshot.Import(ctx); err == nil {
+		t.Fatal("accepted a protected document")
+	}
+	if _, err := os.Stat(old); err != nil {
+		t.Fatal("replaced the previous export on failed import", err)
+	}
+	write("note", "Study/new.md")
+	if err := snapshot.Import(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(old); !os.IsNotExist(err) {
+		t.Fatal("old path remained in the current export", err)
+	}
+	if _, err := os.Stat(filepath.Join(current, "Study", "new.md")); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestContentJournalCommitsWithIndexAndRollsBackTogether(t *testing.T) {
 	db := testDB(t)

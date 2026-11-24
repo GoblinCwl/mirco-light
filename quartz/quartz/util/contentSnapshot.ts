@@ -59,9 +59,13 @@ export async function publishContentSnapshot(content:ProcessedContent[],cfg:Glob
   const rssCover = encrypted ? undefined : articleCover(tree, imageBase, data.frontmatter?.description)
   return {sourceId:String(data.slug),slug:String(data.slug),href,title:String(data.frontmatter?.title||data.slug),content:encrypted?'':data.text||'',description:encrypted?'':data.description||'',tags:data.frontmatter?.tags||[],links:[...new Set((data.links||[]).map(link=>aliases.get(linkSlug(String(link)))||linkSlug(String(link))).filter(link=>link!==linkSlug(data.slug!)&&(link==='/'||slugs.has(link)||projectSlug('/'+link)===link)))],encrypted,publishedAt:data.dates?.created?.toISOString(),updatedAt:getDate(cfg,data)?.toISOString(),extra:{filePath:String(data.relativePath||`${data.slug}.md`),aliases:aliasSlugs(data.slug!,data.aliases).map(alias=>linkSlug(alias)), rssCover}}
  })
+ const knowledge = listed.flatMap(([, file], index) => {
+  const document = file.data.knowledge
+  return document && !articles[index].encrypted ? [{ sourceId: articles[index].sourceId, ...document }] : []
+ })
  await mkdir(directory,{recursive:true})
  const target=join(directory,'articles-index.json'),temporary=target+'.tmp'
- await writeFile(temporary,JSON.stringify({articles,permissions}),{mode:0o600})
+ await writeFile(temporary,JSON.stringify({articles,permissions,knowledge}),{mode:0o600})
  if(process.getuid?.()===0){const owner=await stat(directory);await chown(temporary,owner.uid,owner.gid)}
  await rename(temporary,target)
 }

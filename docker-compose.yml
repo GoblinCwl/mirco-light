@@ -103,11 +103,13 @@ services:
       QUARTZ_EVENTS_SOCKET: /run/quartz-events/published.sock
       ARTICLE_DIRECTORY: /sources/notes
       PUBLIC_DIR: /public/current
+      KNOWLEDGE_DIRECTORY: /knowledge
       AUTH_DIR: /data/auth
       FRIEND_AVATAR_TEMP_DIR: /data/avatar-tmp
       TZ: Asia/Shanghai
     volumes:
       - ./runtime/server:/data:rw
+      - ./knowledge:/knowledge:rw
       - ./artalk-data/artalk.yml:/sources/artalk/artalk.yml:ro
       - ./runtime/events:/run/quartz-events:rw
       - ./runtime/chronicle:/snapshots:ro

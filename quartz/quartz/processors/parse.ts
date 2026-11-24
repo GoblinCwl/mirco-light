@@ -14,6 +14,7 @@ import { QuartzLogger } from "../util/log"
 import { trace } from "../util/trace"
 import { BuildCtx, WorkerSerializableBuildCtx } from "../util/ctx"
 import { styleText } from "util"
+import { originalKnowledgeMetadata, prepareKnowledgeMarkdown } from "../util/knowledgeMarkdown"
 
 export type QuartzMdProcessor = Processor<MDRoot, MDRoot, MDRoot>
 export type QuartzHtmlProcessor = Processor<undefined, MDRoot, HTMLRoot>
@@ -93,6 +94,9 @@ export function createFileParser(ctx: BuildCtx, fps: FilePath[]) {
 
         // strip leading and trailing whitespace
         file.value = file.value.toString().trim()
+        if (process.env.QUARTZ_JOURNAL_DIR) {
+          file.data.knowledgeMetadata = originalKnowledgeMetadata(file.value)
+        }
 
         // Text -> Text transforms
         for (const plugin of cfg.plugins.transformers.filter((p) => p.textTransform)) {
@@ -128,6 +132,7 @@ export function createMarkdownParser(ctx: BuildCtx, mdContent: MarkdownContent[]
       try {
         const perf = new PerfTimer()
 
+        prepareKnowledgeMarkdown(ctx, ast, file)
         const newAst = await processor.run(ast as MDRoot, file)
         res.push([newAst, file])
 

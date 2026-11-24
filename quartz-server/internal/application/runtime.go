@@ -32,7 +32,7 @@ import (
 	"time"
 )
 
-type Options struct{ AuthDirectory, OpenListDB, BeszelDB, RepoRoot, RepoCatalog, RepoOwner, VideoMID, DiaryDirectory, ArticleSnapshot, ArticleDirectory, PublicDirectory, JellyfinDB, GitHubMirrorTokenFile, GiteaMirrorTokenFile, EventsSocket string }
+type Options struct{ AuthDirectory, OpenListDB, BeszelDB, RepoRoot, RepoCatalog, RepoOwner, VideoMID, DiaryDirectory, ArticleSnapshot, ArticleDirectory, PublicDirectory, JellyfinDB, GitHubMirrorTokenFile, GiteaMirrorTokenFile, EventsSocket, KnowledgeDirectory string }
 
 func Environment(authDirectory string) Options {
 	env := func(key, fallback string) string {
@@ -41,7 +41,7 @@ func Environment(authDirectory string) Options {
 		}
 		return fallback
 	}
-	return Options{AuthDirectory: authDirectory, OpenListDB: env("OPENLIST_DB", "/sources/openlist/data.db"), BeszelDB: env("BESZEL_DB", "/sources/beszel/data.db"), RepoRoot: env("REPO_ROOT", "/sources/repositories/goblincwl"), RepoCatalog: env("REPO_CATALOG", "/sources/repo-catalog/repositories.json"), RepoOwner: env("REPO_OWNER", "GoblinCwl"), VideoMID: env("BILIBILI_MID", "13536815"), DiaryDirectory: env("DIARY_PATH", "/sources/diaries"), ArticleSnapshot: env("ARTICLE_SNAPSHOT", "/snapshots/articles-index.json"), ArticleDirectory: env("ARTICLE_DIRECTORY", "/sources/notes"), PublicDirectory: env("PUBLIC_DIR", "/public"), JellyfinDB: env("JELLYFIN_DB", "/sources/jellyfin/jellyfin.db"), EventsSocket: env("QUARTZ_EVENTS_SOCKET", "/run/quartz-events/published.sock"), GiteaMirrorTokenFile: env("GITEA_MIRROR_TOKEN_FILE", "/sources/github-secret/gitea-token"), GitHubMirrorTokenFile: env("GITHUB_MIRROR_TOKEN_FILE", "/sources/github-secret/github-token")}
+	return Options{AuthDirectory: authDirectory, OpenListDB: env("OPENLIST_DB", "/sources/openlist/data.db"), BeszelDB: env("BESZEL_DB", "/sources/beszel/data.db"), RepoRoot: env("REPO_ROOT", "/sources/repositories/goblincwl"), RepoCatalog: env("REPO_CATALOG", "/sources/repo-catalog/repositories.json"), RepoOwner: env("REPO_OWNER", "GoblinCwl"), VideoMID: env("BILIBILI_MID", "13536815"), DiaryDirectory: env("DIARY_PATH", "/sources/diaries"), ArticleSnapshot: env("ARTICLE_SNAPSHOT", "/snapshots/articles-index.json"), ArticleDirectory: env("ARTICLE_DIRECTORY", "/sources/notes"), PublicDirectory: env("PUBLIC_DIR", "/public"), JellyfinDB: env("JELLYFIN_DB", "/sources/jellyfin/jellyfin.db"), EventsSocket: env("QUARTZ_EVENTS_SOCKET", "/run/quartz-events/published.sock"), GiteaMirrorTokenFile: env("GITEA_MIRROR_TOKEN_FILE", "/sources/github-secret/gitea-token"), GitHubMirrorTokenFile: env("GITHUB_MIRROR_TOKEN_FILE", "/sources/github-secret/github-token"), KnowledgeDirectory: env("KNOWLEDGE_DIRECTORY", "/data/knowledge")}
 }
 
 type Runtime struct {
@@ -236,7 +236,7 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	app.Jellyfin = jellyfin.NewService(root, mediaBackend, app.Origin)
 	permissions := &comments.Permissions{DB: app.DB, Client: app.Comments.Client, SnapshotPath: options.ArticleSnapshot, Site: app.Comments.Site}
 	runtime.commentPermissions = newEventTask("comment-permissions", 2*time.Minute, permissions.Refresh)
-	snapshot := &content.ArticleSnapshot{Store: content.Store{DB: app.DB, Origin: app.Origin}, Path: options.ArticleSnapshot}
+	snapshot := &content.ArticleSnapshot{Store: content.Store{DB: app.DB, Origin: app.Origin}, Path: options.ArticleSnapshot, KnowledgeDirectory: options.KnowledgeDirectory}
 	var relationsPending bool
 	runtime.articleIndex = newEventTask("article-index", 60*time.Second, func(ctx context.Context) error {
 		changed, err := snapshot.ImportChanged(ctx)
