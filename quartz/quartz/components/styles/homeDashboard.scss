@@ -2611,29 +2611,38 @@ dialog.visitor-details .visitor-record-dates {
 }
 
 // Dashboard details share the calendar's mobile bottom sheet.
+@mixin dashboard-bottom-sheet {
+  inset: auto 0 0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  max-height: 92svh;
+  max-height: 92dvh;
+  border-radius: 16px 16px 0 0;
+  border-bottom: 0;
+
+  .activity-details-header { padding: .8rem 1rem; }
+  .activity-details-header > button { min-width: 44px; min-height: 44px; }
+  > :is(.activity-details-body, .domain-details-body, .visitor-details-body) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding: .45rem 1rem max(1.25rem, env(safe-area-inset-bottom));
+    scroll-padding-block: .75rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--lightgray) transparent;
+  }
+}
 @media (max-width: 767px) {
   :is(dialog.activity-details:is(.activity-voyage, .activity-category-details, .domain-details, .visitor-details, .qq-contact-dialog, .rss-subscription-dialog), dialog.external-link-dialog) {
-    inset: auto 0 0;
-    margin: 0 auto;
-    width: 100%;
-    max-width: 100%;
-    max-height: 92svh;
-    max-height: 92dvh;
-    border-radius: 16px 16px 0 0;
-    border-bottom: 0;
-
-    .activity-details-header { padding: .8rem 1rem; }
-    .activity-details-header > button { min-width: 44px; min-height: 44px; }
-    > :is(.activity-details-body, .domain-details-body, .visitor-details-body) {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-      overscroll-behavior-y: contain;
-      padding: .45rem 1rem max(1.25rem, env(safe-area-inset-bottom));
-      scroll-padding-block: .75rem;
-      scrollbar-width: thin;
-      scrollbar-color: var(--lightgray) transparent;
-    }
+    @include dashboard-bottom-sheet;
+  }
+}
+@media (max-width: 800px) {
+  dialog.activity-details.agent-chat-dialog {
+    --site-drawer: 1;
+    @include dashboard-bottom-sheet;
   }
 }
 

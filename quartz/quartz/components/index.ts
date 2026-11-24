@@ -5,7 +5,7 @@ import TagContent from "./pages/TagContent"
 import FolderContent from "./pages/FolderContent"
 import ArticleTitle from "./ArticleTitle"
 import Darkmode from "./Darkmode"
-import ReaderMode from "./ReaderMode"
+import AgentChat from "./AgentChat"
 import Head from "./Head"
 import PageTitle from "./PageTitle"
 import ContentMeta from "./ContentMeta"
@@ -35,7 +35,7 @@ export {
   TagContent,
   FolderContent,
   Darkmode,
-  ReaderMode,
+  AgentChat,
   Head,
   PageTitle,
   ContentMeta,

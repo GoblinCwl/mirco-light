@@ -71,6 +71,14 @@ export const standardPageHeading = (breadcrumbs?: Partial<BreadcrumbOptions>) =>
   Component.ArticleTitle(),
 ]
 
+const siteToolbar = Component.Flex({
+  components: [
+    { Component: Component.Search(), grow: true },
+    { Component: Component.AgentChat() },
+    { Component: Component.Darkmode() },
+  ],
+})
+
 // components for pages that display a single page (e.g. a single note)
 export const defaultContentPageLayout: PageLayout = {
   beforeBody: [
@@ -96,16 +104,7 @@ export const defaultContentPageLayout: PageLayout = {
   left: [
     Component.PageTitle(),
     Component.MobileOnly(Component.Spacer()),
-    Component.Flex({
-      components: [
-        {
-          Component: Component.Search(),
-          grow: true,
-        },
-        { Component: Component.Darkmode() },
-        { Component: Component.ReaderMode() },
-      ],
-    }),
+    siteToolbar,
     Component.Explorer({
       sortFn: customSortFunction,
     }),
@@ -136,15 +135,7 @@ export const defaultListPageLayout: PageLayout = {
   left: [
     Component.PageTitle(),
     Component.MobileOnly(Component.Spacer()),
-    Component.Flex({
-      components: [
-        {
-          Component: Component.Search(),
-          grow: true,
-        },
-        { Component: Component.Darkmode() },
-      ],
-    }),
+    siteToolbar,
     Component.Explorer({
       sortFn: customSortFunction,
     }),

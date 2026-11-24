@@ -1,0 +1,178 @@
+@use "../../styles/variables.scss" as *;
+
+.agent-chat-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--darkgray);
+  cursor: pointer;
+  transition: color .2s ease;
+
+  &:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; }
+  svg {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    overflow: visible;
+    transform-origin: center;
+    transition: filter .2s ease;
+  }
+  .agent-chat-spark { transform-box: fill-box; transform-origin: center; }
+
+  @media (hover: hover) {
+    &:hover {
+      color: color-mix(in srgb, var(--tertiary) 70%, #49b87a);
+      svg { filter: drop-shadow(0 0 4px currentColor); }
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &, svg { transition: none; }
+  }
+}
+
+dialog.activity-details.agent-chat-dialog {
+  --agent-message-height: 2.625rem;
+  height: min(37rem, 82dvh);
+
+  @media not all and ($mobile) {
+    width: min(40rem, calc(100vw - 2rem));
+  }
+
+  .activity-details-header > strong { font: 650 1.025rem/1.4 var(--headerFont); }
+
+  .agent-chat-thread {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1rem 1.25rem;
+  }
+
+  .agent-chat-intro {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    min-height: 5.25rem;
+    margin-bottom: 1.15rem;
+    padding: .9rem 7.15rem .9rem 1rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--tertiary) 22%, var(--lightgray));
+    border-radius: 10px;
+    background: linear-gradient(108deg, var(--moreLight) 20%, color-mix(in srgb, var(--tertiary) 13%, var(--light)));
+
+    p {
+      max-width: 17rem;
+      margin: 0;
+      color: var(--darkgray);
+      font: .9rem/1.65 var(--bodyFont);
+    }
+  }
+
+  .agent-chat-orbits {
+    position: absolute;
+    z-index: -1;
+    right: .1rem;
+    top: 50%;
+    width: 8.4rem;
+    height: auto;
+    color: color-mix(in srgb, var(--secondary) 42%, var(--tertiary));
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .agent-chat-message {
+    display: flex;
+    align-items: flex-start;
+    gap: .55rem;
+
+    p {
+      display: flex;
+      align-items: center;
+      box-sizing: border-box;
+      min-height: var(--agent-message-height);
+      color: var(--darkgray);
+      background: var(--moreLight);
+      border: 1px solid var(--lightgray);
+      border-radius: 5px 10px 10px;
+      margin: 0;
+      padding: .35rem .75rem;
+      font: .9rem/1.5 var(--bodyFont);
+    }
+  }
+
+  .agent-chat-avatar {
+    display: block;
+    flex: 0 0 var(--agent-message-height);
+    width: var(--agent-message-height);
+    height: var(--agent-message-height);
+    margin: 0;
+    border-radius: 8px;
+    object-fit: cover;
+    background: color-mix(in srgb, var(--tertiary) 18%, var(--light));
+  }
+
+  .agent-chat-composer {
+    flex: 0 0 auto;
+    padding: .75rem 1.25rem 1rem;
+  }
+
+  .agent-chat-input {
+    display: flex;
+    align-items: flex-end;
+    gap: .45rem;
+    padding: .45rem .45rem .45rem .7rem;
+    border: 1px solid var(--lightgray);
+    border-radius: 10px;
+    background: var(--moreLight);
+
+    &:focus-within { border-color: var(--secondary); }
+
+    textarea {
+      flex: 1;
+      min-width: 0;
+      min-height: 2rem;
+      max-height: 7rem;
+      padding: .3rem 0;
+      resize: none;
+      box-sizing: border-box;
+      field-sizing: content;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--dark);
+      font: 1rem/1.45 var(--bodyFont);
+      &::placeholder { color: color-mix(in srgb, var(--darkgray) 68%, var(--light)); }
+    }
+
+    button {
+      display: grid;
+      place-items: center;
+      flex: 0 0 2rem;
+      height: 2rem;
+      padding: 0;
+      border: 0;
+      border-radius: 7px;
+      background: var(--highlight);
+      color: color-mix(in srgb, var(--secondary) 70%, var(--light));
+      svg { width: 1.05rem; height: 1.05rem; }
+    }
+  }
+
+  @media all and ($mobile) {
+    height: min(37rem, 90dvh);
+    .agent-chat-thread { padding-inline: 1rem; }
+    .agent-chat-composer { padding: .75rem 1rem max(1rem, env(safe-area-inset-bottom)); }
+  }
+
+  @media (max-width: 420px) {
+    .agent-chat-intro { min-height: 4.7rem; padding: .8rem 5rem .8rem .8rem; }
+    .agent-chat-orbits { width: 6.6rem; right: -.45rem; }
+  }
+}
