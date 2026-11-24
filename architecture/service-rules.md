@@ -78,6 +78,7 @@ GitHub 贡献统计可能遗漏作者邮箱未关联账号的提交。现有仓�
 4. Go 挂载 `runtime/chronicle/` 为只读；`runtime/events/` 由 Go 创建通知 socket，Quartz 只读挂载后连接。构建通知会合并，失败后 Quartz 每 15 秒重试投递，Go 的失败任务同样延时重试；成功空闲后不再产生定时检查。请求重载沿相反方向连接已有 `quartz-build.sock`，不由 Go 启动 Quartz 子进程。
 5. 浏览器不直接连接 MySQL。公开页面不获得第三方管理员凭据；管理员在服务接入表单可通过受保护、禁止缓存的接口回显 GitHub Token 与 Bilibili Cookie。页面 API 经 Nginx 转到 Go；文件访问、评论组件和官方播放器保留各自已有的公开入口。
 6. Agent 的 Markdown 知识库位于项目根目录的 `knowledge/current/`，与 `public/` 同级。Compose 将其挂载到 Go 容器的 `/knowledge`，由 `KNOWLEDGE_DIRECTORY` 指定导出根目录。成功构建的公开文章随同索引快照传给 Go，索引写入成功后 Go 再按实际 `content.id` 在 `knowledge/.releases/build-<id>/` 生成文件并原子切换 `current`。每篇文件保留原目录和 YAML 元数据，系统字段为 `work_id`、`source_url` 和 `title`，原 frontmatter 放在 `metadata`。文件不经 Nginx 发布，Agent 只需读取 `current` 并按 `work_id` 关联索引。草稿、不列出和整篇受保护的文章不导出；内联加密段只保留占位。文章删除、改名或移出发布范围后，旧文件随本次全量替换移出 `current`。
+7. 微光集索引库 MCP 通过 Docker 网络的 `http://quartz-server:8080/mcp/knowledge` 提供 Streamable HTTP。Go 从 `KNOWLEDGE_MCP_TOKEN_FILE` 读取独立 Bearer Token，Compose 默认使用宿主机 `runtime/server/auth/knowledge-mcp.token`。五个工具均访问当前公开索引，覆盖文章、分享、仓库和视频。 `lookup_work` 按 `work_id` 返回索引信息、出链和反链，删除或转为受保护的作品返回 `found=false`。 `list_works` 支持类型、标签、索引目录和时间筛选及排序，`search_works` 使用索引文本逐词匹配且优先返回标题命中，`get_statistics` 统计总量及各类型和直接目录数量，`list_tags` 统计每个标签关联的作品数量。日期筛选默认按发布时间，未带时间的日期按北京时间解释；列表工具每页默认 20 条，最多 50 条。正文仍由 AstrBot 的向量库提供，独立 MCP 配置由 AstrBot 管理。
 
 ## 5. 运行、更新与故障边界
 

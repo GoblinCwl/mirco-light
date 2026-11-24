@@ -23,6 +23,7 @@ import (
 )
 
 type Server struct {
+	knowledgeMCP      http.Handler
 	TaskRuns          *taskruns.Tracker
 	ArticleDirectory  string
 	Build             *buildcontrol.Client
@@ -62,6 +63,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /index.xml", s.rss)
 	mux.HandleFunc("GET /articles.xml", s.rss)
 	mux.HandleFunc("GET /friends.xml", s.friendRSS)
+	if s.knowledgeMCP != nil {
+		mux.Handle(knowledgeMCPPath, s.knowledgeMCP)
+	}
 	routed := s.gateway(mux)
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { JSON(w, 200, map[string]any{"ok": true}) })
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {

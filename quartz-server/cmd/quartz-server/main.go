@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -66,6 +67,19 @@ func run() error {
 		visitorStore.Locate = geo.Lookup
 	}
 	app := &httpapi.Server{DB: db, Log: slog.Default(), Origin: c.Origin, Auth: authentication, Visitors: visitorStore}
+	if path := os.Getenv("KNOWLEDGE_MCP_TOKEN_FILE"); path != "" {
+		token, err := os.ReadFile(path)
+		switch {
+		case errors.Is(err, os.ErrNotExist):
+			slog.Warn("knowledge MCP disabled; token file missing")
+		case err != nil:
+			return err
+		default:
+			if err := app.EnableKnowledgeMCP(strings.TrimSpace(string(token))); err != nil {
+				return err
+			}
+		}
+	}
 	runtime, err := application.New(ctx, app, application.Environment(c.AuthDir))
 	if err != nil {
 		return err
