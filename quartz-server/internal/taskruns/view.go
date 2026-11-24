@@ -21,10 +21,15 @@ type Instance struct {
 	Retryable   bool       `json:"retryable"`
 	Triggerable bool       `json:"triggerable"`
 	Schedule    string     `json:"schedule"`
+	Cron        string     `json:"cron,omitempty"`
+	NextRuns    []string   `json:"nextRuns,omitempty"`
 	Last        *RunRecord `json:"lastRun"`
 	Remaining   int        `json:"remaining"`
 	Waiting     int        `json:"waiting"`
 	Running     int        `json:"running"`
+	plan        taskconfig.Plan
+	averageMS   float64
+	samples     int
 }
 
 func (t *Tracker) queue(ctx context.Context, key string, page int) (QueueView, error) {
@@ -95,22 +100,21 @@ func (t *Tracker) history(ctx context.Context, key string) ([]RunRecord, error) 
 	}
 	return out, rows.Err()
 }
-func (t *Tracker) instance(ctx context.Context, d Definition) (Instance, error) {
+func (t *Tracker) instance(ctx context.Context, d Definition, now time.Time) (Instance, error) {
 	item := Instance{Definition: d, Schedule: "事件触发"}
 	if d.Kind == "manual" {
 		item.Schedule = "手动触发"
 	}
 	cfg := t.Config
-	if d.Period != "" {
-		seconds := int(taskconfig.Duration(taskconfig.With(ctx, cfg), d.Period).Seconds())
-		if d.Kind == "periodic" {
-			item.Schedule = intervalLabel(seconds)
-		} else {
-			item.Schedule = fmt.Sprintf("异常后 %d 秒重试", seconds)
+	if d.Kind == "periodic" {
+		item.plan = cfg.Plan(d.Key)
+		item.Cron, item.Schedule = item.plan.Expression, item.plan.Summary
+		for next := item.plan.Next(now); !next.IsZero() && len(item.NextRuns) < 5; next = item.plan.Next(next) {
+			item.NextRuns = append(item.NextRuns, stamp(next))
 		}
-	}
-	if d.Key == "friends-refresh" {
-		item.Schedule = fmt.Sprintf("每 %d 天 %s · 北京时间", cfg.FriendDays(), cfg.Clock())
+	} else if d.Period != "" {
+		seconds := int(taskconfig.Duration(taskconfig.With(ctx, cfg), d.Period).Seconds())
+		item.Schedule = fmt.Sprintf("异常后 %d 秒重试", seconds)
 	}
 	runs, err := t.history(ctx, d.Key)
 	if err != nil {
@@ -118,6 +122,17 @@ func (t *Tracker) instance(ctx context.Context, d Definition) (Instance, error) 
 	}
 	if len(runs) > 0 {
 		item.Last = &runs[0]
+	}
+	if d.Kind == "periodic" {
+		for _, run := range runs {
+			if run.Status == "success" || run.Status == "failed" {
+				item.averageMS += float64(run.Duration)
+				item.samples++
+			}
+		}
+		if item.samples > 0 {
+			item.averageMS /= float64(item.samples)
+		}
 	}
 	if d.Queue {
 		q, err := t.queue(ctx, d.Key, 1)
@@ -134,21 +149,22 @@ func (t *Tracker) instance(ctx context.Context, d Definition) (Instance, error) 
 }
 func (t *Tracker) List(ctx context.Context) (map[string]any, error) {
 	items := []Instance{}
+	now := time.Now()
 	for _, d := range Definitions {
-		item, err := t.instance(ctx, d)
+		item, err := t.instance(ctx, d, now)
 		if err != nil {
 			return nil, err
 		}
 		items = append(items, item)
 	}
-	return map[string]any{"tasks": items, "updatedAt": stamp(time.Now())}, nil
+	return map[string]any{"tasks": items, "load": projectLoad(now, items), "updatedAt": stamp(now)}, nil
 }
 func (t *Tracker) Detail(ctx context.Context, key string, page int) (map[string]any, error) {
 	d, ok := Lookup(key)
 	if !ok {
 		return nil, sql.ErrNoRows
 	}
-	item, err := t.instance(ctx, d)
+	item, err := t.instance(ctx, d, time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -161,16 +177,4 @@ func (t *Tracker) Detail(ctx context.Context, key string, page int) (map[string]
 		return nil, err
 	}
 	return map[string]any{"task": item, "runs": runs, "queue": queue}, nil
-}
-
-func intervalLabel(seconds int) string {
-	for _, unit := range []struct {
-		seconds int
-		label   string
-	}{{86400, "天"}, {3600, "小时"}, {60, "分钟"}} {
-		if seconds >= unit.seconds && seconds%unit.seconds == 0 {
-			return fmt.Sprintf("每 %d %s", seconds/unit.seconds, unit.label)
-		}
-	}
-	return fmt.Sprintf("每 %d 秒", seconds)
 }

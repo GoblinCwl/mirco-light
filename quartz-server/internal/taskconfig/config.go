@@ -38,7 +38,10 @@ func Key(name string) string { return "tasks." + name + "Seconds" }
 func Schema() []map[string]any {
 	out := []map[string]any{{"key": "tasks.friendConcurrency", "group": "任务管理", "category": "友链巡检", "label": "同时处理数量", "help": "友链处理队列并发数量；调整后不打断正在运行的条目。头像压缩仍最多同时两个。", "type": "number", "default": 1, "min": 1, "max": 8, "step": 1, "public": false}}
 	for _, d := range Definitions {
-		out = append(out, map[string]any{"key": Key(d.Key), "group": "任务管理", "category": d.Category, "label": d.Label, "help": d.Help, "type": "number", "default": d.Default, "min": d.Min, "max": d.Max, "step": 1, "public": false})
+		out = append(out, map[string]any{"key": Key(d.Key), "group": "任务管理", "category": d.Category, "label": d.Label, "help": d.Help, "type": "number", "default": d.Default, "min": d.Min, "max": d.Max, "step": 1, "public": false, "legacy": IsPeriodic(d.Key)})
+		if IsPeriodic(d.Key) {
+			out = append(out, cronField(d.Key, d.Label, d.Category, d.Help, IntervalExpression(d.Default)))
+		}
 	}
 	for _, d := range []struct {
 		Key, Label string
@@ -46,13 +49,19 @@ func Schema() []map[string]any {
 	}{{"tasks.friendsGrayDays", "巡检置灰天数", 3}, {"tasks.friendsRemoveDays", "巡检移除天数", 7}} {
 		out = append(out, map[string]any{"key": d.Key, "group": "任务管理", "category": "友链巡检", "label": d.Label, "help": "累计首页检查失败的天数，北京时间同一天最多计一天；头像和 RSS 失败沿用已有数据。", "type": "number", "default": d.Default, "min": 1, "max": 365, "step": 1, "public": false})
 	}
-	out = append(out, map[string]any{"key": "tasks.friendsEveryDays", "group": "任务管理", "category": "友链巡检", "label": "巡检间隔", "help": "默认每天一次；处理友链并继续处理上次失败的友链，仅首页检查失败累计天数。日期按固定日历周期安排，重启不会推迟日程。", "type": "number", "default": 1, "min": 1, "max": 30, "step": 1, "public": false})
-	return append(out, map[string]any{"key": "tasks.friendsTime", "group": "任务管理", "category": "友链巡检", "label": "执行时间", "help": "北京时间；将友链加入一次性处理队列，检查首页、头像、RSS 和待审核申请。失败等待下个周期，不自动弃用。", "type": "time", "default": "06:00", "public": false})
+	out = append(out, map[string]any{"key": "tasks.friendsEveryDays", "group": "任务管理", "category": "友链巡检", "label": "巡检间隔", "type": "number", "default": 1, "min": 1, "max": 30, "step": 1, "public": false, "legacy": true})
+	out = append(out, map[string]any{"key": "tasks.friendsTime", "group": "任务管理", "category": "友链巡检", "label": "执行时间", "type": "time", "default": "06:00", "public": false, "legacy": true})
+	return append(out, cronField("friends-refresh", "友链巡检", "友链巡检", "将友链加入处理队列，检查首页、头像、RSS 和待审核申请。", "0 6 * * *"))
+}
+
+func cronField(name, label, category, help, expression string) map[string]any {
+	return map[string]any{"key": CronKey(name), "group": "任务管理", "category": category, "label": label, "help": help, "type": "cron", "default": expression, "max": 120, "public": false}
 }
 
 type Config struct {
 	mu       sync.Mutex
 	values   map[string]any
+	plans    map[string]Plan
 	watchers map[chan struct{}]map[string]bool
 }
 type contextKey struct{}
@@ -94,6 +103,12 @@ func (c *Config) Reload(values map[string]any) {
 		concurrency = x
 	}
 	next["tasks.friendConcurrency"] = concurrency
+	plans := map[string]Plan{}
+	for name := range periodic {
+		plan := effectivePlan(values, name)
+		plans[name] = plan
+		next[CronKey(name)] = plan.Expression
+	}
 	for ch, keys := range c.watchers {
 		for k := range keys {
 			if next[k] != c.values[k] {
@@ -106,6 +121,7 @@ func (c *Config) Reload(values map[string]any) {
 		}
 	}
 	c.values = next
+	c.plans = plans
 }
 func (c *Config) Clock() string {
 	if c == nil {
@@ -167,25 +183,36 @@ func NewTicker(ctx context.Context, name string) *Ticker {
 	root, cancel := context.WithCancel(ctx)
 	out := make(chan time.Time)
 	t := &Ticker{C: out, cancel: cancel, done: make(chan struct{})}
-	changed, stop := Watch(root, Key(name))
+	keys := []string{CronKey(name)}
+	if name == "friends-refresh" {
+		keys = append(keys, "tasks.friendsTime", "tasks.friendsEveryDays")
+	}
+	changed, stop := Watch(root, keys...)
 	go func() {
 		defer close(t.done)
 		defer stop()
-		tick := time.NewTicker(Duration(root, name))
-		defer tick.Stop()
 		for {
+			next := From(root).Plan(name).Next(time.Now())
+			var tick <-chan time.Time
+			var timer *time.Timer
+			if !next.IsZero() {
+				timer = time.NewTimer(time.Until(next))
+				tick = timer.C
+			}
 			select {
 			case <-root.Done():
+				if timer != nil {
+					timer.Stop()
+				}
 				return
 			case <-changed:
-				tick.Reset(Duration(root, name))
-			case now := <-tick.C:
+				if timer != nil {
+					timer.Stop()
+				}
+			case <-tick:
 				select {
-				case out <- now:
-				case <-root.Done():
-					return
-				case <-changed:
-					tick.Reset(Duration(root, name))
+				case out <- next:
+				default: // A previous run is still busy. Skip this occurrence.
 				}
 			}
 		}

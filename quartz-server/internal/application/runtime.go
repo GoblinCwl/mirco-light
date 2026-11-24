@@ -99,7 +99,7 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	runtime.ctx = root
 	publishObserver := func() {
 		if options.EventsSocket != "" {
-			if err := taskconfig.WriteObserver(filepath.Join(filepath.Dir(options.EventsSocket), "task-config.json"), taskconfig.Duration(root, "container-observer")); err != nil {
+			if err := taskconfig.WriteObserver(filepath.Join(filepath.Dir(options.EventsSocket), "task-config.json"), config.Plan("container-observer").Expression, taskconfig.Duration(root, "container-observer")); err != nil {
 				app.Log.Error("observer task configuration export failed", "error", err)
 			}
 		}

@@ -476,6 +476,36 @@
  .task-instance-toolbar {display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:1rem 0;color:var(--gray);font:.76rem/1.6 var(--bodyFont);}
  .task-instance-state {color:var(--gray);font-size:.8rem;}
  .task-instance-group {min-width:0;padding:.3rem 0;margin-bottom:1rem;>h3 {margin:.3rem 0 .65rem;font-size:.8rem;color:var(--stellar-muted);font-weight:500;letter-spacing:.04em;}}
+ .task-load {
+  padding:.85rem 1rem; margin:0 0 .65rem; min-width:0;
+  &[hidden] {display:none;}
+  >header {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.4rem .8rem;}
+  >header h4 {margin:0;font:.85rem/1.5 var(--headerFont);color:var(--dark);font-weight:600;}
+ }
+ .task-load-controls {
+  display:flex;gap:.15rem;padding:.15rem;border:1px solid var(--lightgray);border-radius:6px;
+  button {padding:.22rem .45rem;border:0;border-radius:4px;background:none;color:var(--stellar-muted);font:.72rem/1.4 var(--bodyFont);cursor:pointer;}
+  button:is(:hover,:focus-visible,[aria-pressed=true]) {background:var(--stellar-accent);color:var(--secondary);}
+ }
+ .task-load-summary {margin:.45rem 0;color:var(--stellar-muted);font-size:.72rem;line-height:1.5;}
+ .task-load-figure {
+  overflow-x:auto;
+  table {table-layout:fixed;width:100%;min-width:275px;border-spacing:2px;margin:0;}
+  th,td {padding:0;border:0;background:transparent;}
+  th {color:var(--stellar-muted);font:500 .65rem/1.4 var(--bodyFont);text-align:left;white-space:nowrap;}
+  th:first-child {width:3rem;}
+  td > span {display:block;height:clamp(.45rem,1vw,.75rem);border-radius:2px;background:color-mix(in srgb,var(--secondary) var(--task-heat),var(--lightgray));}
+  td > span.has-unknown {box-shadow:inset 0 -2px color-mix(in srgb,var(--tertiary) 75%,transparent);}
+  td:hover > span {outline:1px solid var(--secondary);}
+ }
+ .task-load-contributions {
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));gap:.35rem;margin:.55rem 0 0;padding:0;list-style:none;
+  &[hidden] {display:none;}
+  >li {display:flex;min-width:0;justify-content:space-between;gap:.4rem;padding:.3rem .45rem;border-radius:4px;background:var(--stellar-accent);color:var(--stellar-muted);font-size:.7rem;}
+  strong {color:var(--secondary);white-space:nowrap;}
+ }
+ .task-cron-detail {ol {display:flex;flex-wrap:wrap;gap:.25rem 1.5rem;padding-left:1.4rem;font-size:.75rem;} p {font-size:.76rem;}}
+ .task-merged-card [data-field-type=cron] input {font-family:var(--codeFont);}
  .task-table-wrap {width:100%;overflow-x:auto;border:1px solid var(--lightgray);border-radius:8px;}
  .task-table {width:100%;margin:0;border-collapse:collapse;font:.74rem/1.6 var(--bodyFont);th,td {padding:.7rem .65rem;border-bottom:1px solid var(--lightgray);text-align:left;vertical-align:top;}th {color:var(--secondary);background:var(--stellar-surface);font-weight:600;white-space:nowrap;}tbody>tr:last-child>td {border-bottom:0;}tr[data-selected=true] {background:var(--stellar-accent);}}
  .task-name {min-width:7rem;font-weight:500;color:var(--dark);overflow-wrap:anywhere;}

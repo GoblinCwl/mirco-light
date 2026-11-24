@@ -15,7 +15,7 @@ import { setupFeedbackManager } from './feedbackManager'
 import { setupMailManager } from './mailManager'
 import { refreshSiteSettings } from './siteSettings'
 import { showSiteDialog } from './siteDialog'
-type Field = { key: string; group: string; label: string; type: string; category?: string; min?: number; max?: number; step?: number; maxLength?: number; options?: [string,string][]; help?: string }
+type Field = { key: string; group: string; label: string; type: string; legacy?:boolean; category?: string; min?: number; max?: number; step?: number; maxLength?: number; options?: [string,string][]; help?: string }
 document.addEventListener('nav', () => {
   const root = document.querySelector<HTMLElement>('[data-stellar-admin]'); if (!root) return
   const controller = new AbortController(), signal = controller.signal; window.addCleanup(() => controller.abort())
@@ -78,7 +78,7 @@ document.addEventListener('nav', () => {
       return '播放默认值'
     }
     const grouped = new Map<string,Field[]>()
-    for(const field of result.schema.filter(field=>field.key!=='graph.adminOrbit')){const group=grouped.get(field.group)||[];group.push(field);grouped.set(field.group,group)}
+    for(const field of result.schema.filter(field=>!field.legacy&&field.key!=='graph.adminOrbit')){const group=grouped.get(field.group)||[];group.push(field);grouped.set(field.group,group)}
     const activators:((()=>void)|undefined)[]=[]
     const tabs:HTMLButtonElement[]=[], panels:HTMLElement[]=[], dirty=new Set<string>()
     let remembered='';try{remembered=sessionStorage.getItem('stellar-admin-module')||''}catch{}
@@ -193,7 +193,7 @@ document.addEventListener('nav', () => {
         row.onsubmit=async event=>{
           event.preventDefault();if(busy||value()===saved)return
           const submitted=value();busy=true;input.disabled=true;save.disabled=true;save.textContent='保存中';status.textContent='';status.classList.remove('is-error');row.setAttribute('aria-busy','true')
-          try{const response=await request(`/admin/settings/${encodeURIComponent(field.key)}`,{method:'PUT',body:JSON.stringify({value:submitted})});saved=response.value;if(field.type==='boolean')(input as HTMLInputElement).checked=Boolean(saved);else input.value=String(field.type==='number'&&percentage?Math.round(Number(saved)*100):saved);showPasswordToast('已保存');await refreshSiteSettings();if(field.key.startsWith('openlist.'))document.dispatchEvent(new CustomEvent('stellar-share-settings-changed'))}
+          try{const response=await request(`/admin/settings/${encodeURIComponent(field.key)}`,{method:'PUT',body:JSON.stringify({value:submitted})});saved=response.value;if(field.type==='boolean')(input as HTMLInputElement).checked=Boolean(saved);else input.value=String(field.type==='number'&&percentage?Math.round(Number(saved)*100):saved);showPasswordToast('已保存');if(field.key.startsWith('tasks.'))document.dispatchEvent(new Event('stellar-task-config-changed'));await refreshSiteSettings();if(field.key.startsWith('openlist.'))document.dispatchEvent(new CustomEvent('stellar-share-settings-changed'))}
           catch(error){showPasswordToast(error instanceof Error?error.message:'保存失败',true)}
           finally{busy=false;if(!signal.aborted){input.disabled=false;save.textContent='保存';row.removeAttribute('aria-busy');update()}}
         }

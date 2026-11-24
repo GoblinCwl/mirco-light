@@ -7,6 +7,37 @@ import {isListed} from './contentVisibility'
 import {getDate} from '../components/Date'
 import {simplifySlug,type FullSlug} from './path'
 import {projectSlug} from './projectReference'
+import type {Root} from 'hast'
+import {visit, EXIT, SKIP} from 'unist-util-visit'
+import {unified} from 'unified'
+import remarkParse from 'remark-parse'
+import remarkRehype from 'remark-rehype'
+import rehypeRaw from 'rehype-raw'
+
+const summaryParser = unified().use(remarkParse).use(remarkRehype, { allowDangerousHtml: true }).use(rehypeRaw)
+const imageOrigin = 'https://rss-image.invalid'
+
+function firstImage(tree: Root, href: string): string | undefined {
+  let cover: string | undefined
+  visit(tree, 'element', element => {
+    if (['code', 'pre', 'script', 'style', 'template'].includes(element.tagName)) return SKIP
+    const src = element.properties.src
+    if (element.tagName !== 'img' || typeof src !== 'string' || !src.trim() || /^[?#]/.test(src.trim())) return
+    try {
+      const url = new URL(src, imageOrigin + href)
+      if (!/^https?:$/.test(url.protocol) || url.username || url.password || url.pathname === '/') return
+      cover = url.origin === imageOrigin ? url.pathname + url.search + url.hash : url.href
+      return EXIT
+    } catch {
+      return
+    }
+  })
+  return cover
+}
+
+function articleCover(tree: Root, href: string, summary?: string): string | undefined {
+  return firstImage(tree, href) ?? (summary ? firstImage(summaryParser.runSync(summaryParser.parse(summary)), href) : undefined)
+}
 const linkSlug=(slug:string)=>String(simplifySlug(slug as FullSlug)).replace(/\/+$/g,'')||'/'
 // Export only after a successful full build or hot rebuild. The service imports
 // this atomic, private build snapshot; a failed build never replaces the last index.
@@ -21,9 +52,12 @@ export async function publishContentSnapshot(content:ProcessedContent[],cfg:Glob
   const key=file.data.slug?String(simplifySlug(file.data.slug)):''
   return key?[{key,title:String(file.data.frontmatter?.title||''),adminOnly:file.data.frontmatter?.comment===false}]:[]
  })
- const articles=listed.map(([,file])=>{
+ const articles=listed.map(([tree,file])=>{
   const data=file.data,encrypted=Boolean(cfg.passProtected?.enabled&&data.frontmatter?.passphrase)
-  return {sourceId:String(data.slug),slug:String(data.slug),href:'/'+linkSlug(data.slug!).split('/').map(encodeURIComponent).join('/'),title:String(data.frontmatter?.title||data.slug),content:encrypted?'':data.text||'',description:encrypted?'':data.description||'',tags:data.frontmatter?.tags||[],links:[...new Set((data.links||[]).map(link=>aliases.get(linkSlug(String(link)))||linkSlug(String(link))).filter(link=>link!==linkSlug(data.slug!)&&(link==='/'||slugs.has(link)||projectSlug('/'+link)===link)))],encrypted,publishedAt:data.dates?.created?.toISOString(),updatedAt:getDate(cfg,data)?.toISOString(),extra:{filePath:String(data.relativePath||`${data.slug}.md`),aliases:aliasSlugs(data.slug!,data.aliases).map(alias=>linkSlug(alias))}}
+  const href = '/' + linkSlug(data.slug!).split('/').filter(Boolean).map(encodeURIComponent).join('/')
+  const imageBase = data.slug?.endsWith('/index') ? href + '/' : href
+  const rssCover = encrypted ? undefined : articleCover(tree, imageBase, data.frontmatter?.description)
+  return {sourceId:String(data.slug),slug:String(data.slug),href,title:String(data.frontmatter?.title||data.slug),content:encrypted?'':data.text||'',description:encrypted?'':data.description||'',tags:data.frontmatter?.tags||[],links:[...new Set((data.links||[]).map(link=>aliases.get(linkSlug(String(link)))||linkSlug(String(link))).filter(link=>link!==linkSlug(data.slug!)&&(link==='/'||slugs.has(link)||projectSlug('/'+link)===link)))],encrypted,publishedAt:data.dates?.created?.toISOString(),updatedAt:getDate(cfg,data)?.toISOString(),extra:{filePath:String(data.relativePath||`${data.slug}.md`),aliases:aliasSlugs(data.slug!,data.aliases).map(alias=>linkSlug(alias)), rssCover}}
  })
  await mkdir(directory,{recursive:true})
  const target=join(directory,'articles-index.json'),temporary=target+'.tmp'

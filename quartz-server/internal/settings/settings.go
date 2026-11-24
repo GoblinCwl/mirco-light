@@ -44,7 +44,7 @@ func (s Store) Read(ctx context.Context, public bool) (map[string]any, error) {
 	visible := map[string]bool{}
 	for _, field := range fields() {
 		visible[field.Key] = !public || field.Public == nil || *field.Public
-		if visible[field.Key] {
+		if visible[field.Key] && field.Type != "cron" {
 			values[field.Key] = field.Default
 		}
 	}
@@ -77,7 +77,13 @@ func (s Store) Read(ctx context.Context, public bool) (map[string]any, error) {
 			values[key] = value
 		}
 	}
-	return values, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if !public {
+		taskconfig.FillCron(values)
+	}
+	return values, nil
 }
 func address(value string) bool {
 	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
@@ -131,6 +137,12 @@ func validate(key string, value any) (any, error) {
 			return validateFavicons(v)
 		}
 		switch field.Type {
+		case "cron":
+			plan, err := taskconfig.Parse(v)
+			if err != nil {
+				return nil, err
+			}
+			return plan.Expression, nil
 		case "date":
 			if v != "" {
 				date, err := time.Parse("2006-01-02", v)

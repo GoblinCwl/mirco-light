@@ -8,12 +8,12 @@ import (
 	"time"
 )
 
-// WriteObserver shares only a non-secret task period with the host observer.
-func WriteObserver(filename string, interval time.Duration) error {
+// WriteObserver publishes the schedule and the legacy interval for older observers.
+func WriteObserver(filename, expression string, interval time.Duration) error {
 	if err := os.MkdirAll(filepath.Dir(filename), 0700); err != nil {
 		return err
 	}
-	raw, err := json.Marshal(map[string]int64{"intervalSeconds": int64(interval / time.Second)})
+	raw, err := json.Marshal(map[string]any{"cron": expression, "intervalSeconds": int64(interval / time.Second)})
 	if err != nil {
 		return err
 	}
@@ -34,19 +34,24 @@ func WriteObserver(filename string, interval time.Duration) error {
 	}
 	return os.Rename(file.Name(), filename)
 }
-func ReadObserver(filename string) (float64, error) {
+func ReadObserver(filename string) (string, error) {
 	raw, err := os.ReadFile(filename)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	var values struct {
+		Cron    string  `json:"cron"`
 		Seconds float64 `json:"intervalSeconds"`
 	}
 	if err = json.Unmarshal(raw, &values); err != nil {
-		return 0, err
+		return "", err
+	}
+	if values.Cron != "" {
+		plan, err := Parse(values.Cron)
+		return plan.Expression, err
 	}
 	if values.Seconds < 1 || values.Seconds > 3600 || values.Seconds != float64(int(values.Seconds)) {
-		return 0, errors.New("invalid observer interval")
+		return "", errors.New("invalid observer interval")
 	}
-	return values.Seconds, nil
+	return IntervalExpression(int(values.Seconds)), nil
 }

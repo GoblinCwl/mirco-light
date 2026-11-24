@@ -253,6 +253,12 @@ func (s Store) Sync(ctx context.Context, kind string, input []Item) error {
 		if href == "" {
 			href = encodeSlug(item.Slug)
 		}
+		delete(extra, "rssCover")
+		if !item.Encrypted {
+			if cover := itemRSSCover(s.Origin, kind, href, item); cover != "" {
+				extra["rssCover"] = cover
+			}
+		}
 		// Body/search text stay out of the metadata query: revision covers their
 		// source fields. Routes, dates and extra metadata are compared separately.
 		if exists && old.Slug == item.Slug && old.Href == href && old.Revision == revision && old.EventRevision == item.EventRevision && sameDate(old.Published, published) && sameDate(old.Updated, updated) && jsJSON(old.Extra) == jsJSON(extra) {

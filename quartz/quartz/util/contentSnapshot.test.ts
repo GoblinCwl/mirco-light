@@ -10,12 +10,13 @@ import type {ProcessedContent} from '../plugins/vfile'
 test('successful article snapshot preserves original paths and excludes unlisted/private bodies',async()=>{
  const directory=await mkdtemp(join(tmpdir(),'quartz-content-snapshot-')),previous=process.env.QUARTZ_JOURNAL_DIR
  process.env.QUARTZ_JOURNAL_DIR=directory
- const item=(path:string,slug:string,passphrase?:string)=>[{}, {data:{relativePath:path,slug,links:['Repo/CwlWeb','Video/BV1ua4W6XEJd','Share/分享/未同步项目','Work/hidden','Share/空间/secret','Unknown/missing'],text:'private text',description:'private summary',frontmatter:{title:'标题',tags:['标签'],passphrase},dates:{created:new Date('2026-11-10T00:00:00Z'),modified:new Date('2026-11-10T00:00:00Z')}}}] as unknown as ProcessedContent
+ const item=(path:string,slug:string,passphrase?:string)=>[{type:'root',children:[{type:'element',tagName:'img',properties:{src:'/private.png'},children:[]}]}, {data:{relativePath:path,slug,links:['Repo/CwlWeb','Video/BV1ua4W6XEJd','Share/分享/未同步项目','Work/hidden','Share/空间/secret','Unknown/missing'],text:'private text',description:'private summary',frontmatter:{title:'标题',tags:['标签'],passphrase},dates:{created:new Date('2026-11-10T00:00:00Z'),modified:new Date('2026-11-10T00:00:00Z')}}}] as unknown as ProcessedContent
  try{
   await publishContentSnapshot([item('Study/HTTP Client/note.md','Study/HTTP-Client/note','secret'),item('Work/hidden.md','Work/hidden')],{unlistedPatterns:['Work/**'],passProtected:{enabled:true},defaultDateType:'modified'} as GlobalConfiguration)
   const value=JSON.parse(await readFile(join(directory,'articles-index.json'),'utf8'))
   assert.equal(value.articles.length,1);assert.equal(value.articles[0].extra.filePath,'Study/HTTP Client/note.md')
   assert.equal(value.articles[0].content,'');assert.equal(value.articles[0].description,'')
+  assert.equal(value.articles[0].extra.rssCover,undefined)
   assert.equal(value.permissions.length,2)
   assert.deepEqual(value.articles[0].links,['Repo/CwlWeb','Video/BV1ua4W6XEJd','Share/分享/未同步项目'])
  }finally{if(previous===undefined)delete process.env.QUARTZ_JOURNAL_DIR;else process.env.QUARTZ_JOURNAL_DIR=previous;await rm(directory,{recursive:true,force:true})}
@@ -24,14 +25,21 @@ test('successful article snapshot preserves original paths and excludes unlisted
 test('snapshot publishes canonical article aliases and resolves incoming alias links',async()=>{
  const directory=await mkdtemp(join(tmpdir(),'quartz-relations-')),previous=process.env.QUARTZ_JOURNAL_DIR
  process.env.QUARTZ_JOURNAL_DIR=directory
- const article=(slug:string,aliases:string[],links:string[])=>[{}, {data:{slug,aliases,links,relativePath:slug+'.md',frontmatter:{title:slug},text:'',dates:{created:new Date('2026-11-10T00:00:00Z')}}}] as unknown as ProcessedContent
+ const article=(slug:string,aliases:string[],links:string[])=>[{type:'root',children:[]}, {data:{slug,aliases,links,relativePath:slug+'.md',frontmatter:{title:slug},text:'',dates:{created:new Date('2026-11-10T00:00:00Z')}}}] as unknown as ProcessedContent
  try{
   const draft=article('Memo/draft',[],[])
   draft[1].data.frontmatter!.draft=true
-  await publishContentSnapshot([article('Memo/target/index',['about','./alias'],[]),article('Memo/source',[],['about','Memo/alias','Memo/target','Memo/draft']),draft],{defaultDateType:'created'} as GlobalConfiguration)
+  const target=article('Memo/target/index',['about','./alias'],[])
+  const source=article('Memo/source',[],['about','Memo/alias','Memo/target','Memo/draft'])
+  target[0].children.push(...['data:image/png;base64,AAAA','../../assets/target.png'].map(src=>({type:'element' as const,tagName:'img',properties:{src},children:[]})))
+  target[1].data.frontmatter!.description='![摘要](/summary.png)'
+  source[1].data.frontmatter!.description='![摘要](/summary.png)'
+  await publishContentSnapshot([target,source,draft],{defaultDateType:'created'} as GlobalConfiguration)
   const snapshot=JSON.parse(await readFile(join(directory,'articles-index.json'),'utf8'))
   assert.equal(snapshot.articles.length,2)
   assert.deepEqual(snapshot.articles[0].extra.aliases,['about','Memo/alias'])
+  assert.equal(snapshot.articles[0].extra.rssCover,'/assets/target.png')
+  assert.equal(snapshot.articles[1].extra.rssCover,'/summary.png')
   assert.deepEqual(snapshot.articles[1].links,['Memo/target'])
  }finally{if(previous===undefined)delete process.env.QUARTZ_JOURNAL_DIR;else process.env.QUARTZ_JOURNAL_DIR=previous;await rm(directory,{recursive:true,force:true})}
 })

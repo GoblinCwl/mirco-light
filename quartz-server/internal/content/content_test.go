@@ -40,14 +40,26 @@ func TestRSSSelectsLatestPublishedBeforeLimiting(t *testing.T) {
 	}
 }
 
-func TestRSSDefaultPostersByType(t *testing.T) {
-	for _, kind := range []string{"article", "share", "repo", "video"} {
-		if got := rssPosterURL("https://site.test/", kind); got != "https://site.test/static/rss/"+kind+".png?v=20261114-starlight" {
-			t.Fatal(kind, got)
-		}
-	}
-	if rssPosterURL("https://site.test", "../secret") != "" {
-		t.Fatal("unknown poster type accepted")
+func TestRSSCoverSelection(t *testing.T) {
+	const origin = "https://site.test"
+	for _, tt := range []struct {
+		name, kind, href string
+		item             Item
+		want             string
+	}{
+		{"rendered article image", "article", "/Memo/note", Item{Extra: map[string]any{"rssCover": "/assets/body.webp"}, Description: "![摘要](https://img.test/summary.png)"}, origin + "/assets/body.webp"},
+		{"article code copied to search text", "article", "/Memo/note", Item{Content: "![示意](https://img.test/example.png)"}, origin + "/static/rss-default.png"},
+		{"summary after invalid body and code", "video", "/Video/BV1", Item{Content: "`<img src='/code.png'>`\n\n![无效](data:image/png;base64,AAAA)", Description: "![摘要](https://img.test/summary.png)"}, "https://img.test/summary.png"},
+		{"share readme", "share", "/Share/group", Item{ReferenceContent: `<img src=""><img src="https://img.test/share.jpg"><img src="/later.png">`}, "https://img.test/share.jpg"},
+		{"relative repository image", "repo", "/Repo/example", Item{Content: "![示意](assets/preview.png)", EventRevision: "commit", Extra: map[string]any{"name": "example"}}, origin + "/api/repo/example/raw?path=assets%2Fpreview.png&ref=commit"},
+		{"video without description images", "video", "/Video/BV1", Item{Extra: map[string]any{"cover": "https://img.test/video.jpg"}}, origin + "/static/rss-default.png"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cover := itemRSSCover(origin, tt.kind, tt.href, tt.item)
+			if got := rssCoverURL(origin, Record{Href: tt.href, Extra: map[string]any{"rssCover": cover}}); got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -78,18 +90,5 @@ func TestArticleRSSFiltersBeforeApplyingLimit(t *testing.T) {
 	}
 	if !foundVideo {
 		t.Fatal("default feed lost mixed content")
-	}
-}
-
-func TestArticleFeedTitlesDoNotAddCategoryEmoji(t *testing.T) {
-	article := Record{Type: "article", Title: "文章标题"}
-	if rssFeedTitle(article, "article") != "文章标题" {
-		t.Fatal("article feed added emoji")
-	}
-	if rssFeedTitle(article) != "✒️ 文章标题" {
-		t.Fatal("default feed lost emoji")
-	}
-	if rssFeedTitle(Record{Type: "share", Title: "分享"}) != "🔗 分享" {
-		t.Fatal("default mixed feed changed")
 	}
 }

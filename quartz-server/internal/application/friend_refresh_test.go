@@ -1,6 +1,7 @@
 package application
 
 import (
+	"goblincwl/quartz-server/internal/taskconfig"
 	"testing"
 	"time"
 )
@@ -16,7 +17,7 @@ func TestNextFriendRefreshUsesBeijingSixAM(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got := nextFriendRefresh(now)
+		got := legacyFriendNext(now, "06:00", 1)
 		if got.Format(time.RFC3339) != c.want {
 			t.Fatal(c, got)
 		}
@@ -30,7 +31,7 @@ func TestNextFriendRefreshConfiguredClock(t *testing.T) {
 		{"2026-12-31T16:00:00Z", "00:00", "2027-01-02T00:00:00+08:00"},
 	} {
 		now, _ := time.Parse(time.RFC3339, c.now)
-		if got := nextFriendRefreshAt(now, c.clock).Format(time.RFC3339); got != c.want {
+		if got := legacyFriendNext(now, c.clock, 1).Format(time.RFC3339); got != c.want {
 			t.Fatal(got, c.want)
 		}
 	}
@@ -38,12 +39,16 @@ func TestNextFriendRefreshConfiguredClock(t *testing.T) {
 
 func TestFriendRefreshDayCadenceSurvivesRestart(t *testing.T) {
 	now, _ := time.Parse(time.RFC3339, "2026-11-13T01:00:00Z")
-	first := nextFriendRefreshSchedule(now, "09:30", 3)
+	first := legacyFriendNext(now, "09:30", 3)
 	// A restart before the planned run must retain exactly the same calendar slot.
-	if got := nextFriendRefreshSchedule(first.Add(-time.Minute), "09:30", 3); !got.Equal(first) {
+	if got := legacyFriendNext(first.Add(-time.Minute), "09:30", 3); !got.Equal(first) {
 		t.Fatal(first, got)
 	}
-	if got := nextFriendRefreshSchedule(first, "09:30", 3); !got.Equal(first.AddDate(0, 0, 3)) {
+	if got := legacyFriendNext(first, "09:30", 3); !got.Equal(first.AddDate(0, 0, 3)) {
 		t.Fatal("cadence changed", first, got)
 	}
+}
+
+func legacyFriendNext(now time.Time, clock string, days int) time.Time {
+	return taskconfig.New(map[string]any{"tasks.friendsTime": clock, "tasks.friendsEveryDays": float64(days)}).Plan("friends-refresh").Next(now)
 }

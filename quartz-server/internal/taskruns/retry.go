@@ -3,6 +3,7 @@ package taskruns
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 var ErrTriggerUnavailable = errors.New("任务当前无法主动执行")
@@ -83,7 +84,7 @@ func (t *Tracker) dispatch(ctx context.Context, key string, requireFailure bool)
 	if !ok {
 		return ErrRetryUnavailable
 	}
-	item, err := t.instance(ctx, d)
+	item, err := t.instance(ctx, d, time.Now())
 	if err != nil {
 		return err
 	}

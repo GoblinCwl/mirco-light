@@ -6,6 +6,7 @@ import (
 	"goblincwl/quartz-server/internal/community"
 	"goblincwl/quartz-server/internal/settings"
 	"goblincwl/quartz-server/internal/taskconfig"
+	"goblincwl/quartz-server/internal/taskruns"
 	"strings"
 	"testing"
 	"time"
@@ -36,6 +37,32 @@ func TestTaskSettingsPersistAndRemainPrivate(t *testing.T) {
 	ctx = taskconfig.With(ctx, config)
 	if taskconfig.Duration(ctx, "video-sync") != 3*time.Hour || config.Clock() != "07:30" || config.FriendDays() != 2 {
 		t.Fatal("saved schedule lost after restart")
+	}
+	if config.Plan("video-sync").Expression != "0 */3 * * *" {
+		t.Fatal("legacy interval wasn't carried into Cron")
+	}
+	key := taskconfig.CronKey("video-sync")
+	if _, err := store.Save(ctx, key, "0 90 * * *"); err == nil {
+		t.Fatal("invalid Cron accepted")
+	}
+	if _, err := store.Save(ctx, key, " 15  9 * * MON-FRI "); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := store.Read(ctx, false)
+	if err != nil || updated[key] != "15 9 * * MON-FRI" {
+		t.Fatal(updated[key], err)
+	}
+	config.Reload(updated)
+	tracker := taskruns.New(db)
+	tracker.Config = config
+	list, err := tracker.List(ctx)
+	if err != nil || list["load"] == nil {
+		t.Fatal("task load not available", err)
+	}
+	for _, item := range list["tasks"].([]taskruns.Instance) {
+		if item.Kind == "periodic" && (item.Cron == "" || len(item.NextRuns) != 5) {
+			t.Fatalf("missing Cron preview for %s", item.Key)
+		}
 	}
 	public, err := store.Read(ctx, true)
 	if err != nil {

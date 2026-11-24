@@ -3,6 +3,42 @@ import { lockPageScroll } from "./pageScrollLock"
 import { showSiteDialog, closeSiteDialog } from "./siteDialog"
 import { showPasswordToast } from "./passwordFeedback"
 
+const mediaRSS = "http://search.yahoo.com/mrss/"
+
+function subscriptionThumbnail(item: Element, feedURL: URL) {
+  const thumbnail = node("span", "", "rss-subscription-thumbnail")
+  const fallback = new URL("/static/rss-default.png", feedURL)
+  let src = fallback
+  const candidate = item.getElementsByTagNameNS(mediaRSS, "thumbnail")[0]?.getAttribute("url")
+  if (candidate) {
+    try {
+      const url = new URL(candidate, feedURL)
+      if (/^https?:$/.test(url.protocol) && !url.username && !url.password) src = url
+    } catch {}
+  }
+  const image = node("img")
+  image.alt = ""
+  image.loading = "lazy"
+  image.decoding = "async"
+  image.referrerPolicy = "no-referrer"
+  image.setAttribute("no-view", "")
+  thumbnail.classList.toggle("is-default", src.href === fallback.href)
+  image.onload = () => thumbnail.classList.remove("is-loading")
+  image.onerror = () => {
+    if (image.src !== fallback.href) {
+      thumbnail.classList.add("is-default")
+      image.src = fallback.href
+      return
+    }
+    image.remove()
+    thumbnail.classList.remove("is-loading")
+  }
+  thumbnail.classList.add("is-loading")
+  image.src = src.href
+  thumbnail.append(image)
+  return thumbnail
+}
+
 export function setupRSSSubscription() {
   const trigger = document.querySelector<HTMLAnchorElement>(".home-profile-rss")
   if (!trigger) return
@@ -78,7 +114,7 @@ export function setupRSSSubscription() {
     preview.replaceChildren(...Array.from({ length: 3 }, () => {
       const card = node("div", "", "rss-subscription-item rss-subscription-skeleton")
       card.setAttribute("aria-hidden", "true")
-      card.append(node("strong"), node("time"), node("p"))
+      card.append(node("span", "", "rss-subscription-thumbnail is-loading"), node("strong"), node("time"), node("p"))
       return card
     }))
     preview.setAttribute("aria-label", "正在加载 RSS 预览")
@@ -96,14 +132,14 @@ export function setupRSSSubscription() {
         const card = node("a", "", "rss-subscription-item")
         card.href = href.href
         card.dataset.noPopover = "true"
-        card.append(node("strong", item.querySelector("title")?.textContent || "未命名"))
+        card.append(subscriptionThumbnail(item, feedURL), node("strong", item.querySelector("title")?.textContent || "未命名"))
         const date = new Date(item.querySelector("pubDate")?.textContent || "")
         if (!Number.isNaN(date.getTime())) {
           const time = node("time", date.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }))
           time.dateTime = date.toISOString()
           card.append(time)
         }
-        // Extract text in an inert template; never insert feed HTML or remote images.
+        // Only the excerpt's text is inserted into the preview.
         const template = document.createElement("template")
         template.innerHTML = item.querySelector("description")?.textContent || ""
         template.content.querySelectorAll("script,style").forEach(element => element.remove())

@@ -15,20 +15,21 @@ import (
 )
 
 type Controller struct {
-	Store     Store
-	Client    *Client
-	AfterSync func(context.Context) error
-	Social    func(context.Context, bool) error
-	mu        sync.Mutex
-	wg        sync.WaitGroup
-	queue     []taskruns.QueueItem
-	retrying  bool
-	running   bool
-	closed    bool
-	interval  time.Duration
-	timer     *time.Timer
-	ctx       context.Context
-	cancel    context.CancelFunc
+	Store      Store
+	Client     *Client
+	AfterSync  func(context.Context) error
+	Social     func(context.Context, bool) error
+	mu         sync.Mutex
+	wg         sync.WaitGroup
+	queue      []taskruns.QueueItem
+	retrying   bool
+	running    bool
+	closed     bool
+	fallback   taskconfig.Plan
+	timer      *time.Timer
+	generation uint64
+	ctx        context.Context
+	cancel     context.CancelFunc
 }
 
 func NewController(ctx context.Context, store Store, client *Client) (*Controller, error) {
@@ -41,7 +42,8 @@ func NewController(ctx context.Context, store Store, client *Client) (*Controlle
 		interval = time.Duration(milliseconds) * time.Millisecond
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	c := &Controller{Store: store, Client: client, interval: interval, ctx: ctx, cancel: cancel}
+	fallback, _ := taskconfig.Parse(taskconfig.IntervalExpression(int(interval.Seconds())))
+	c := &Controller{Store: store, Client: client, fallback: fallback, ctx: ctx, cancel: cancel}
 	if tracker := taskruns.From(ctx); tracker != nil {
 		tracker.RegisterRetry("video-sync", func(context.Context) error { c.Start(); return nil })
 		tracker.RegisterQueue("video-sync", func() []taskruns.QueueItem {
@@ -51,8 +53,7 @@ func NewController(ctx context.Context, store Store, client *Client) (*Controlle
 		})
 	}
 	if taskconfig.From(ctx) != nil {
-		c.interval = taskconfig.Duration(ctx, "video-sync")
-		changed, stop := taskconfig.Watch(ctx, taskconfig.Key("video-sync"), taskconfig.Key("video-retry"))
+		changed, stop := taskconfig.Watch(ctx, taskconfig.CronKey("video-sync"), taskconfig.Key("video-retry"))
 		c.wg.Add(1)
 		go func() {
 			defer c.wg.Done()
@@ -63,13 +64,8 @@ func NewController(ctx context.Context, store Store, client *Client) (*Controlle
 					return
 				case <-changed:
 					c.mu.Lock()
-					c.interval = taskconfig.Duration(ctx, "video-sync")
 					if !c.running {
-						delay := c.interval
-						if c.retrying {
-							delay = taskconfig.Duration(ctx, "video-retry")
-						}
-						c.schedule(delay)
+						c.schedule(c.nextRun(time.Now()))
 					}
 					c.mu.Unlock()
 				}
@@ -78,24 +74,48 @@ func NewController(ctx context.Context, store Store, client *Client) (*Controlle
 	}
 	return c, nil
 }
-func (c *Controller) schedule(delay time.Duration) {
+func (c *Controller) nextRun(now time.Time) time.Time {
+	plan := c.fallback
+	if config := taskconfig.From(c.ctx); config != nil {
+		plan = config.Plan("video-sync")
+	}
+	next := plan.Next(now)
+	if c.retrying {
+		retry := now.Add(taskconfig.Duration(c.ctx, "video-retry"))
+		if next.IsZero() || retry.Before(next) {
+			return retry
+		}
+	}
+	return next
+}
+
+func (c *Controller) schedule(at time.Time) {
 	if c.timer != nil {
 		c.timer.Stop()
 	}
-	if c.ctx.Err() != nil || c.closed {
+	c.generation++
+	if c.ctx.Err() != nil || c.closed || at.IsZero() {
 		return
 	}
-	c.timer = time.AfterFunc(delay, func() { c.Start() })
+	if c.retrying {
+		for i := range c.queue {
+			c.queue[i].AvailableAt = at.UTC().Format(time.RFC3339)
+		}
+	}
+	generation := c.generation
+	c.timer = time.AfterFunc(time.Until(at), func() { c.start(generation) })
 }
-func (c *Controller) Start() {
+func (c *Controller) Start() { c.start(0) }
+func (c *Controller) start(generation uint64) {
 	c.mu.Lock()
-	if c.running || c.closed || c.ctx.Err() != nil {
+	if c.running || c.closed || c.ctx.Err() != nil || (generation != 0 && generation != c.generation) {
 		c.mu.Unlock()
 		return
 	}
 	if c.timer != nil {
 		c.timer.Stop()
 	}
+	c.generation++
 	c.running = true
 	if len(c.queue) == 0 {
 		c.queue = []taskruns.QueueItem{{ID: "catalog", Label: "获取视频列表和合集", State: "running"}}
@@ -123,17 +143,12 @@ func (c *Controller) Start() {
 		defer c.mu.Unlock()
 		c.running = false
 		c.retrying = err != nil || !complete
-		delay := c.interval
-		if err != nil || !complete {
-			delay = taskconfig.Duration(c.ctx, "video-retry")
-		}
 		if err != nil || !complete {
 			if len(c.queue) == 0 {
 				c.queue = []taskruns.QueueItem{{ID: "catalog", Label: "视频列表 / 合集信息"}}
 			}
 			for i := range c.queue {
 				c.queue[i].State = "retry"
-				c.queue[i].AvailableAt = time.Now().Add(delay).UTC().Format(time.RFC3339)
 				if c.queue[i].Error == "" && err != nil {
 					c.queue[i].Error = taskruns.Clean(err.Error(), 1000)
 				}
@@ -141,7 +156,7 @@ func (c *Controller) Start() {
 		} else {
 			c.queue = nil
 		}
-		c.schedule(delay)
+		c.schedule(c.nextRun(time.Now()))
 	}()
 }
 func (c *Controller) Close() {

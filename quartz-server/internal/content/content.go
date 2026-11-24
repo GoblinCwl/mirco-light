@@ -495,19 +495,19 @@ func (s Store) ChangeTag(ctx context.Context, tag string, ids []string, remove b
 	return nil
 }
 func refreshFeed(ctx context.Context, tx *sql.Tx) error {
-	rows, err := tx.QueryContext(ctx, "SELECT id,revision,published_at,updated_at,href FROM content WHERE encrypted=0 ORDER BY updated_at DESC,id LIMIT 50")
+	rows, err := tx.QueryContext(ctx, "SELECT id,revision,published_at,updated_at,href,JSON_UNQUOTE(JSON_EXTRACT(extra,'$.rssCover')) FROM content WHERE encrypted=0 ORDER BY updated_at DESC,id LIMIT 50")
 	if err != nil {
 		return err
 	}
 	values := []map[string]any{}
 	for rows.Next() {
 		var id, revision, href string
-		var published, updated *string
-		if err = rows.Scan(&id, &revision, &published, &updated, &href); err != nil {
+		var published, updated, cover *string
+		if err = rows.Scan(&id, &revision, &published, &updated, &href, &cover); err != nil {
 			rows.Close()
 			return err
 		}
-		values = append(values, map[string]any{"id": id, "revision": revision, "published_at": published, "updated_at": updated, "href": href})
+		values = append(values, map[string]any{"id": id, "revision": revision, "published_at": published, "updated_at": updated, "href": href, "rss_cover": cover})
 	}
 	err = rows.Err()
 	rows.Close()
@@ -562,18 +562,15 @@ func (s Store) RSS(ctx context.Context, kinds ...string) (string, error) {
 			perma = "true"
 			guid = s.Origin + r.Href
 		}
-		fmt.Fprintf(&b, "<item><title>%s</title><link>%s</link><guid isPermaLink=%q>%s</guid>", escaped(rssFeedTitle(r, kinds...)), escaped(s.Origin+r.Href), perma, escaped(guid))
+		fmt.Fprintf(&b, "<item><title>%s</title><link>%s</link><guid isPermaLink=%q>%s</guid>", escaped(r.Title), escaped(s.Origin+r.Href), perma, escaped(guid))
 		if r.Published != nil {
 			if p, err := time.Parse(time.RFC3339Nano, *r.Published); err == nil {
 				b.WriteString("<pubDate>" + p.UTC().Format(time.RFC1123Z) + "</pubDate>")
 			}
 		}
-		poster := rssPosterURL(s.Origin, r.Type)
-		description := r.Description
-		if poster != "" {
-			description = `<p><img src="` + escaped(poster) + `" alt="` + escaped(r.Title) + `" width="1200" height="630" /></p><p>` + escaped(r.Description) + `</p>`
-			fmt.Fprintf(&b, `<media:thumbnail url="%s" width="1200" height="630"/><media:content url="%s" medium="image" type="image/png" width="1200" height="630"/>`, escaped(poster), escaped(poster))
-		}
+		cover := escaped(rssCoverURL(s.Origin, r))
+		description := `<p><img src="` + cover + `" alt="` + escaped(r.Title) + `" /></p><p>` + escaped(r.Description) + `</p>`
+		fmt.Fprintf(&b, `<media:thumbnail url="%s"/><media:content url="%s" medium="image"/>`, cover, cover)
 		b.WriteString("<description>" + escaped(description) + "</description>")
 		for _, tag := range r.Tags {
 			b.WriteString("<category>" + escaped(tag) + "</category>")
@@ -654,27 +651,4 @@ func rssItems(records []Record, kinds ...string) []Record {
 		items = items[:20]
 	}
 	return items
-}
-
-func rssTitle(r Record) string {
-	prefix := map[string]string{"article": "✒️", "share": "🔗", "repo": "🍵", "video": "🎬"}[r.Type]
-	if prefix == "" {
-		return r.Title
-	}
-	return prefix + " " + r.Title
-}
-
-func rssPosterURL(origin, kind string) string {
-	switch kind {
-	case "article", "share", "repo", "video":
-		return strings.TrimRight(origin, "/") + "/static/rss/" + kind + ".png?v=20261114-starlight"
-	}
-	return ""
-}
-
-func rssFeedTitle(r Record, kinds ...string) string {
-	if len(kinds) > 0 && kinds[0] == "article" {
-		return r.Title
-	}
-	return rssTitle(r)
 }

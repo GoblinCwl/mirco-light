@@ -42,9 +42,9 @@ func run() error {
 	ctx = taskconfig.With(ctx, config)
 	configFile := filepath.Join(filepath.Dir(directory), "events", "task-config.json")
 	reload := func() {
-		seconds, err := taskconfig.ReadObserver(configFile)
+		expression, err := taskconfig.ReadObserver(configFile)
 		if err == nil {
-			config.Reload(map[string]any{taskconfig.Key("container-observer"): seconds})
+			config.Reload(map[string]any{taskconfig.CronKey("container-observer"): expression})
 		} else if !errors.Is(err, os.ErrNotExist) {
 			slog.Warn("observer task configuration unavailable; retaining previous interval")
 		}
