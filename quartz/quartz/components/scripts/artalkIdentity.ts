@@ -7,7 +7,7 @@ export function readCachedArtalkIdentity() {
     const email = typeof user?.email === "string" ? user.email.trim().toLowerCase() : ""
     const name = [user?.name, user?.nick].find(value => typeof value === "string" && value.trim())?.trim() || ""
     if (email || name) return { email, name, admin: user.is_admin === true || (user.is_admin === undefined && user.isAdmin === true) }
-  } catch { /* Leave the avatar empty when Artalk has no readable local identity. */ }
+  } catch { /* Ignore an unreadable local identity. */ }
 }
 
 export function notifyArtalkIdentityChange() {

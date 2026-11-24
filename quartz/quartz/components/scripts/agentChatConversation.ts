@@ -91,19 +91,19 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
   }
   const refreshVisitorAvatar = async () => {
     const ticket = ++avatarCheck
-    const user = readCachedArtalkIdentity()
+    const identity = readCachedArtalkIdentity()
     const updateSlots = () => history.querySelectorAll<HTMLElement>(".agent-chat-visitor-avatar").forEach(fillVisitorAvatar)
-    if (!user) {
-      visitorAvatar = undefined
+    if (!identity) {
+      visitorAvatar = { source: identicon(user), seed: user }
       updateSlots()
       return
     }
-    let seed = user.name || "visitor"
+    let seed = identity.name || "visitor"
     let emailHashed = false
-    if (user.email && crypto.subtle) {
+    if (identity.email && crypto.subtle) {
       try {
         // Artalk hashes lowercase email addresses with SHA-256.
-        const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(user.email))
+        const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(identity.email))
         seed = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, "0")).join("")
         emailHashed = true
       } catch { /* Generate a local avatar if hashing is unavailable. */ }
@@ -113,7 +113,7 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
       visitorAvatar = undefined
       updateSlots()
     }
-    const source = emailHashed ? await resolveCommentAvatar(seed, user.admin) : identicon(seed)
+    const source = emailHashed ? await resolveCommentAvatar(seed, identity.admin) : identicon(seed)
     if (ticket !== avatarCheck || signal.aborted) return
     visitorAvatar = { source, seed }
     updateSlots()
@@ -205,9 +205,8 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     if (remaining === undefined) quota.removeAttribute("aria-valuenow")
     else quota.setAttribute("aria-valuenow", String(percentage))
     const label = remaining === undefined ? "剩余对话次数暂不可用" : `今日剩余 ${remaining} / ${limit} 次对话`
-    const tooltip = remaining === 0 ? label + "，北京时间零点恢复" : label
-    quotaTooltip.textContent = tooltip
-    quota.setAttribute("aria-valuetext", tooltip)
+    quotaTooltip.textContent = label
+    quota.setAttribute("aria-valuetext", label)
     refreshSend()
   }
   const refreshQuota = async () => {

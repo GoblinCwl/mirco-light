@@ -122,20 +122,26 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
         yield processOgImage(ctx, vfile.data, fonts, fullOptions)
       }
     },
-    async *partialEmit(ctx, _content, _resources, changeEvents) {
+    async *partialEmit(ctx, content, _resources, changeEvents) {
+      const changed = new Set(
+        changeEvents
+          .filter(event => event.file && (event.type === "add" || event.type === "change"))
+          .map(event => event.file!.data.relativePath),
+      )
+      // Change events also contain unpublished notes. Only emit for filtered content.
+      const images = content.filter(([, file]) =>
+        changed.has(file.data.relativePath) && file.data.frontmatter?.socialImage === undefined,
+      )
+      if (images.length === 0) return
+
       const cfg = ctx.cfg.configuration
       const headerFont = cfg.theme.typography.header
       const bodyFont = cfg.theme.typography.body
       const fonts = await getSatoriFonts(headerFont, bodyFont)
       fonts.push({name:"Droid Sans Fallback",data:await fs.readFile(joinSegments(QUARTZ,"util","fonts","DroidSansFallbackFull.ttf")),weight:400,style:"normal"})
 
-      // find all slugs that changed or were added
-      for (const changeEvent of changeEvents) {
-        if (!changeEvent.file) continue
-        if (changeEvent.file.data.frontmatter?.socialImage !== undefined) continue
-        if (changeEvent.type === "add" || changeEvent.type === "change") {
-          yield processOgImage(ctx, changeEvent.file.data, fonts, fullOptions)
-        }
+      for (const [, file] of images) {
+        yield processOgImage(ctx, file.data, fonts, fullOptions)
       }
     },
     externalResources: (ctx) => {

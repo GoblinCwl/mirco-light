@@ -30,6 +30,9 @@ func TestReviewTemplateEscapesContent(t *testing.T) {
 		if strings.Contains(body, `href="https://goblincwl.site/friends/?card=%23023"`) != accepted {
 			t.Fatal("approval link does not match the friend card")
 		}
+		if !strings.Contains(body, `align="right" style="padding:24px 30px 30px;text-align:right"><a class="mail-button mail-friend-button"`) {
+			t.Fatal("review action is not right-aligned")
+		}
 		if strings.Contains(body, `class="mail-approved-site"`) != accepted {
 			t.Fatal("approved site card has incorrect visibility")
 		}

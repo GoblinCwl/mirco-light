@@ -119,9 +119,9 @@ func Render(m Message, origin string) (string, string, error) {
 	var b bytes.Buffer
 	err := selected.Execute(&b, struct {
 		Name, Heading, Reason, SiteURL, FriendsURL, CardNumber string
-		Domain, Avatar, Description, Initial                   string
+		Domain, Avatar, Description, Initial, Kind             string
 		Accepted                                               bool
-	}{m.Name, heading, m.Reason, origin, action, cardNumber, domain, avatar, m.FriendDescription, initial, m.Accepted})
+	}{m.Name, heading, m.Reason, origin, action, cardNumber, domain, avatar, m.FriendDescription, initial, m.Kind, m.Accepted})
 	category := "友链审核"
 	if m.Kind == "feedback" {
 		category = "问题反馈"
