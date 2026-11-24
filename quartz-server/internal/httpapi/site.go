@@ -153,7 +153,7 @@ func (s *Server) site(mux *http.ServeMux) {
 				return
 			}
 			JSON(w, 200, value)
-		case strings.HasPrefix(path, "/admin/data/friends"), strings.HasPrefix(path, "/admin/data/feedback"), path == "/friends", strings.HasPrefix(path, "/friends/avatar/"), path == "/friends/apply", path == "/feedback":
+		case strings.HasPrefix(path, "/admin/data/friends"), strings.HasPrefix(path, "/admin/data/feedback"), path == "/friends", strings.HasPrefix(path, "/friends/avatar/"), path == "/friends/apply", path == "/friends/articles", path == "/feedback":
 			s.siteCommunity(w, r, path, feedbackLimits)
 		case strings.HasPrefix(path, "/admin/services"), strings.HasPrefix(path, "/admin/service-credentials"):
 			s.siteServices(w, r, path)

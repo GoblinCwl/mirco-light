@@ -160,6 +160,19 @@ CREATE TABLE `friends` (
   CONSTRAINT `friends_status` CHECK ((`status` in (_utf8mb4'展示中',_utf8mb4'待审核',_utf8mb4'已失效')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='友链资料、固定编号及审核状态';
 
+CREATE TABLE IF NOT EXISTS friend_articles (
+  friend_id varchar(80) NOT NULL,
+  url_hash binary(32) NOT NULL COMMENT 'SHA-256 of feed entry ID, or article URL when absent',
+  title varchar(500) NOT NULL,
+  url varchar(1500) NOT NULL,
+  published_at char(24) NOT NULL,
+  cover varchar(1500) NOT NULL DEFAULT '',
+  guid varchar(1500) NOT NULL DEFAULT '',
+  PRIMARY KEY (friend_id,url_hash),
+  KEY friend_articles_recent (published_at DESC,friend_id,url_hash),
+  CONSTRAINT friend_articles_friend FOREIGN KEY (friend_id) REFERENCES friends(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
 CREATE TABLE `geoip_datasets` (
   `ip_version` tinyint unsigned NOT NULL COMMENT 'IP åè®®ç‰ˆæœ¬ï¼Œ4 æˆ– 6',
   `compression` varchar(8) COLLATE utf8mb4_bin NOT NULL COMMENT 'æ•°æ®åŽ‹ç¼©æ ¼å¼ï¼Œç›®å‰ä¸º gzip',

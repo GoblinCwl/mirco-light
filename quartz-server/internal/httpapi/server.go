@@ -61,6 +61,7 @@ func (s *Server) Handler() http.Handler {
 	s.jellyfin(mux)
 	mux.HandleFunc("GET /index.xml", s.rss)
 	mux.HandleFunc("GET /articles.xml", s.rss)
+	mux.HandleFunc("GET /friends.xml", s.friendRSS)
 	routed := s.gateway(mux)
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { JSON(w, 200, map[string]any{"ok": true}) })
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {

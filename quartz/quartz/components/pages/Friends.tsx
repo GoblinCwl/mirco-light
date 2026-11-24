@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact'
 import { QuartzComponent, QuartzComponentConstructor } from '../types'
 import style from '../styles/friends.scss'
 import homeConfig from '../../home/config'
@@ -10,6 +11,24 @@ const Friends: QuartzComponent = () => <section class="friends-page" data-friend
 Friends.css = style
 Friends.afterDOMLoaded = script
 export default (() => Friends) satisfies QuartzComponentConstructor
+
+const friendFieldIcons = {
+  email: 'M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm-1 2 9 6 9-6',
+  name: 'M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3 5h10M7 14h6',
+  description: 'M5 5h14M5 10h14M5 15h14M5 20h8',
+  website: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM2 12h20M12 2a16 16 0 0 1 0 20 16 16 0 0 1 0-20Z',
+  avatar: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm10 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM6 21v-2a6 6 0 0 1 12 0v2',
+  rss: 'M4 4a16 16 0 0 1 16 16M4 11a9 9 0 0 1 9 9m-7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z',
+  backlink: 'M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l2-2',
+}
+
+const FriendField = ({ icon, required, children }: { icon: keyof typeof friendFieldIcons; required?: boolean; children: ComponentChildren }) => (
+  <div class="friends-form-field">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={friendFieldIcons[icon]}/></svg>
+    {required && <span class="friends-required" aria-hidden="true">*</span>}
+    {children}
+  </div>
+)
 
 export const FriendsApply: QuartzComponent = ({ cfg }) => {
   const origin = `https://${cfg.baseUrl || 'goblincwl.site'}`
@@ -27,15 +46,24 @@ export const FriendsApply: QuartzComponent = ({ cfg }) => {
     </section>
     <section class="friends-sidebar-group" aria-label="申请友链">
       <form class="friends-form-fields" data-friends-apply-form noValidate>
-        <label class="friends-form-field"><span>通知邮箱</span><input name="email" type="email" inputMode="email" autoComplete="email" maxLength={254} placeholder="用于接收审核结果，不会公开"/></label>
-        <label class="friends-form-field"><span>网站名称<i class="friends-required" aria-hidden="true">*</i></span><input name="name" required placeholder="你的站点名称" maxLength={80}/></label>
-        <label class="friends-form-field"><span>网站简介<i class="friends-required" aria-hidden="true">*</i><output data-friends-description-count aria-live="polite">0 / 40</output></span><textarea name="description" required rows={3} placeholder="简单介绍一下你的网站（最多40字）" maxLength={80} data-friends-description aria-label="网站简介，最多40个字符"/></label>
-        <label class="friends-form-field"><span>网站地址<i class="friends-required" aria-hidden="true">*</i></span><input name="url" required type="url" inputMode="url" placeholder="https://" spellcheck={false}/></label>
-        <label class="friends-form-field"><span>头像地址<i class="friends-required" aria-hidden="true">*</i></span><input name="avatar" required type="url" inputMode="url" placeholder="https://…（头像图片链接）" spellcheck={false}/></label>
-        <label class="friends-form-field"><span>RSS 地址（排序依据，无RSS会排到末尾）</span><input name="rssUrl" type="url" inputMode="url" placeholder="https://example.com/feed.xml" maxLength={1500} spellcheck={false}/></label>
-        <label class="friends-form-field"><span>包含本站友链的页面<i class="friends-required" aria-hidden="true">*</i></span><input name="backlinkUrl" type="url" inputMode="url" placeholder="https://example.com/friends" required maxLength={1500} spellcheck={false}/></label>
+        <FriendField icon="email"><input name="email" type="email" inputMode="email" autoComplete="email" maxLength={254} aria-label="通知邮箱" placeholder="通知邮箱 · 接收审核结果"/></FriendField>
+        <FriendField icon="name" required><input name="name" required aria-label="网站名称" placeholder="网站名称" maxLength={80}/></FriendField>
+        <FriendField icon="description" required>
+          <textarea name="description" required rows={2} placeholder="网站简介" maxLength={80} data-friends-description aria-label="网站简介，最多40个字符"/>
+          <output data-friends-description-count aria-live="polite">0 / 40</output>
+        </FriendField>
+        <FriendField icon="website" required><input name="url" required type="url" inputMode="url" aria-label="网站地址" placeholder="网站地址" spellcheck={false}/></FriendField>
+        <FriendField icon="avatar" required><input name="avatar" required type="url" inputMode="url" aria-label="头像地址" placeholder="头像地址" spellcheck={false}/></FriendField>
+        <FriendField icon="rss"><input name="rssUrl" type="url" inputMode="url" aria-label="RSS 地址" placeholder="RSS 地址 · 排序依据" maxLength={1500} spellcheck={false}/></FriendField>
+        <FriendField icon="backlink" required><input name="backlinkUrl" type="url" inputMode="url" aria-label="包含本站友链的页面" placeholder="包含本站友链的页面" required maxLength={1500} spellcheck={false}/></FriendField>
         <button class="friends-form-submit" type="submit" data-friends-apply disabled title="生成申请卡片预览"><span>申请友链</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 3-7 18-4-7-7-4 18-7ZM10 14 21 3"/></svg></button>
       </form>
+    </section>
+    <section class="friends-sidebar-group friends-articles platform-activity-module" aria-label="友链动态">
+      <ul id="friends-articles-list" class="friends-articles-list" data-friends-articles aria-busy="true">
+        <li class="friends-articles-status">正在读取友链动态…</li>
+      </ul>
+      <button type="button" class="platform-activity-toggle" data-friends-articles-more aria-controls="friends-articles-list" hidden><span>展开更多</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
     </section>
     </dialog>
     <dialog id="friends-site-info" class="friends-confirm friends-info-dialog" data-friends-info-dialog tabIndex={-1} aria-labelledby="friends-info-heading">

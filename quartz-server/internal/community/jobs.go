@@ -203,25 +203,8 @@ func (s Store) processFriendJob(ctx context.Context, id string, manualApproval b
 	}
 	if friend.RSSURL != "" {
 		taskruns.Note(ctx, "初始化 RSS："+friend.Name)
-	}
-	if friend.RSSURL != "" {
-		own, cancel := context.WithTimeout(ctx, 30*time.Second)
-		read := s.ReadFeed
-		if read == nil {
-			read = func(ctx context.Context, address string) (time.Time, error) { return LatestFeedDate(ctx, address, nil) }
-		}
-		stamp, feedErr := read(own, friend.RSSURL)
-		cancel()
-		if feedErr == nil && stamp.IsZero() {
-			feedErr = errors.New("RSS 没有有效文章时间")
-		}
-		if feedErr != nil {
+		if _, feedErr := s.refreshFriendFeed(ctx, friend); feedErr != nil {
 			failures = append(failures, feedErr)
-		} else {
-			_, feedErr = s.DB.ExecContext(ctx, "UPDATE friends SET latest_update=? WHERE id=? AND rss_url=? AND status='待审核'", stamp.UTC().Format("2006-01-02T15:04:05.000Z"), id, friend.RSSURL)
-			if feedErr != nil {
-				failures = append(failures, feedErr)
-			}
 		}
 	}
 

@@ -1,6 +1,13 @@
 @use "sidebarPanel";
 @use "dockedButton";
 @use "../../styles/variables.scss" as *;
+
+@mixin friends-image-loading {
+ content:""; position:absolute; inset:0; pointer-events:none;
+ background:linear-gradient(105deg,transparent 20%,color-mix(in srgb,var(--secondary) 12%,transparent) 48%,transparent 76%);
+ animation:friends-avatar-loading 1.6s ease-in-out infinite;
+}
+
 body[data-slug="friends/index"] [data-friends-page] { margin-top:$topSpacing; @media all and ($mobile) { margin-top:0; } }
 html:has(:is(.friends-sidebar,.friends-confirm):modal),
 html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden; }
@@ -27,7 +34,7 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
   position:relative; display:grid; place-items:center; width:100%; height:100%; border-radius:2px; overflow:hidden; color:var(--letter-tint); background:color-mix(in srgb,var(--letter-tint) 9%,var(--light)); font-family:var(--headerFont); font-size:2.4rem; font-weight:500; line-height:1;
   >span { transition:opacity .25s ease; }
   img { position:absolute; inset:0; display:block; width:100%; height:100%; margin:0; object-fit:cover; background:var(--light); opacity:0; transition:opacity .3s ease; }
-  &.is-loading { >span { opacity:.25; } &::after { content:""; position:absolute; inset:0; background:linear-gradient(105deg,transparent 20%,color-mix(in srgb,var(--secondary) 12%,transparent) 48%,transparent 76%); animation:friends-avatar-loading 1.6s ease-in-out infinite; pointer-events:none; } }
+  &.is-loading { >span { opacity:.25; } &::after { @include friends-image-loading; } }
   &.is-loaded { >span { opacity:0; } img { opacity:1; } }
  }
  .friend-postmark { position:absolute; bottom:-2px; right:0; width:32px; height:32px; color:color-mix(in srgb,var(--secondary) 65%,var(--letter-tint)); opacity:.65; transform:rotate(var(--postmark-angle,-8deg)); pointer-events:none; transition:opacity .2s ease; svg { display:block; width:100%; height:100%; } }
@@ -105,10 +112,18 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
  position:static; border:0; background:transparent;
  --friends-control-bg:var(--moreLight);
  .friends-sidebar-group { @include sidebarPanel.group; position:relative; &:first-of-type { border-top:0; margin-top:0; padding-top:0; } }
- .friends-form-fields { display:grid; gap:.75rem; margin:0; min-width:0; }
- .friends-form-field { display:grid; gap:.35rem; min-width:0; font-size:.75rem; color:var(--darkgray); >span { display:flex; align-items:center; justify-content:space-between; gap:.5rem; font-weight:500; } output { color:var(--gray); font-size:.68rem; font-weight:400; font-variant-numeric:tabular-nums; } }
- input,textarea { box-sizing:border-box; width:100%; min-width:0; padding:.6rem .7rem; font-family:var(--bodyFont); font-size:.82rem; line-height:1.5; border:1px solid var(--lightgray); border-radius:5px; background:var(--friends-control-bg); color:var(--dark); box-shadow:none; &:focus { outline:2px solid var(--secondary); outline-offset:-2px; border-color:var(--secondary); } &::placeholder { color:color-mix(in srgb,var(--darkgray) 65%,var(--light)); opacity:1; font-weight:400; } }
- textarea { resize:none; height:5.2rem; min-height:5.2rem; max-height:5.2rem; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--lightgray) transparent; }
+ .friends-form-fields { display:grid; gap:.5rem; margin:0; min-width:0; }
+ .friends-form-field {
+  position:relative; min-width:0;
+  > :is(input,textarea) { display:block; padding-inline:2.15rem 1.45rem; }
+  > svg { position:absolute; inset:.6rem auto auto .7rem; width:1rem; height:1rem; color:var(--secondary); opacity:.75; pointer-events:none; }
+  &:focus-within > svg { opacity:1; }
+  .friends-required { position:absolute; inset:.5rem .65rem auto auto; color:#c75d5d; font-size:.8rem; line-height:1.25; pointer-events:none; }
+  > output { position:absolute; inset:auto .65rem .32rem auto; color:var(--darkgray); opacity:.75; font-size:.68rem; font-variant-numeric:tabular-nums; pointer-events:none; }
+  > textarea { height:4.1rem; padding-block-end:1.05rem; }
+ }
+ input,textarea { box-sizing:border-box; width:100%; min-width:0; padding:.45rem .7rem; font-family:var(--bodyFont); font-size:.82rem; line-height:1.5; border:1px solid var(--lightgray); border-radius:5px; background:var(--friends-control-bg); color:var(--dark); box-shadow:none; &:focus { outline:2px solid var(--secondary); outline-offset:-2px; border-color:var(--secondary); } &::placeholder { color:color-mix(in srgb,var(--darkgray) 65%,var(--light)); opacity:1; font-weight:400; } }
+ textarea { resize:none; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--lightgray) transparent; }
  .friends-site-copy {
   position:absolute; top:0; right:0; display:inline-flex; align-items:center; justify-content:center; gap:.3rem;
   box-sizing:border-box; min-height:1.65rem; margin:0; padding:.25rem .45rem;
@@ -126,7 +141,7 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
  button:focus-visible { outline:2px solid var(--secondary); outline-offset:3px; }
  &:focus { outline:none; }
  .friends-form-submit {
-  position:relative; display:flex; align-items:center; justify-content:center; justify-self:stretch; width:100%; min-height:2.5rem; box-sizing:border-box; margin-top:.15rem; padding:.55rem 2.4rem;
+  position:relative; display:flex; align-items:center; justify-content:center; justify-self:stretch; width:100%; min-height:2.3rem; box-sizing:border-box; margin-top:.15rem; padding:.4rem 2.4rem;
   border:1px solid color-mix(in srgb,var(--secondary) 45%,var(--lightgray)); border-radius:5px; background:color-mix(in srgb,var(--secondary) 9%,var(--moreLight)); color:var(--secondary);
   font-family:var(--bodyFont); font-size:.85rem; font-weight:600; line-height:1.5; text-align:center; cursor:pointer; transition:border-color .18s ease,background .18s ease;
   >span { display:block; }
@@ -135,6 +150,33 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
   &:disabled { opacity:.45; cursor:not-allowed; }
  }
  .friends-form-status { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+ .friends-articles-list { --friends-article-row-height:3.125rem; display:grid; gap:0; margin:0; padding:0; list-style:none; }
+ .friends-article {
+  box-sizing:border-box; block-size:var(--friends-article-row-height);
+  &[hidden] { display:none; }
+  & + .friends-article { border-top:1px solid color-mix(in srgb,var(--lightgray) 60%,transparent); }
+  > a { display:grid; grid-template-columns:3rem minmax(0,1fr); align-items:center; gap:.55rem; height:100%; }
+  > a:hover .friends-article-title { text-decoration:underline; }
+ }
+ .friends-article-cover {
+  position:relative; display:grid; place-items:center; width:3rem; aspect-ratio:4/3; overflow:hidden;
+  border-radius:4px; color:var(--secondary); background:var(--highlight);
+  > svg { width:.95rem; height:.95rem; opacity:.6; }
+  > img { position:absolute; inset:0; width:100%; height:100%; margin:0; border-radius:0; object-fit:cover; opacity:0; transition:opacity .3s ease; }
+  &.is-loading { > svg { opacity:.25; } &::after { @include friends-image-loading; } }
+  &.is-loaded { > svg { opacity:0; } > img { opacity:1; } }
+ }
+ .friends-article-text { display:grid; gap:.12rem; }
+ .friends-article-title,.friends-article-meta { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+ .friends-article-title { color:var(--secondary); font-size:.82rem; line-height:1.4; font-weight:500; }
+ .friends-article-meta { color:var(--darkgray); opacity:.72; font-size:.72rem; }
+ .friends-articles-status { padding:.35rem 0; color:var(--darkgray); opacity:.75; font-size:.78rem; }
+}
+@media(min-width:1200px) {
+ body[data-slug="friends/index"] #quartz-body > .sidebar.right:has(.friends-tools) {
+  position:static; height:auto;
+ }
+ .friends-sidebar { max-height:none; overflow:visible; }
 }
 @media(max-width:1199px) {
  body[data-slug="friends/index"] #quartz-body > .sidebar.right:has(.friends-tools) { display:contents; }
@@ -146,8 +188,8 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
   height:auto; max-height:calc(100dvh - env(safe-area-inset-top) - .5rem); margin:0 auto;
   padding:.8rem clamp(.9rem,4vw,1.4rem) calc(.8rem + env(safe-area-inset-bottom));
   border:1px solid var(--lightgray); border-bottom:0; border-radius:16px 16px 0 0; background:var(--light); overflow-y:auto; overscroll-behavior:contain;
-  scroll-padding-block:3rem 1rem; scrollbar-gutter:auto;
-  .friends-form-fields { gap:.6rem; }
+  scroll-padding-block:3rem 1rem; scrollbar-gutter:auto; scrollbar-width:none;
+  .friends-articles { display:none; }
   .friends-sidebar-group:last-child { padding-bottom:0; }
   &::backdrop { background:rgb(0 0 0 / 28%); }
   &[open]:not(:modal) { display:none; }
@@ -185,6 +227,7 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
 @keyframes friends-avatar-loading { from { transform:translateX(-100%); } to { transform:translateX(100%); } }
 @media(prefers-reduced-motion:reduce) {
  .friends-page .friend-letter-avatar { img,>span { transition:none; } &.is-loading::after { animation:none; opacity:.5; } }
+ .friends-sidebar .friends-article-cover { > img { transition:none; } &.is-loading::after { animation:none; opacity:.5; } }
 }
 
 // Clip only the decorative sky. Cards, speech bubbles and the title rope stay free.
@@ -311,5 +354,3 @@ html:has(:is(.friends-sidebar,.friends-confirm):modal) body { overflow-y:hidden;
   >button {position:absolute;top:.35rem;right:.35rem;display:grid;place-items:center;width:1.9rem;height:1.9rem;padding:.35rem;border:0;border-radius:4px;background:transparent;color:var(--gray);cursor:pointer;>svg {display:block;width:1.05rem;height:1.05rem;} &:hover {color:var(--secondary);background:var(--highlight);} &:focus-visible {outline:2px solid var(--secondary);outline-offset:1px;}}
  }
 }
-
-.friends-sidebar .friends-form-field > span { justify-content:flex-start; .friends-required { color:#c75d5d; font-style:normal; margin-left:-.3rem; } output { margin-left:auto; } }

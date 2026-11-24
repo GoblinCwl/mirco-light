@@ -375,6 +375,9 @@ func (s Store) UpdateFriend(ctx context.Context, id string, f Friend, action str
 			return nil, errors.New("该站点链接已经存在")
 		}
 		_, err = tx.ExecContext(ctx, "UPDATE friends SET verified=IF(?,0,verified),name=?,url=?,backlink_url=?,rss_url=?,avatar=?,avatar_source=?,latest_update=?,description=?,status=?,review_result=?,review_checked_at=?,health_failures=?,health_checked_on=?,health_error=? WHERE id=?", f.Status != friendsBeforeStatus, f.Name, f.URL, f.BacklinkURL, f.RSSURL, f.Avatar, f.AvatarSource, f.LatestUpdate, f.Description, f.Status, f.ReviewResult, f.ReviewCheckedAt, f.HealthFailures, f.HealthCheckedOn, f.HealthError, id)
+		if err == nil && f.RSSURL != friends[index].RSSURL {
+			_, err = tx.ExecContext(ctx, `DELETE FROM friend_articles WHERE friend_id=?`, id)
+		}
 	default:
 		return nil, errors.New("操作无效")
 	}

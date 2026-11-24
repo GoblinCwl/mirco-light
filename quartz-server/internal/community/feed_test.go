@@ -1,9 +1,52 @@
 package community
 
 import (
+	"net/url"
 	"testing"
 	"time"
 )
+
+func TestFriendFeedArticlesSelectPublishedLinks(t *testing.T) {
+	base, err := url.Parse("https://friend.example/blog/feed.xml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	feed, err := parseFeed([]byte(`<feed xmlns="http://www.w3.org/2005/Atom">
+	  <entry><title>Edited older article</title><link href="old"/><published>2026-11-20T00:00:00Z</published><updated>2026-11-24T00:00:00Z</updated></entry>
+	  <entry><title>New &amp; published</title><link rel="self" href="/entry.xml"/><link rel="alternate" href="/new"/><published>2026-11-22T00:00:00Z</published></entry>
+	  <entry><title>Duplicated article</title><link href="/new"/><updated>2026-11-21T00:00:00Z</updated></entry>
+	  <entry><title>No usable link</title><link href="javascript:alert(1)"/><published>2026-11-23T00:00:00Z</published></entry>
+	</feed>`), base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(feed.articles) != 2 || feed.articles[0].Title != "New & published" || feed.articles[0].URL != "https://friend.example/new" ||
+		feed.articles[1].URL != "https://friend.example/blog/old" || feed.articles[1].PublishedAt.Day() != 20 || feed.latest.Day() != 24 {
+		t.Fatal(feed)
+	}
+}
+
+func TestFriendFeedIdentityAndCover(t *testing.T) {
+	base, err := url.Parse("https://friend.example/feed.xml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	feeds := []string{
+		`<rss xmlns:media="http://search.yahoo.com/mrss/"><channel><item><guid isPermaLink="false">article-42</guid><link>/old/</link><title>Old title</title><pubDate>2026-11-20</pubDate><media:thumbnail url="cover.jpg"/></item></channel></rss>`,
+		`<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>article-42</id><link href="/new/"/><title>New title</title><published>2026-11-24</published><summary type="html">&lt;img src="thumbnail.webp"&gt;</summary></entry></feed>`,
+	}
+	for i, source := range feeds {
+		feed, err := parseFeed([]byte(source), base)
+		if err != nil || len(feed.articles) != 1 {
+			t.Fatal(feed, err)
+		}
+		item := feed.articles[0]
+		wantCover := []string{"https://friend.example/old/cover.jpg", "https://friend.example/new/thumbnail.webp"}[i]
+		if item.entryID != "article-42" || item.Cover != wantCover || item.PublishedAt.Day() != []int{20, 24}[i] {
+			t.Fatal(item)
+		}
+	}
+}
 
 func TestFeedArticleDates(t *testing.T) {
 	cases := []struct{ feed, want string }{

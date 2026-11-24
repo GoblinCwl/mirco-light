@@ -46,6 +46,30 @@ func (s *Server) siteCommunity(w http.ResponseWriter, r *http.Request, path stri
 			return
 		}
 		JSON(w, 200, map[string]any{"friends": value})
+	case path == "/friends/articles" && r.Method == "GET":
+		limit, offset := 5, 0
+		if raw := r.URL.Query().Get("limit"); raw != "" {
+			value, err := strconv.Atoi(raw)
+			if err != nil || value < 1 || value > 60 {
+				JSON(w, 400, map[string]string{"error": "友链文章每页数量无效"})
+				return
+			}
+			limit = value
+		}
+		if raw := r.URL.Query().Get("offset"); raw != "" {
+			value, err := strconv.Atoi(raw)
+			if err != nil || value < 0 || value > 3000 {
+				JSON(w, 400, map[string]string{"error": "友链文章起始位置无效"})
+				return
+			}
+			offset = value
+		}
+		value, err := communityStore.FriendArticlePage(r.Context(), limit+1, offset)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		JSON(w, 200, map[string]any{"articles": value[:min(limit, len(value))], "hasMore": len(value) > limit})
 	case path == "/friends/apply" && r.Method == "POST":
 		if !feedbackLimits.allow("friends:" + clientIP(r)) {
 			JSON(w, 429, map[string]string{"error": "提交较为频繁，请 10 分钟后再试"})
@@ -92,8 +116,8 @@ func (s *Server) siteCommunity(w http.ResponseWriter, r *http.Request, path stri
 			s.fail(w, err)
 			return
 		}
-		input.Status="待审核"
-        _, value, err := communityStore.CreateFriend(r.Context(), input, false)
+		input.Status = "待审核"
+		_, value, err := communityStore.CreateFriend(r.Context(), input, false)
 		if err != nil {
 			s.fail(w, err)
 			return
@@ -140,11 +164,20 @@ func (s *Server) siteCommunity(w http.ResponseWriter, r *http.Request, path stri
 			return
 		}
 		if action == "manual-approval" && r.Method == "PUT" {
- if err:=communityStore.EnqueueManualFriendApproval(r.Context(),parts[0]);err!=nil{s.fail(w,err);return}
- s.wakeFriendJobs()
- value,err:=communityStore.Friends(r.Context(),false);if err!=nil{s.fail(w,err);return};JSON(w,200,map[string]any{"friends":value,"queued":true});return
- }
- if action == "auto-review" && r.Method == "PUT" {
+			if err := communityStore.EnqueueManualFriendApproval(r.Context(), parts[0]); err != nil {
+				s.fail(w, err)
+				return
+			}
+			s.wakeFriendJobs()
+			value, err := communityStore.Friends(r.Context(), false)
+			if err != nil {
+				s.fail(w, err)
+				return
+			}
+			JSON(w, 200, map[string]any{"friends": value, "queued": true})
+			return
+		}
+		if action == "auto-review" && r.Method == "PUT" {
 			if err := communityStore.EnqueueFriendReview(r.Context(), parts[0]); err != nil {
 				s.fail(w, err)
 				return

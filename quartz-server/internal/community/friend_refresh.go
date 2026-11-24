@@ -97,30 +97,11 @@ func (s Store) refreshFriends(ctx context.Context, friends []Friend) (RefreshRes
 		}
 		if friend.RSSURL != "" {
 			taskruns.Note(ctx, "刷新 RSS："+friend.Name)
-			own, cancel := context.WithTimeout(ctx, 30*time.Second)
-			read := s.ReadFeed
-			if read == nil {
-				read = func(ctx context.Context, address string) (time.Time, error) { return LatestFeedDate(ctx, address, nil) }
-			}
-			stamp, err := read(own, friend.RSSURL)
-			cancel()
-			if err == nil && stamp.IsZero() {
-				err = errors.New("RSS 没有有效文章时间")
-			}
-			if err == nil {
-				latest := stamp.UTC().Format("2006-01-02T15:04:05.000Z")
-				if latest != friend.LatestUpdate {
-					mutation, e := s.DB.ExecContext(ctx, "UPDATE friends SET latest_update=? WHERE id=? AND rss_url=? AND latest_update=? AND health_failures=0 AND status<>'已失效'", latest, friend.ID, friend.RSSURL, friend.LatestUpdate)
-					err = e
-					if e == nil {
-						count, e := mutation.RowsAffected()
-						err = e
-						result.Feeds += int(count)
-					}
-				}
-			}
+			changed, err := s.refreshFriendFeed(ctx, friend)
 			if err != nil {
 				taskruns.Note(ctx, fmt.Sprintf("%s RSS 刷新失败，保留已有数据：%s", friend.Name, taskruns.Clean(err.Error(), 240)))
+			} else if changed {
+				result.Feeds++
 			}
 		}
 	}

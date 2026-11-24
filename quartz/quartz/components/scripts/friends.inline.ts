@@ -86,6 +86,103 @@ document.addEventListener('nav', () => {
   const target=infoDialog?.matches(':modal')?infoDialog:confirmation?.matches(':modal')?confirmation:sidebar?.matches(':modal')?sidebar:document.body
   if(toast)target.append(toast)
  }
+ const articleList=sidebar?.querySelector<HTMLUListElement>('[data-friends-articles]')
+ const articleMore=sidebar?.querySelector<HTMLButtonElement>('[data-friends-articles-more]')
+ if(articleList&&articleMore){
+  const articleDate=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',month:'numeric',day:'numeric'})
+  type Article={title:string;url:string;source:string;publishedAt:string;cover?:string;sourceAvatar?:string}
+  const status=articleList.querySelector<HTMLElement>('.friends-articles-status')!
+  const moreLabel=articleMore.querySelector('span')!
+  const rows:HTMLLIElement[]=[]
+  const seen=new Set<string>()
+  let offset=0,visibleCount=0,hasMore=true,expanded=false,busy=false,failed=false,frame=0
+  const viewportHeight=()=>window.visualViewport?.height||window.innerHeight
+  const fullRows=(height:number)=>{
+   const rem=parseFloat(getComputedStyle(document.documentElement).fontSize)
+   const rowRem=parseFloat(getComputedStyle(articleList).getPropertyValue('--friends-article-row-height'))
+   return Math.max(1,Math.floor(height/(rowRem*rem)))
+  }
+  const renderArticle=(article:Article)=>{
+     const item=node('li','','friends-article'),link=node('a')
+     link.href=article.url;link.title=article.title;link.dataset.noPopover='true';link.dataset.externalLinkTitle=article.title
+     const cover=node('span','','friends-article-cover');cover.setAttribute('aria-hidden','true')
+     cover.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3q1.2 7.8 9 9-7.8 1.2-9 9-1.2-7.8-9-9 7.8-1.2 9-9Z"/></svg>'
+     const imageURL=article.cover||article.sourceAvatar
+     if(imageURL){
+      const image=node('img');image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.dataset.noLightbox='true'
+      cover.classList.add('is-loading')
+      image.addEventListener('load',()=>{cover.classList.remove('is-loading');cover.classList.add('is-loaded')},{once:true,signal})
+      image.onerror=()=>{
+       if(article.sourceAvatar&&image.getAttribute('src')!==article.sourceAvatar)image.src=article.sourceAvatar
+       else{cover.classList.remove('is-loading');image.remove()}
+      }
+      image.src=imageURL;cover.append(image)
+     }
+     const text=node('span','','friends-article-text'),title=node('span',article.title,'friends-article-title')
+     const source=node('span',article.source+' · ','friends-article-meta'),date=node('time',articleDate.format(new Date(article.publishedAt)))
+     date.dateTime=article.publishedAt;source.append(date);text.append(title,source);link.append(cover,text);item.append(link)
+     return item
+  }
+  const loadArticles=async()=>{
+   busy=true;articleMore.disabled=true;articleList.setAttribute('aria-busy','true')
+   try{
+    const limit=Math.min(60,visibleCount-rows.length)
+    const response=await fetch(`/api/site/friends/articles?limit=${limit}&offset=${offset}`,{signal})
+    if(!response.ok)throw new Error('读取失败')
+    const page=await response.json() as {articles:Article[];hasMore:boolean}
+    if(signal.aborted)return
+    offset+=page.articles.length;hasMore=page.hasMore&&page.articles.length>0
+    const batch=document.createDocumentFragment()
+    for(const article of page.articles){
+     const key=article.source+'\n'+article.url
+     if(seen.has(key))continue
+     seen.add(key)
+     const row=renderArticle(article);rows.push(row);batch.append(row)
+    }
+    articleList.append(batch)
+   }catch{
+    if(!signal.aborted)failed=true
+   }finally{
+    busy=false
+    if(!signal.aborted)updateArticles()
+   }
+  }
+  const updateArticles=()=>{
+   if(compact.matches||signal.aborted)return
+   const buttonHeight=parseFloat(getComputedStyle(articleMore).height)||36
+   if(!expanded){
+    const listTop=articleList.getBoundingClientRect().top+window.scrollY
+    visibleCount=fullRows(viewportHeight()-listTop-buttonHeight-24)
+   }
+   rows.forEach((row,index)=>{row.hidden=index>=visibleCount})
+   status.hidden=rows.length>0||failed
+   status.textContent=hasMore?'正在读取友链动态…':'暂无友链动态'
+   articleMore.hidden=!failed&&(!rows.length||(!hasMore&&rows.length<=visibleCount))
+   articleMore.disabled=busy
+   moreLabel.textContent=failed?'读取失败，点击重试':'展开更多'
+   articleList.setAttribute('aria-busy',String(busy))
+   if(hasMore&&rows.length<visibleCount&&!busy&&!failed)void loadArticles()
+  }
+  const scheduleArticles=()=>{
+   if(!frame)frame=requestAnimationFrame(()=>{frame=0;updateArticles()})
+  }
+  articleMore.addEventListener('click',()=>{
+   if(failed)failed=false
+   else{
+    expanded=true
+    visibleCount=Math.min(visibleCount,rows.length)+fullRows(viewportHeight()/2)
+   }
+   updateArticles()
+  },{signal})
+  window.addEventListener('resize',scheduleArticles,{signal})
+  window.visualViewport?.addEventListener('resize',scheduleArticles,{signal})
+  compact.addEventListener('change',scheduleArticles,{signal})
+  const form=sidebar?.querySelector('[data-friends-apply-form]')
+  const resize=new ResizeObserver(scheduleArticles)
+  if(form)resize.observe(form)
+  signal.addEventListener('abort',()=>{resize.disconnect();cancelAnimationFrame(frame)},{once:true})
+  scheduleArticles()
+ }
  for(const dialog of [sidebar,confirmation,infoDialog])dialog?.addEventListener('close',()=>{
   const toast=dialog.querySelector('.decrypt-toast');if(toast){toast.classList.remove('visible');document.body.append(toast)}
  },{signal})
