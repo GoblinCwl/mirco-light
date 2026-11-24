@@ -33,6 +33,9 @@ func (s *Server) siteData(w http.ResponseWriter, r *http.Request, path string) {
 			}
 		}
 		manager := datamanager.Manager{DB: s.DB}
+		if s.Visitors != nil {
+			manager.IPIdentity = s.Visitors.IPIdentity
+		}
 
 		if len(parts) == 2 && r.Method == "GET" {
 			data, mime, err := manager.Blob(r.Context(), parts[0], key, r.URL.Query().Get("column"))

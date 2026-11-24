@@ -1,4 +1,4 @@
-import {library,runtime} from './repoMarkdown'
+import {library,runtime} from './markdownRuntime'
 
 /** Shared code layout and highlighting for repository pages and hover previews. */
 export async function repoCode(host:HTMLElement,text:string,path:string,signal:AbortSignal) {

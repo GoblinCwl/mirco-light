@@ -1,3 +1,4 @@
+import { artalkUserStorageKey, notifyArtalkIdentityChange } from "./artalkIdentity"
 import { readSiteSession } from "./siteSession"
 import { showPasswordToast } from "./passwordFeedback"
 
@@ -41,7 +42,8 @@ function clearLinkedLogin(unlock = true) {
     const input = current?.getEl?.().querySelector<HTMLInputElement>(`.atk-main-editor input[name="${name}"]`)
     if (input) input.value = ""
   }
-  localStorage.removeItem("ArtalkUser")
+  localStorage.removeItem(artalkUserStorageKey)
+  notifyArtalkIdentityChange()
 }
 
 // All native administrator checks use this singleton, including API retries

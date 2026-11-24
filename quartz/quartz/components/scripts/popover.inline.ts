@@ -6,6 +6,7 @@ import { computePosition, flip, inline, shift } from "@floating-ui/dom"
 import { normalizeRelativeURLs } from "../../util/path"
 import { fetchCanonical } from "./util"
 import { driveHoverAllowed, driveHoverContent } from "./driveHover"
+import { hideHoverPanel, showHoverPanel } from "./hoverPanel"
 
 function previewLoading() {
   const loading=document.createElement('div');loading.className='hover-preview-loading';loading.setAttribute('role','status')
@@ -37,7 +38,7 @@ async function showDriveHover(link:HTMLAnchorElement,event:{clientX:number;clien
       const {x,y}=await computePosition(link,popover,{strategy:'fixed',middleware:[inline({x:event.clientX,y:event.clientY}),shift({padding:8}),flip()]})
       if(!request.signal.aborted)popover.style.transform=`translate(${x.toFixed()}px,${y.toFixed()}px)`
     }
-    inner.append(previewLoading());(link.closest("dialog[open]")||document.body).append(popover);void position()
+    inner.append(previewLoading());showHoverPanel(popover,link);void position()
     const cancel=()=>popover.remove();request.signal.addEventListener('abort',cancel,{once:true})
     try{
       const url=new URL(link.href),label=link.textContent?.trim()||link.getAttribute('aria-label')||''
@@ -93,25 +94,28 @@ async function mouseEnterHandler(
     })
   }
 
-  function showPopover(popoverElement: HTMLElement) {
-    const host=link.closest("dialog[open]")||document.body
-    if(popoverElement.parentElement!==host)host.append(popoverElement)
-    document.querySelectorAll('.active-popover').forEach(node=>node.classList.remove('active-popover'))
-    popoverElement.classList.add("active-popover")
-    setPosition(popoverElement as HTMLElement)
-
+  function scrollToHeading(popoverElement: HTMLElement) {
     if (hash !== "") {
-      const targetAnchor = `#popover-internal-${hash.slice(1)}`
-      const heading = popoverInner.querySelector(targetAnchor) as HTMLElement | null
-      if (heading) {
+      const inner = popoverElement.querySelector<HTMLElement>(".popover-inner")
+      const heading = inner?.querySelector<HTMLElement>(`#${CSS.escape("popover-internal-" + hash.slice(1))}`)
+      if (inner && heading) {
         // leave ~12px of buffer when scrolling to a heading
-        popoverInner.scroll({ top: heading.offsetTop - 12, behavior: "instant" })
+        inner.scroll({ top: heading.offsetTop - 12, behavior: "instant" })
       }
     }
   }
 
+  function showPopover(popoverElement: HTMLElement) {
+    document.querySelectorAll('.active-popover').forEach(node=>node.classList.remove('active-popover'))
+    popoverElement.classList.add("active-popover")
+    showHoverPanel(popoverElement, link)
+    void setPosition(popoverElement)
+    scrollToHeading(popoverElement)
+  }
+
   const targetUrl = new URL(link.href)
-  const hash = decodeURIComponent(targetUrl.hash)
+  let hash = targetUrl.hash
+  try { hash = decodeURIComponent(hash) } catch { /* Keep a malformed fragment literal. */ }
   targetUrl.hash = ""
   targetUrl.search = ""
   const popoverId = `popover-${link.pathname}`
@@ -131,12 +135,11 @@ async function mouseEnterHandler(
   popoverInner.classList.add("popover-inner")
   popoverInner.append(previewLoading())
   popoverElement.appendChild(popoverInner)
-  ;(link.closest("dialog[open]")||document.body).append(popoverElement)
   showPopover(popoverElement)
   const cancel=()=>popoverElement.remove()
   request.signal.addEventListener("abort",cancel,{once:true})
   const response = await fetchCanonical(targetUrl,{signal:request.signal}).catch(()=>undefined)
-  if (!response || request.signal.aborted || activeAnchor!==link) {popoverElement.remove();return}
+  if (!response?.ok || request.signal.aborted || activeAnchor!==link) {popoverElement.remove();return}
   const contentType=response.headers.get("Content-Type") || "text/html"
   const [contentTypeCategory, typeInfo]=contentType.split(";")[0].split("/")
   popoverInner.dataset.contentType=contentType
@@ -179,6 +182,7 @@ async function mouseEnterHandler(
   if(request.signal.aborted || activeAnchor!==link){popoverElement.remove();return}
   request.signal.removeEventListener("abort",cancel)
   void setPosition(popoverElement)
+  scrollToHeading(popoverElement)
   popoverInner.querySelectorAll('img').forEach(img=>img.addEventListener('load',()=>void setPosition(popoverElement),{once:true,signal:request.signal}))
 
 }
@@ -188,7 +192,10 @@ function clearActivePopover() {
   clearTimeout(driveHoverTimer);driveHoverRequest?.abort();driveHoverRequest=undefined
   activeAnchor = null
   const allPopoverElements = document.querySelectorAll(".popover")
-  allPopoverElements.forEach((popoverElement) => popoverElement.classList.remove("active-popover"))
+  allPopoverElements.forEach((popoverElement) => {
+    popoverElement.classList.remove("active-popover")
+    hideHoverPanel(popoverElement)
+  })
 }
 
 document.addEventListener("nav", () => {
@@ -196,16 +203,37 @@ document.addEventListener("nav", () => {
     const bvid = link.dataset.videoReference!
     if (/^BV[0-9A-Za-z]+$/.test(bvid)) window.addCleanup(attachVideoPreview(link, bvid))
   }
-  // Delegate so links rendered asynchronously (such as 拾遗) get the same preview.
+  let videoAnchor: HTMLAnchorElement | undefined
+  let disposeVideo: (() => void) | undefined
+  const resetVideo = () => {
+    disposeVideo?.()
+    disposeVideo = undefined
+    videoAnchor = undefined
+  }
+  // Delegate so links rendered asynchronously get the same preview.
   const enter = (event: MouseEvent) => {
     if(event.target instanceof Element && event.target.closest('.popover')){dismissal.cancel();return}
     const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a.internal,a[data-drive-hover],a[data-repo-hover]") : null
     if (!link) { if(activeAnchor)dismissal.schedule(); return }
     if (event.relatedTarget instanceof Node && link.contains(event.relatedTarget)) return
     if (isNavigationLink(link.href, location.href)) return
+    if (link.closest(".starbud-markdown") && (!matchMedia("(hover: hover) and (pointer: fine)").matches ||
+      link.closest('.agent-chat-message[aria-live="off"]'))) return
+    const bvid = link.dataset.starbudVideoPreview
+    if (bvid && /^BV[0-9A-Za-z]+$/.test(bvid)) {
+      if (videoAnchor === link) return
+      clearActivePopover()
+      resetVideo()
+      videoAnchor = link
+      disposeVideo = attachVideoPreview(link, bvid, undefined, { initialHover: true })
+      return
+    }
+    if (videoAnchor && link.closest(".starbud-markdown")) resetVideo()
     dismissal.cancel()
     clearTimeout(driveHoverTimer)
-    driveHoverTimer=setTimeout(()=>void mouseEnterHandler.call(link,event),250)
+    driveHoverTimer=setTimeout(()=>{
+      if(link.isConnected&&link.matches(":hover"))void mouseEnterHandler.call(link,event)
+    },250)
   }
   const leave = (event: MouseEvent) => {
     const target=event.target instanceof Element?event.target:null
@@ -225,9 +253,26 @@ document.addEventListener("nav", () => {
   }
   document.addEventListener("mouseover", enter)
   document.addEventListener("mouseout", leave)
+  const closeDialogPreview = (event: Event) => {
+    const dialog = event.target
+    if (!(dialog instanceof HTMLDialogElement) || dialog.open) return
+    if (activeAnchor && dialog.contains(activeAnchor)) clearActivePopover()
+    if (videoAnchor && dialog.contains(videoAnchor)) resetVideo()
+    dialog.querySelectorAll(".starbud-hover-panel").forEach(node=>node.remove())
+  }
+  document.addEventListener("close", closeDialogPreview, true)
+  const scrollDialogPreview = (event: Event) => {
+    if (!(event.target instanceof Element)) return
+    if (activeAnchor?.closest(".starbud-markdown") && event.target.contains(activeAnchor)) clearActivePopover()
+    if (videoAnchor && event.target.contains(videoAnchor)) resetVideo()
+  }
+  document.addEventListener("scroll", scrollDialogPreview, true)
   window.addCleanup(() => {
     document.removeEventListener("mouseover", enter)
     document.removeEventListener("mouseout", leave)
+    document.removeEventListener("close", closeDialogPreview, true)
+    document.removeEventListener("scroll", scrollDialogPreview, true)
+    resetVideo()
     clearActivePopover()
     document.querySelectorAll('.drive-popover,.repo-popover').forEach(node=>node.remove())
   })

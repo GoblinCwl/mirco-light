@@ -192,8 +192,9 @@ a {
 
 }
 
-// Body links share one treatment; navigation and sidebar links keep their own styles.
-:is(.center,.popover) :is(article.popover-hint, article#content, .repo-markdown, .drive-metadata, .drive-media-overview, .drive-hover-preview-body) a.internal {
+// Body links and Starbud replies share one treatment.
+:is(.center,.popover) :is(article.popover-hint, article#content, .repo-markdown, .drive-metadata, .drive-media-overview, .drive-hover-preview-body) a.internal,
+.starbud-markdown a.internal {
   background:transparent;
   padding:0;
   border-radius:0;

@@ -1,3 +1,4 @@
+import { notifyArtalkIdentityChange } from "./artalkIdentity"
 import { showPasswordToast } from "./passwordFeedback"
 import { commentLoading } from "./commentLoading"
 import { setCommentLikes } from "./commentLikes"
@@ -503,6 +504,7 @@ const tryLoadArtalk = async () => {
       if (requestedAdminOnly) editorObserver.observe(artalkContainer, { childList: true, subtree: true })
       currentArtalkInstance.on("created", refreshEditorAccess)
       currentArtalkInstance.on("user-changed", refreshEditorAccess)
+      currentArtalkInstance.on("user-changed", notifyArtalkIdentityChange)
       const removeComments = () => artalkContainer.remove()
       const onPageLoaded = (page: { admin_only?: boolean }) => {
         syncCommentTheme()
@@ -533,6 +535,7 @@ const tryLoadArtalk = async () => {
           currentArtalkInstance.off("created", refreshEditorAccess)
           currentArtalkInstance.off("created", syncAdminLogin)
           currentArtalkInstance.off("user-changed", refreshEditorAccess)
+          currentArtalkInstance.off("user-changed", notifyArtalkIdentityChange)
           editorObserver.disconnect()
           detachedEditor = undefined
           if (artalkInstance === currentArtalkInstance) {

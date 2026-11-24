@@ -1,0 +1,166 @@
+package httpapi
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
+	"goblincwl/quartz-server/internal/starbud"
+	"goblincwl/quartz-server/internal/visitors"
+)
+
+func (s *Server) chatWithStarbud(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Origin") != s.Origin || r.Header.Get("Sec-Fetch-Site") == "cross-site" {
+		JSON(w, 403, map[string]string{"error": "请从微光集发起对话"})
+		return
+	}
+	user, ip := s.starbudIdentity(w, r)
+	if user == "" {
+		return
+	}
+	var input starbud.Input
+	r.Body = http.MaxBytesReader(w, r.Body, 128<<10)
+	if err := body(w, r, &input); err != nil {
+		JSON(w, 400, map[string]string{"error": "聊天消息格式无效或过大"})
+		return
+	}
+	input, err := starbud.Prepare(input, s.Origin)
+	if err != nil {
+		JSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+	input.ClientIP = visitors.NormalizeIP(clientIP(r))
+	if r.Header.Get("Accept") == starbud.StreamType {
+		s.streamStarbud(w, r, user, ip, input)
+		return
+	}
+	reply, err := s.Starbud.Reply(r.Context(), time.Now(), user, ip, input)
+	if err != nil {
+		s.starbudChatError(w, err)
+		return
+	}
+	JSON(w, 200, map[string]string{"reply": reply})
+}
+
+const starbudUnavailable = "星芽暂时无法回复，请稍后再试"
+
+func (s *Server) starbudChatError(w http.ResponseWriter, err error) {
+	if errors.Is(err, starbud.ErrLimit) {
+		JSON(w, 429, map[string]string{"error": "今天的对话次数已用完，北京时间零点恢复"})
+		return
+	}
+	if !errors.Is(err, starbud.ErrUnavailable) {
+		s.Log.Error("starbud chat failed", "error", err)
+	}
+	JSON(w, 503, map[string]string{"error": starbudUnavailable})
+}
+
+func (s *Server) streamStarbud(w http.ResponseWriter, r *http.Request, user, ip string, input starbud.Input) {
+	started := false
+	control := http.NewResponseController(w)
+	send := func(event starbud.StreamEvent) error {
+		if !started {
+			w.Header().Set("Content-Type", starbud.StreamType+"; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store, no-transform")
+			w.Header().Set("X-Accel-Buffering", "no")
+			started = true
+		}
+		data, err := json.Marshal(event)
+		if err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "data: %s\n\n", data); err != nil {
+			return err
+		}
+		return control.Flush()
+	}
+	err := s.Starbud.StreamReply(r.Context(), time.Now(), user, ip, input, send)
+	if err == nil || r.Context().Err() != nil {
+		return
+	}
+	if started {
+		_ = send(starbud.StreamEvent{Type: "error", Text: starbudUnavailable})
+	} else {
+		s.starbudChatError(w, err)
+	}
+}
+
+func (s *Server) starbudIdentity(w http.ResponseWriter, r *http.Request) (user, ip string) {
+	if s.Starbud == nil || s.Visitors == nil {
+		JSON(w, 503, map[string]string{"error": "星芽暂时无法回复，请稍后再试"})
+		return "", ""
+	}
+	address := visitors.NormalizeIP(clientIP(r))
+	user = s.Visitors.Identity(address, r.Header.Get("X-Visitor-ID"))
+	if user == "" {
+		JSON(w, 400, map[string]string{"error": "无法识别当前访客，请刷新后重试"})
+		return "", ""
+	}
+	return user, s.Visitors.IPIdentity(address)
+}
+
+func (s *Server) starbudQuota(w http.ResponseWriter, r *http.Request) {
+	if origin := r.Header.Get("Origin"); origin != "" && origin != s.Origin || r.Header.Get("Sec-Fetch-Site") == "cross-site" {
+		JSON(w, 403, map[string]string{"error": "请从微光集查询对话次数"})
+		return
+	}
+	user, ip := s.starbudIdentity(w, r)
+	if user == "" {
+		return
+	}
+	quota, err := s.Starbud.Quota(r.Context(), time.Now(), user, ip)
+	if err != nil {
+		s.Log.Error("starbud quota failed", "error", err)
+		JSON(w, 503, map[string]string{"error": "暂时无法查询剩余对话次数"})
+		return
+	}
+	JSON(w, 200, quota)
+}
+
+func (s *Server) starbudAdmin(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id != "" && !starbud.ValidConversationID(id) || r.Method == http.MethodDelete && id == "" {
+		JSON(w, 400, map[string]string{"error": "会话标识无效"})
+		return
+	}
+	ctx := r.Context()
+	switch r.Method {
+	case http.MethodGet:
+		page := 1
+		if value := r.URL.Query().Get("page"); value != "" {
+			parsed, err := strconv.Atoi(value)
+			if err != nil || parsed < 1 {
+				JSON(w, 400, map[string]string{"error": "页码无效"})
+				return
+			}
+			page = parsed
+		}
+		if id == "" {
+			result, err := starbud.ListConversations(ctx, s.DB, page)
+			if err != nil {
+				s.fail(w, err)
+				return
+			}
+			JSON(w, 200, result)
+		} else {
+			result, err := starbud.ListTurns(ctx, s.DB, id, page)
+			if err != nil {
+				s.fail(w, err)
+				return
+			}
+			JSON(w, 200, result)
+		}
+	case http.MethodDelete:
+		if err := starbud.DeleteConversation(ctx, s.DB, id); err != nil {
+			s.fail(w, err)
+			return
+		}
+		JSON(w, 200, map[string]bool{"ok": true})
+	default:
+		w.Header().Set("Allow", "GET, DELETE")
+		JSON(w, 405, map[string]string{"error": "请求方式不支持"})
+	}
+}

@@ -167,6 +167,8 @@ func (s *Server) site(mux *http.ServeMux) {
 			s.siteTasks(w, r, path)
 		case path == "/admin/alerts":
 			s.siteAlerts(w, r)
+		case path == "/admin/starbud/conversations":
+			s.starbudAdmin(w, r)
 		case strings.HasPrefix(path, "/admin/data/"):
 			s.siteData(w, r, path)
 		case strings.HasPrefix(path, "/observatory"):

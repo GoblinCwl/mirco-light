@@ -1,5 +1,6 @@
 import { lockPageScroll } from "./pageScrollLock"
 import { closeSiteDialog, showSiteDialog } from "./siteDialog"
+import { setupStarbudConversation } from "./agentChatConversation"
 
 const idleMoves: ((direction: number) => Keyframe[])[] = [
   (direction) => [
@@ -40,6 +41,7 @@ document.addEventListener("nav", () => {
   if (!trigger || !dialog || !icon || !figure || !spark) return
   const lifecycle = new AbortController()
   const { signal } = lifecycle
+  const renderConversation = setupStarbudConversation(dialog, signal)
   let unlock: (() => void) | undefined
   const close = dialog.querySelector<HTMLButtonElement>("[data-agent-chat-close]")
   const motion = matchMedia("(prefers-reduced-motion: reduce)")
@@ -89,8 +91,9 @@ document.addEventListener("nav", () => {
 
   trigger.addEventListener("click", () => {
     if (dialog.open) return
+    unlock ??= lockPageScroll({ preserveLayout: true, signal })
     showSiteDialog(dialog)
-    unlock = lockPageScroll({ signal })
+    void renderConversation()
     trigger.setAttribute("aria-expanded", "true")
     resetMovement()
   }, { signal })

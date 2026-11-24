@@ -23,7 +23,33 @@ import (
 // third-party databases can never be reached by a caller-supplied table name.
 type definition struct{ ID, Table, Group, Title string }
 
-var definitions = []definition{{"adapter-snapshots", "adapter_snapshots", "适配缓存", "公开适配快照"}, {"content-meta", "content_meta", "内容索引", "索引与订阅版本"}, {"content-sources", "content_sources", "内容索引", "来源同步状态"}, {"share-identities", "share_identities", "分享", "分享稳定标识"}, {"friends", "friends", "友链", "友链资料"}, {"feedback", "feedback", "问题反馈", "反馈记录"}, {"visitors", "visitors", "彗星", "来访者"}, {"daily-visitors", "daily_visitors", "彗星", "每日来访明细"}, {"visitor-fixtures", "visitor_fixtures", "彗星", "测试数据标记"}, {"videos", "videos", "视频", "视频资料"}, {"video-meta", "video_meta", "视频", "系列、分集与用户缓存"}, {"video-assets", "video_assets", "视频", "本地图片"}, {"repo-snapshots", "repo_snapshots", "仓库", "用户与活动缓存"}, {"repo-avatar", "repo_avatar", "仓库", "本地头像"}, {"journal", "journal", "运行纪事", "最近十条纪事"}, {"content-index", "content", "内容索引", "四类内容"}}
+const starbudUsageID = "starbud-usage"
+const starbudIPUsageID = "starbud-ip-usage"
+
+const starbudUsageSource = `(SELECT DATE_FORMAT(day, '%Y-%m-%d') AS day,
+    CAST(SUM(CASE WHEN scope='user' THEN turns ELSE 0 END) AS UNSIGNED) AS turns,
+    COUNT(CASE WHEN scope='user' THEN 1 END) AS visitors,
+    COUNT(CASE WHEN scope='ip' THEN 1 END) AS networks
+    FROM starbud_daily_usage GROUP BY starbud_daily_usage.day) AS usage_by_day`
+
+const starbudIPUsageSource = `(SELECT DATE_FORMAT(day, '%Y-%m-%d') AS day, identity, ip_address, turns
+    FROM starbud_daily_usage WHERE scope='ip') AS usage_by_ip`
+
+var starbudUsageFields = []Field{
+	{Name: "day", Label: "日期", Type: "text", Primary: 1},
+	{Name: "turns", Label: "对话次数", Type: "number"},
+	{Name: "visitors", Label: "对话访客数", Type: "number"},
+	{Name: "networks", Label: "来源 IP 数", Type: "number"},
+}
+
+var starbudIPUsageFields = []Field{
+	{Name: "day", Label: "日期", Type: "text", Primary: 1},
+	{Name: "ip_address", Label: "IP 地址", Type: "text"},
+	{Name: "identity", Label: "IP 标识", Type: "text", Primary: 2},
+	{Name: "turns", Label: "已用次数", Type: "number"},
+}
+
+var definitions = []definition{{"adapter-snapshots", "adapter_snapshots", "适配缓存", "公开适配快照"}, {"content-meta", "content_meta", "内容索引", "索引与订阅版本"}, {"content-sources", "content_sources", "内容索引", "来源同步状态"}, {"share-identities", "share_identities", "分享", "分享稳定标识"}, {"friends", "friends", "友链", "友链资料"}, {"feedback", "feedback", "问题反馈", "反馈记录"}, {"visitors", "visitors", "彗星", "来访者"}, {"daily-visitors", "daily_visitors", "彗星", "每日来访明细"}, {"visitor-fixtures", "visitor_fixtures", "彗星", "测试数据标记"}, {starbudUsageID, "starbud_daily_usage", "星芽", "每日对话用量"}, {starbudIPUsageID, "starbud_daily_usage", "星芽", "IP 配额明细"}, {"videos", "videos", "视频", "视频资料"}, {"video-meta", "video_meta", "视频", "系列、分集与用户缓存"}, {"video-assets", "video_assets", "视频", "本地图片"}, {"repo-snapshots", "repo_snapshots", "仓库", "用户与活动缓存"}, {"repo-avatar", "repo_avatar", "仓库", "本地头像"}, {"journal", "journal", "运行纪事", "最近十条纪事"}, {"content-index", "content", "内容索引", "四类内容"}}
 
 //go:embed labels.json
 var labelsJSON []byte
@@ -41,7 +67,8 @@ type Field struct {
 	JSON     bool   `json:"-"`
 }
 type Manager struct {
-	DB *sql.DB
+	DB         *sql.DB
+	IPIdentity func(string) string
 }
 
 func resolve(id string) (definition, error) {
@@ -57,6 +84,12 @@ func (m Manager) fields(ctx context.Context, id string) (definition, []Field, er
 	d, err := resolve(id)
 	if err != nil {
 		return d, nil, err
+	}
+	if id == starbudUsageID {
+		return d, starbudUsageFields, nil
+	}
+	if id == starbudIPUsageID {
+		return d, starbudIPUsageFields, nil
 	}
 	rows, err := m.DB.QueryContext(ctx, "SELECT COLUMN_NAME,DATA_TYPE,IS_NULLABLE,COLUMN_DEFAULT,EXTRA,COLUMN_KEY FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? ORDER BY ORDINAL_POSITION", d.Table)
 	if err != nil {
@@ -106,6 +139,12 @@ func (m Manager) Catalog(ctx context.Context) ([]map[string]any, error) {
 			return nil, err
 		}
 		row := map[string]any{"id": d.ID, "group": d.Group, "title": d.Title, "fields": fields}
+		if d.ID == starbudUsageID {
+			row["read_only"] = true
+		}
+		if d.ID == starbudIPUsageID {
+			row["delete_only"] = true
+		}
 		if d.ID == "journal" {
 			row["limit"] = 10
 		}
@@ -186,6 +225,9 @@ func selectFields(fields []Field, short bool) string {
 	return strings.Join(out, ",")
 }
 func (m Manager) Read(ctx context.Context, id string, key map[string]any) (map[string]any, error) {
+	if id == starbudUsageID || id == starbudIPUsageID {
+		return nil, errors.New("该数据仅供查看")
+	}
 	d, fields, err := m.fields(ctx, id)
 	if err != nil {
 		return nil, err
@@ -232,8 +274,20 @@ func (m Manager) List(ctx context.Context, id string, page int, query string) (m
 		}
 		filter = " WHERE " + strings.Join(clauses, " OR ")
 	}
+	source := quote(d.Table)
+	switch id {
+	case starbudUsageID:
+		source = starbudUsageSource
+	case starbudIPUsageID:
+		source = starbudIPUsageSource
+		if query != "" && m.IPIdentity != nil {
+			if identity := m.IPIdentity(query); identity != "" {
+				filter, args = " WHERE identity=?", []any{identity}
+			}
+		}
+	}
 	var total int
-	if err = m.DB.QueryRowContext(ctx, "SELECT count(*) FROM "+quote(d.Table)+filter, args...).Scan(&total); err != nil {
+	if err = m.DB.QueryRowContext(ctx, "SELECT count(*) FROM "+source+filter, args...).Scan(&total); err != nil {
 		return nil, err
 	}
 	pages := (total + 24) / 25
@@ -243,7 +297,7 @@ func (m Manager) List(ctx context.Context, id string, page int, query string) (m
 	if page > pages {
 		page = pages
 	}
-	ordering := map[string]string{"friends": "latest_update DESC,number,id", "feedback": "created_at DESC,id", "visitors": "last_seen DESC,meteor_id", "daily-visitors": "day DESC,identity", "videos": "published_at DESC,bvid", "journal": "completed_at DESC,id DESC"}
+	ordering := map[string]string{"friends": "latest_update DESC,number,id", "feedback": "created_at DESC,id", "visitors": "last_seen DESC,meteor_id", "daily-visitors": "day DESC,identity", starbudUsageID: "day DESC", starbudIPUsageID: "day DESC,turns DESC,identity", "videos": "published_at DESC,bvid", "journal": "completed_at DESC,id DESC"}
 	order := ordering[id]
 	if order == "" {
 		primary := []string{}
@@ -254,7 +308,7 @@ func (m Manager) List(ctx context.Context, id string, page int, query string) (m
 		}
 		order = strings.Join(primary, ",")
 	}
-	rows, err := m.DB.QueryContext(ctx, "SELECT "+selectFields(fields, true)+" FROM "+quote(d.Table)+filter+" ORDER BY "+order+" LIMIT 25 OFFSET ?", append(args, (page-1)*25)...)
+	rows, err := m.DB.QueryContext(ctx, "SELECT "+selectFields(fields, true)+" FROM "+source+filter+" ORDER BY "+order+" LIMIT 25 OFFSET ?", append(args, (page-1)*25)...)
 	if err != nil {
 		return nil, err
 	}
@@ -276,6 +330,9 @@ func (m Manager) List(ctx context.Context, id string, page int, query string) (m
 	return map[string]any{"page": page, "pages": pages, "total": total, "records": records}, nil
 }
 func (m Manager) Blob(ctx context.Context, id string, key map[string]any, column string) ([]byte, string, error) {
+	if id == starbudUsageID || id == starbudIPUsageID {
+		return nil, "", errors.New("该数据仅供查看")
+	}
 	d, fields, err := m.fields(ctx, id)
 	if err != nil {
 		return nil, "", err
@@ -312,6 +369,9 @@ func (m Manager) Blob(ctx context.Context, id string, key map[string]any, column
 	return data, *mime, nil
 }
 func (m Manager) Save(ctx context.Context, id string, values, key map[string]any) (map[string]any, error) {
+	if id == starbudUsageID || id == starbudIPUsageID {
+		return nil, errors.New("该数据仅供查看")
+	}
 	d, fields, err := m.fields(ctx, id)
 	if err != nil {
 		return nil, err
@@ -628,6 +688,20 @@ func (m Manager) Save(ctx context.Context, id string, values, key map[string]any
 	return map[string]any{"key": resultKey}, nil
 }
 func (m Manager) Remove(ctx context.Context, id string, key map[string]any) error {
+	if id == starbudIPUsageID {
+		day, dayOK := key["day"].(string)
+		identity, identityOK := key["identity"].(string)
+		_, dateErr := time.Parse(time.DateOnly, day)
+		digest, hexErr := hex.DecodeString(identity)
+		if len(key) != 2 || !dayOK || !identityOK || dateErr != nil || hexErr != nil || len(digest) != sha256.Size {
+			return errors.New("记录标识无效")
+		}
+		_, err := m.DB.ExecContext(ctx, "DELETE FROM starbud_daily_usage WHERE day=? AND scope='ip' AND identity=?", day, identity)
+		return err
+	}
+	if id == starbudUsageID {
+		return errors.New("该数据仅供查看")
+	}
 	d, fields, err := m.fields(ctx, id)
 	if err != nil {
 		return err

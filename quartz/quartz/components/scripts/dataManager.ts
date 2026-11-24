@@ -3,7 +3,7 @@ import {node} from './driveUi'
 import {showPasswordToast} from './passwordFeedback'
 import {showAdminListMessage} from './adminListState'
 type Field={name:string;label:string;type:'text'|'number'|'file';required:boolean;primary:number;default:string|null}
-type Table={id:string;group:string;title:string;fields:Field[];limit?:number}
+type Table={id:string;group:string;title:string;fields:Field[];limit?:number;read_only?:boolean;delete_only?:boolean}
 type Key=Record<string,string|number>
 type Row={key:Key;values:Record<string,unknown>}
 type Request=(path:string,init?:RequestInit)=>Promise<any>
@@ -11,13 +11,13 @@ const automaticField=(table:Table,name:string)=>table.id==='friends'&&name==='nu
 const names:Record<string,string[]>={friends:['展示中','待审核','已失效'],feedback:['待处理','已解决'],journal:['content','site','service'],content:['article','share','repo','video']}
 export function setupDataManager(root:HTMLElement,signal:AbortSignal,request:Request){
  let tables:Table[]=[],current:Table|undefined,page=1,query='',version=0,timer:ReturnType<typeof setTimeout>|undefined
- const modules=node('div','','data-admin-tabs data-admin-module-tabs'),categories=node('div','','data-admin-tabs data-admin-table-tabs'),toolbar=node('div','','data-admin-toolbar'),search=node('input'),add=node('button','新增记录'),body=node('div','','data-admin-body'),footer=node('div','','stellar-admin-pagination')
- modules.setAttribute('aria-label','数据模块');categories.setAttribute('aria-label','数据类别');search.type='search';search.placeholder='查找当前数据';search.setAttribute('aria-label','搜索数据');add.type='button';add.className='stellar-admin-add';toolbar.append(search,add);root.append(modules,categories,node('p','仅维护本站记录，不会改动上游平台；视频和仓库缓存会随后续同步更新。','data-admin-note'),toolbar,body,footer)
+ const modules=node('div','','data-admin-tabs data-admin-module-tabs'),categories=node('div','','data-admin-tabs data-admin-table-tabs'),toolbar=node('div','','data-admin-toolbar'),search=node('input'),add=node('button','新增记录'),body=node('div','','data-admin-body'),footer=node('div','','stellar-admin-pagination'),note=node('p','','data-admin-note')
+ modules.setAttribute('aria-label','数据模块');categories.setAttribute('aria-label','数据类别');search.type='search';search.placeholder='查找当前数据';search.setAttribute('aria-label','搜索数据');add.type='button';add.className='stellar-admin-add';toolbar.append(search,add);root.append(modules,categories,note,toolbar,body,footer)
  signal.addEventListener('abort',()=>{clearTimeout(timer);version++},{once:true})
  const endpoint=()=>`/admin/data/tables/${current!.id}`
  const changed=(id=current!.id)=>{document.dispatchEvent(new CustomEvent('stellar-data-changed',{detail:{table:id}}));if(id==='friends')document.dispatchEvent(new Event('friends-changed'))}
  const edit=async(key?:Key)=>{
-  if(!current)return
+  if(!current||current.read_only||current.delete_only)return
   const table=current,tableEndpoint=`/admin/data/tables/${table.id}`,ticket=++version;body.setAttribute('aria-busy','true')
   try{
    const value:Record<string,any>=key?(await request(tableEndpoint+'?key='+encodeURIComponent(JSON.stringify(key)))).record:{}
@@ -72,17 +72,19 @@ export function setupDataManager(root:HTMLElement,signal:AbortSignal,request:Req
   try{
    const result:{page:number;pages:number;total:number;records:Row[]}=await request(endpoint()+`?page=${page}&query=${encodeURIComponent(query)}`)
    if(signal.aborted||ticket!==version)return
-   page=result.page;const wrap=node('div','','data-admin-table-wrap'),table=node('table','','data-admin-table'),head=node('thead'),titles=node('tr'),rows=node('tbody')
+   const tableID=current.id,readOnly=!!current.read_only,deleteOnly=!!current.delete_only
+   page=result.page;const wrap=node('div','','data-admin-table-wrap'),table=node('table','','data-admin-table'+(readOnly?' is-read-only':'')),head=node('thead'),titles=node('tr'),rows=node('tbody')
    const previews:Record<string,string[]>={'content-index':['title','type','updated_at'],friends:['number','name','url','status','latest_update'],feedback:['email','description','status','created_at'],visitors:['meteor_id','region','browser','last_seen'],'daily-visitors':['day','identity'],videos:['title','bvid','published_at','play'],'video-meta':['key','value'],'repo-snapshots':['key','value'],journal:['kind','completed_at','payload']}
    const columns=(previews[current.id]||current.fields.filter(field=>!['data','geo_raw','geo_error','user_agent','etag','hash','example'].includes(field.name)).slice(0,5).map(field=>field.name)).map(name=>current!.fields.find(field=>field.name===name)!).filter(Boolean)
-   for(const field of columns)titles.append(node('th',field.label));titles.append(node('th','操作'));head.append(titles)
+   for(const field of columns)titles.append(node('th',field.label));if(!readOnly)titles.append(node('th','操作'));head.append(titles)
    for(const record of result.records){const row=node('tr');for(const field of columns){const value=record.values[field.name],text=value==null?'—':typeof value==='object'?'图片文件':field.name==='latest_update'&&value?new Date(String(value)).toLocaleString('zh-CN'):value===''?'—':String(value),cell=node('td'),content=node('span',text);content.title=text;cell.append(content);row.append(cell)}
+    if(readOnly){rows.append(row);continue}
     const actions=node('td','','data-admin-row-actions'),change=node('button','编辑'),remove=node('button','删除');change.type=remove.type='button';remove.className='is-danger';change.onclick=()=>void edit(record.key);let confirming=false
-    remove.onclick=async()=>{if(!confirming){confirming=true;remove.textContent='确认删除';return}remove.disabled=change.disabled=true;try{await request(endpoint()+'?key='+encodeURIComponent(JSON.stringify(record.key)),{method:'DELETE'});if(!signal.aborted){showPasswordToast('记录已删除');changed();await load()}}catch(error){showPasswordToast(error instanceof Error?error.message:'删除失败',true);remove.disabled=change.disabled=false}}
-    actions.append(change,remove);row.append(actions);rows.append(row)
+    remove.onclick=async()=>{if(!confirming){confirming=true;remove.textContent='确认删除';return}remove.disabled=change.disabled=true;try{await request('/admin/data/tables/'+tableID+'?key='+encodeURIComponent(JSON.stringify(record.key)),{method:'DELETE'});if(!signal.aborted){showPasswordToast('记录已删除');changed(tableID);if(current?.id===tableID)await load()}}catch(error){showPasswordToast(error instanceof Error?error.message:'删除失败',true);remove.disabled=change.disabled=false}}
+    if(!deleteOnly)actions.append(change);actions.append(remove);row.append(actions);rows.append(row)
    }
    table.append(head,rows);wrap.append(table);body.replaceChildren(wrap)
-   if(!result.records.length)showAdminListMessage(body,query?'没有匹配记录':'暂无数据',query?'尝试其他关键词。':'可以新增记录或使用对应模块的同步功能。')
+   if(!result.records.length)showAdminListMessage(body,query?'没有匹配记录':'暂无数据',query?'尝试其他关键词。':readOnly?'有访客发起对话后会显示用量。':'可以新增记录或使用对应模块的同步功能。')
    renderAdminPagination(footer,page,result.pages,result.total,value=>{page=value;void load()},current.limit?'最多保留 '+current.limit+' 条':'')
   }catch(error){if(!signal.aborted){showPasswordToast(error instanceof Error?error.message:'数据读取失败',true);showAdminListMessage(body,'数据维护','点击重试读取记录。',()=>void load())}}finally{if(ticket===version)body.removeAttribute('aria-busy')}
  }
@@ -92,7 +94,7 @@ export function setupDataManager(root:HTMLElement,signal:AbortSignal,request:Req
   if(signal.aborted)return;tables=result.tables
   const groups=new Map<string,Table[]>();for(const table of tables){const entries=groups.get(table.group)||[];entries.push(table);groups.set(table.group,entries)}
   const moduleButtons=new Map<string,HTMLButtonElement>()
-  const selectTable=(table:Table)=>{clearTimeout(timer);current=table;page=1;query='';search.value='';for(const button of categories.querySelectorAll<HTMLButtonElement>('button'))button.setAttribute('aria-pressed',String(button.dataset.table===table.id));void load()}
+  const selectTable=(table:Table)=>{clearTimeout(timer);current=table;add.hidden=!!(table.read_only||table.delete_only);note.textContent=table.delete_only?'可按 IP 或标识搜索。删除会重置该 IP 当天的兜底次数。':table.read_only?'按北京时间统计。请求进入回复流程时计入。':'仅维护本站记录，不会改动上游平台；视频和仓库缓存会随后续同步更新。';page=1;query='';search.value='';for(const button of categories.querySelectorAll<HTMLButtonElement>('button'))button.setAttribute('aria-pressed',String(button.dataset.table===table.id));void load()}
   const selectGroup=(name:string)=>{
    for(const [group,button]of moduleButtons)button.setAttribute('aria-pressed',String(group===name))
    categories.replaceChildren();const entries=groups.get(name)||[]

@@ -427,3 +427,25 @@ CREATE TABLE IF NOT EXISTS notification_outbox (
  last_error varchar(255) NOT NULL DEFAULT '',
  KEY notification_due (state,available_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+CREATE TABLE IF NOT EXISTS starbud_daily_usage (
+ day date NOT NULL,
+ scope varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ identity char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ turns tinyint unsigned NOT NULL,
+ ip_address varchar(45) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+ PRIMARY KEY(day,scope,identity)
+) ENGINE=InnoDB COMMENT='星芽每日对话配额，仅保存匿名标识与次数';
+
+CREATE TABLE IF NOT EXISTS starbud_chat_records (
+ id bigint unsigned NOT NULL AUTO_INCREMENT,
+ conversation_id char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ client_ip varchar(45) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+ page_url text NOT NULL,
+ question text NOT NULL,
+ answer text,
+ status enum('未完成','已回复','回复中断','未能回复') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '未完成',
+ created_at varchar(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ PRIMARY KEY(id),
+ KEY starbud_chat_conversation(conversation_id,id)
+) ENGINE=InnoDB COMMENT='星芽对话留档，仅管理端可读';

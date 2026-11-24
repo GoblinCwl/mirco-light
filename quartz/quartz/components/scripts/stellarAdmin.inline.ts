@@ -4,6 +4,7 @@ import { setupSecurityManager } from "./stellarSecurity"
 import {setupServiceManager} from './serviceManager'
 import {setupAlertCenter} from './alertCenter'
 import {setupDataManager} from './dataManager'
+import {setupStarbudManager} from './starbudManager'
 import {setupCommentManager} from './commentManager'
 import {showPasswordToast} from './passwordFeedback'
 import {adminPassword} from './driveAdminFields'
@@ -43,6 +44,7 @@ document.addEventListener('nav', () => {
     result.schema.push({key:'data.maintenance',group:'数据管理',label:'数据维护',type:'data'})
     result.schema.push({key:'friends.manage',group:'友链管理',label:'友链',type:'friends'})
     result.schema.push({key:'feedback.manage',group:'反馈管理',label:'反馈',type:'feedback'})
+    result.schema.push({key:'starbud.conversations',group:'星芽管理',label:'对话',type:'starbud'})
     result.schema.push({key:'comments.manage',group:'评论管理',label:'评论与用户',type:'comments'})
     result.schema.push({key:'mail.records',group:'邮件管理',label:'邮件投递',type:'mail'})
     result.schema.push({key:'upstreams.credentials',group:'服务接入',label:'平台凭据',type:'credentials'})
@@ -57,6 +59,7 @@ document.addEventListener('nav', () => {
       '数据管理': {id:'data',title:'数据',description:'维护本站数据记录，支持查询、新增、编辑与删除。',icon:'<circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="m8 8 8 8M15 5h5v5M9 19H4v-5"/>'},
       '友链管理': {id:'friends',title:'友链',description:'管理友链资料与申请审核，卡片按最近更新时间排列。',icon:'<path d="m9 15 6-6m-5-3 2-2a5 5 0 0 1 7 7l-2 2M7 11l-2 2a5 5 0 0 0 7 7l2-2"/>'},
       '反馈管理': {id:'feedback',title:'反馈',description:'查看访客反馈并管理处理状态。',icon:'<path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 9h10M7 13h6"/>'},
+      '星芽管理': {id:'starbud',title:'星芽',description:'',icon:'<rect x="5" y="9" width="14" height="11" rx="4"/><path d="M12 9V6m0 0C8 6 7 4 7 3c3 0 5 1 5 3Zm0 0c4 0 5-2 5-3-3 0-5 1-5 3ZM9 14h.01m6 0h.01"/>'},
       '评论管理': {id:'comments',title:'评论',description:'管理 Artalk 评论与用户，支持审核、编辑及账号维护。',icon:'<path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 9h10M7 13h6"/>'},
       '邮件管理': {id:'mail',title:'邮件',description:'查看友链与反馈邮件的投递结果。',icon:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>'},
       '告警中心': {id:'alerts',title:'告警',description:'查看服务异常、交互请求的外部接口失败及运行异常。',icon:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/><path d="M12 6v4m0 3h.01"/>'},
@@ -99,9 +102,15 @@ document.addEventListener('nav', () => {
       const nameNode=document.createElement('span'),indicator=document.createElement('i');nameNode.textContent=design.title;indicator.className='stellar-admin-unsaved';indicator.hidden=true;indicator.setAttribute('aria-label','有未保存修改');tab.append(nameNode,indicator)
       panel.id=`stellar-panel-${design.id}`;panel.className='stellar-admin-module';panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);panel.tabIndex=0
       intro.className='stellar-admin-module-intro';title.textContent=design.title;description.textContent=design.description
-      const moduleIcon=document.createElement('span'),introCopy=document.createElement('div');moduleIcon.className='stellar-admin-module-icon';moduleIcon.innerHTML=tab.querySelector('svg')!.outerHTML;moduleIcon.setAttribute('aria-hidden','true');introCopy.append(title,description);intro.append(moduleIcon,introCopy);panel.append(intro)
+      const moduleIcon=document.createElement('span'),introCopy=document.createElement('div');moduleIcon.className='stellar-admin-module-icon';moduleIcon.innerHTML=tab.querySelector('svg')!.outerHTML;moduleIcon.setAttribute('aria-hidden','true');introCopy.append(title);if(design.description)introCopy.append(description);intro.append(moduleIcon,introCopy);panel.append(intro)
       const index=tabs.length;tabs.push(tab);panels.push(panel);navigation.append(tab);fields.append(panel);tab.onclick=()=>selectModule(index)
       if(name==='账户安全'){setupSecurityManager(panel,signal,request);const api=document.createElement('section');api.className='stellar-setting-card';const title=document.createElement('h3');title.textContent='本站 API';api.append(title);panel.append(api);setupAPIToken(api,signal,request);continue}
+      if(name==='星芽管理'){
+        const content=document.createElement('div');panel.append(content)
+        let refresh:(()=>void)|undefined
+        activators[index]=()=>{if(refresh)refresh();else refresh=setupStarbudManager(content,signal,request)}
+        continue
+      }
       if(name==='评论管理'){
         const content=document.createElement('div');content.className='comment-admin';panel.append(content)
         let started=false

@@ -8,6 +8,7 @@ test('shared drawers finish dismissal and ignore stale callbacks after rapid reo
  class Motion{cancelled=false;onfinish:(()=>void)|null=null;cancel(){this.cancelled=true}}
  class Dialog extends EventTarget{
   open=false;attributes=new Set<string>();motions:Motion[]=[]
+  ownerDocument:{activeElement:unknown}={activeElement:null}
   hasAttribute(name:string){return this.attributes.has(name)}
   setAttribute(name:string){this.attributes.add(name)}
   removeAttribute(name:string){this.attributes.delete(name)}
@@ -49,6 +50,16 @@ test('shared drawers finish dismissal and ignore stale callbacks after rapid reo
   showSiteDialog(dialog);await closeSiteDialog(dialog)
   assert.equal(element.open,false)
   assert.equal(element.motions.length,count,'centered dialogs keep their existing behavior')
+  for(const keyboard of [false,true]){
+   const opener={
+    matches:(selector:string)=>selector!==':focus-visible'||keyboard,
+    blur:()=>{element.ownerDocument.activeElement=null},
+   }
+   element.ownerDocument.activeElement=opener
+   showSiteDialog(dialog)
+   await closeSiteDialog(dialog)
+   assert.equal(element.ownerDocument.activeElement,keyboard?opener:null)
+  }
  }finally{
   if(previousWindow===undefined)delete globals.window;else globals.window=previousWindow
   if(previousStyle===undefined)delete globals.getComputedStyle;else globals.getComputedStyle=previousStyle

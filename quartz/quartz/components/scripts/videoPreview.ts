@@ -1,3 +1,5 @@
+import { showHoverPanel } from "./hoverPanel"
+
 type PreviewOptions = {
   preload?: boolean
   /** Position the panel below this element instead of the whole hover target. */
@@ -6,6 +8,7 @@ type PreviewOptions = {
   triggers?: HTMLElement[]
   /** Video duration in seconds, used to stop background playback after it ends. */
   duration?: number
+  initialHover?: boolean
 }
 
 const PLAYER = (bvid: string) =>
@@ -121,7 +124,7 @@ export function attachVideoPreview(
       panel.style.width = "320px"
       panel.style.height = "180px"
     }
-    (element.closest("dialog[open]")||document.body).append(panel)
+    showHoverPanel(panel, element)
     activePreview = destroy
   }
 
@@ -252,6 +255,7 @@ export function attachVideoPreview(
     trigger.addEventListener("focusin", enter)
     trigger.addEventListener("focusout", onElementFocusOut)
   }
+  if (options.initialHover) enter()
 
   return () => {
     disposed = true

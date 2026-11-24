@@ -1,6 +1,6 @@
 import {sharedState} from './sharedRequest'
 const state=sharedState('visitor-recording:v1',()=>({browserId:'',generation:0,listening:false,pending:undefined as Promise<void>|undefined}))
-function browserId(){
+export function browserId(){
  try{
   const stored=localStorage.getItem('quartz-visitor-id')
   if(stored&&/^[a-f\d]{8}-[a-f\d]{4}-4[a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i.test(stored))state.browserId=stored

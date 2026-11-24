@@ -27,6 +27,13 @@ type lookupWorkOutput struct {
 	Work   *content.KnowledgeWork `json:"work,omitempty"`
 }
 
+type getWorkContentInput struct {
+	WorkID    string `json:"work_id,omitempty" jsonschema:"从搜索结果或知识库元数据取得的文章 ID"`
+	SourceURL string `json:"source_url,omitempty" jsonschema:"本站文章链接，也可传站内路径；与 work_id 二选一"`
+	Offset    int    `json:"offset,omitempty" jsonschema:"起始字符偏移，默认 0；使用上次返回的 next_offset 继续读取"`
+	Limit     int    `json:"limit,omitempty" jsonschema:"指定后只返回这一段（最多 16000 字），省略返回剩余全文"`
+}
+
 type listWorksInput struct {
 	content.KnowledgeFilters
 	content.KnowledgePagination
@@ -49,13 +56,28 @@ func indexTool(name, description string) *mcp.Tool {
 	return &mcp.Tool{Name: name, Description: description, Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}
 }
 
-func (s *Server) EnableKnowledgeMCP(token string) error {
+func (s *Server) EnableKnowledgeMCP(token, directory string) error {
 	decoded, err := hex.DecodeString(token)
 	if err != nil || len(decoded) != 32 {
 		return errors.New("knowledge MCP token must contain 64 hexadecimal characters")
 	}
-	server := mcp.NewServer(&mcp.Implementation{Name: "microlight-index", Version: "1.1.0"}, nil)
+	server := mcp.NewServer(&mcp.Implementation{Name: "microlight-index", Version: "1.3.0"}, nil)
+	mcp.AddTool(server, indexTool("get_page_context", "查询微光集的首页、视界、流光（标签页）、友链或星枢公开页面。传页面名或站内地址获取说明和模块清单。查询数据时指定模块，例如流光的 tags 标签列表、works 标签作品，或友链的 latest_posts。"), s.pageContext)
 	mcp.AddTool(server, indexTool("lookup_work", "根据 work_id 查询公开作品的索引信息、出链和反链，覆盖文章、分享、仓库、视频。found=false 表示当前公开索引中没有该作品。"), s.lookupKnowledgeWork)
+	mcp.AddTool(server, indexTool("get_work_content", "读取公开文章构建时导出的原始 Markdown 文件，含元数据及正文。已知文章链接时传 source_url，知道标题或关键词时先用 search_works 查 work_id。指定 limit 后可用 next_offset 续读。"),
+		func(ctx context.Context, _ *mcp.CallToolRequest, input getWorkContentInput) (*mcp.CallToolResult, content.KnowledgeBody, error) {
+			id, sourceURL := strings.TrimSpace(input.WorkID), strings.TrimSpace(input.SourceURL)
+			if (id == "") == (sourceURL == "") {
+				return nil, content.KnowledgeBody{}, errors.New("请填写 work_id 或 source_url，二选一")
+			}
+			if id != "" {
+				if _, err := (lookupWorkInput{WorkID: id}).validatedID(); err != nil {
+					return nil, content.KnowledgeBody{}, err
+				}
+			}
+			output, err := s.knowledgeIndex().GetKnowledgeBody(ctx, id, sourceURL, directory, input.Offset, input.Limit)
+			return indexResult(s, output, err)
+		})
 	mcp.AddTool(server, indexTool("list_works", "分页列出公开作品，可按类型、标签、目录和时间筛选及排序。"), s.listKnowledgeWorks)
 	mcp.AddTool(server, indexTool("search_works", "根据关键词搜索公开作品，优先返回标题命中结果。可叠加类型、标签、目录和时间筛选。"), s.searchKnowledgeWorks)
 	mcp.AddTool(server, indexTool("get_statistics", "统计公开作品总数、各类型数量及各索引目录数量，可限定筛选范围。"), s.knowledgeStatistics)
@@ -84,11 +106,19 @@ func (s *Server) EnableKnowledgeMCP(token string) error {
 	return nil
 }
 
-func (s *Server) lookupKnowledgeWork(ctx context.Context, _ *mcp.CallToolRequest, input lookupWorkInput) (*mcp.CallToolResult, lookupWorkOutput, error) {
+func (input lookupWorkInput) validatedID() (string, error) {
 	id := strings.TrimSpace(input.WorkID)
 	kind, suffix, ok := strings.Cut(id, ":")
 	if !ok || !content.IsKnowledgeType(kind) || suffix == "" || len(id) > 3072 {
-		return nil, lookupWorkOutput{}, errors.New("work_id 必须是完整作品 ID")
+		return "", errors.New("work_id 必须是完整作品 ID")
+	}
+	return id, nil
+}
+
+func (s *Server) lookupKnowledgeWork(ctx context.Context, _ *mcp.CallToolRequest, input lookupWorkInput) (*mcp.CallToolResult, lookupWorkOutput, error) {
+	id, err := input.validatedID()
+	if err != nil {
+		return nil, lookupWorkOutput{}, err
 	}
 	work, err := s.knowledgeIndex().LookupKnowledgeWork(ctx, id)
 	return indexResult(s, lookupWorkOutput{Found: work != nil, WorkID: id, Work: work}, err)

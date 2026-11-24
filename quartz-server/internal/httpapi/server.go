@@ -14,6 +14,7 @@ import (
 	"goblincwl/quartz-server/internal/monitoring"
 	"goblincwl/quartz-server/internal/openlist"
 	"goblincwl/quartz-server/internal/repo"
+	"goblincwl/quartz-server/internal/starbud"
 	"goblincwl/quartz-server/internal/taskruns"
 	"goblincwl/quartz-server/internal/video"
 	"goblincwl/quartz-server/internal/visitors"
@@ -24,6 +25,7 @@ import (
 
 type Server struct {
 	knowledgeMCP      http.Handler
+	Starbud           *starbud.Service
 	TaskRuns          *taskruns.Tracker
 	ArticleDirectory  string
 	Build             *buildcontrol.Client
@@ -63,6 +65,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /index.xml", s.rss)
 	mux.HandleFunc("GET /articles.xml", s.rss)
 	mux.HandleFunc("GET /friends.xml", s.friendRSS)
+	mux.HandleFunc("POST /api/starbud/chat", s.chatWithStarbud)
+	mux.HandleFunc("GET /api/starbud/quota", s.starbudQuota)
 	if s.knowledgeMCP != nil {
 		mux.Handle(knowledgeMCPPath, s.knowledgeMCP)
 	}

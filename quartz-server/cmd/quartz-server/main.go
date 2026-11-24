@@ -67,6 +67,7 @@ func run() error {
 		visitorStore.Locate = geo.Lookup
 	}
 	app := &httpapi.Server{DB: db, Log: slog.Default(), Origin: c.Origin, Auth: authentication, Visitors: visitorStore}
+	options := application.Environment(c.AuthDir)
 	if path := os.Getenv("KNOWLEDGE_MCP_TOKEN_FILE"); path != "" {
 		token, err := os.ReadFile(path)
 		switch {
@@ -75,12 +76,12 @@ func run() error {
 		case err != nil:
 			return err
 		default:
-			if err := app.EnableKnowledgeMCP(strings.TrimSpace(string(token))); err != nil {
+			if err := app.EnableKnowledgeMCP(strings.TrimSpace(string(token)), options.KnowledgeDirectory); err != nil {
 				return err
 			}
 		}
 	}
-	runtime, err := application.New(ctx, app, application.Environment(c.AuthDir))
+	runtime, err := application.New(ctx, app, options)
 	if err != nil {
 		return err
 	}

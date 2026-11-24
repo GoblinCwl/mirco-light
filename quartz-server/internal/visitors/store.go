@@ -78,6 +78,12 @@ func (s Store) Identity(ip, browser string) string {
 	}
 	return s.identity(ip, browser)
 }
+func (s Store) IPIdentity(ip string) string {
+	if ip = NormalizeIP(ip); ip != "" {
+		return s.identity(ip, "")
+	}
+	return ""
+}
 func Browser(userAgent string) *string {
 	for _, p := range browserPatterns {
 		if p.pattern.MatchString(userAgent) {

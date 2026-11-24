@@ -1,26 +1,9 @@
 import {applyContentLinkPolicy} from "../../util/linkPolicy"
 import {renderRepoMermaid} from './repoMermaid'
-import {sharedState} from "./sharedRequest"
+import {loadMarkdownRuntime,runtime} from "./markdownRuntime"
 import {repoMarkdownLink,type RepoInfo} from "./repoShared"
-const scripts = sharedState("repo-render-libraries:v1",()=>new Map<string, Promise<void>>())
-export function library(path: string) {
-  if (!scripts.has(path)) scripts.set(path, new Promise<void>((resolve, reject) => {
-    const script = document.createElement("script"), timer = setTimeout(() => { script.remove(); reject(new Error("渲染组件加载超时")) }, 15000)
-    script.src = `/static/vendor/${path}`
-    script.onload = () => { clearTimeout(timer); resolve() }
-    script.onerror = () => { clearTimeout(timer); script.remove(); reject(new Error("渲染组件加载失败")) }
-    document.head.append(script)
-  }).catch(error => { scripts.delete(path); throw error }))
-  return scripts.get(path)!
-}
-export const runtime = window as typeof window & {
-  marked?: { parse: (text: string, options?: Record<string, unknown>) => string | Promise<string> }
-  DOMPurify?: { sanitize: (html: string, options?: Record<string, unknown>) => string }
-  hljs?: { highlightElement: (element: HTMLElement) => void; getLanguage: (name: string) => unknown }
-}
-
 export async function markdown(host: HTMLElement, text: string, filename: string, info: Pick<RepoInfo,"name">, ref: string, signal: AbortSignal, revealHash = true) {
-  await Promise.all([library("marked/15.0.12/lib/marked.umd.js"), library("dompurify/3.2.7/dist/purify.min.js")])
+  await loadMarkdownRuntime()
   const html = await runtime.marked!.parse(text, { gfm: true })
   if (signal.aborted) return
   host.innerHTML = runtime.DOMPurify!.sanitize(html, { FORBID_TAGS: ["style", "form", "iframe", "input", "button"], FORBID_ATTR: ["style", "srcset"] })

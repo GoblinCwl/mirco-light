@@ -1,6 +1,6 @@
 export const isTouchDialog = () => window.matchMedia("(max-width: 1199px), (hover: none) and (pointer: coarse)").matches
 
-type Motion = { animation?: Animation; closing?: Promise<void>; resolve?: () => void }
+type Motion = { animation?: Animation; closing?: Promise<void>; resolve?: () => void; pointerOpener?: HTMLElement }
 const motions = new WeakMap<HTMLDialogElement, Motion>()
 const isDrawer = (dialog: HTMLDialogElement) => getComputedStyle(dialog).getPropertyValue('--site-drawer').trim() === '1'
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion:reduce)').matches
@@ -9,11 +9,21 @@ const settle = (state: Motion) => {
   const resolve = state.resolve; state.resolve = undefined; state.closing = undefined
   resolve?.()
 }
+const releasePointerFocus = (dialog: HTMLDialogElement, state: Motion) => {
+  const opener = state.pointerOpener
+  state.pointerOpener = undefined
+  // Escape can make native focus restoration draw a keyboard ring on a pointer opener.
+  if (opener && dialog.ownerDocument.activeElement === opener) opener.blur()
+}
 const stateFor = (dialog: HTMLDialogElement) => {
   let state = motions.get(dialog)
   if (!state) {
     state = {}; motions.set(dialog, state)
-    dialog.addEventListener('close', () => { if (!dialog.open) settle(state!) })
+    dialog.addEventListener('close', () => {
+      if (dialog.open) return
+      releasePointerFocus(dialog, state!)
+      settle(state!)
+    })
     dialog.addEventListener('cancel', event => {
       if (!isDrawer(dialog)) return
       event.preventDefault(); void closeSiteDialog(dialog)
@@ -30,7 +40,13 @@ export function showSiteDialog(dialog: HTMLDialogElement) {
   settle(state)
   const touch = isTouchDialog(), autofocus = dialog.hasAttribute("autofocus")
   if (touch) dialog.setAttribute("autofocus", "")
-  if (!dialog.open) dialog.showModal()
+  if (!dialog.open) {
+    const opener = dialog.ownerDocument.activeElement
+    state.pointerOpener = opener?.matches('button, a[href], [role="button"]') && !opener.matches(':focus-visible')
+      ? opener as HTMLElement
+      : undefined
+    dialog.showModal()
+  }
   if (touch) {
     dialog.focus({ preventScroll: true })
     if (!autofocus) dialog.removeAttribute("autofocus")
@@ -49,7 +65,12 @@ export function closeSiteDialog(dialog: HTMLDialogElement): Promise<void> {
   const state = stateFor(dialog)
   if (!dialog.open) { settle(state); return Promise.resolve() }
   if (state.closing) return state.closing
-  if (!isDrawer(dialog) || reducedMotion()) { settle(state); dialog.close(); return Promise.resolve() }
+  const close = () => {
+    dialog.close()
+    releasePointerFocus(dialog, state)
+    settle(state)
+  }
+  if (!isDrawer(dialog) || reducedMotion()) { close(); return Promise.resolve() }
   const current = getComputedStyle(dialog), from = { transform: current.transform, opacity: current.opacity }
   settle(state)
   state.closing = new Promise(resolve => { state.resolve = resolve })
@@ -58,7 +79,7 @@ export function closeSiteDialog(dialog: HTMLDialogElement): Promise<void> {
   state.animation = animation
   animation.onfinish = () => {
     if (state.animation !== animation) return
-    dialog.close(); settle(state)
+    close()
   }
   return pending
 }

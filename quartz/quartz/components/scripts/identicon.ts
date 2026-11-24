@@ -48,6 +48,12 @@ async function weAvatarSource(hash: string): Promise<string | null> {
   return await hasRemoteAvatar(source) ? source : null
 }
 
+export async function resolveCommentAvatar(seed: string, isAdmin: boolean): Promise<string> {
+  const source = commentAvatar(seed, isAdmin)
+  if (source === adminAvatar || !/^(?:[a-f\d]{32}|[a-f\d]{64})$/.test(seed)) return source
+  return await weAvatarSource(seed) || identicon(seed)
+}
+
 export function identicon(seed: string): string {
   seed = seed.trim().normalize("NFC") || "visitor"
   const dark = document.documentElement.getAttribute("saved-theme") === "dark"

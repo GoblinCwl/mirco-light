@@ -6,7 +6,7 @@ const bodySelector='body:not([data-slug="index"]) .center article.popover-hint,b
 
 function decorate(link:HTMLAnchorElement,articles?:ReadonlySet<string>){
  if(!(link instanceof HTMLAnchorElement))return
- if(!link.closest(bodySelector)||link.closest('.sidebar,.backlinks,.toc,.page-header,.page-footer,.home-tiles,.home-hitokoto')){link.querySelectorAll('[data-link-icon]').forEach(icon=>icon.remove());return}
+ if(!link.closest('.starbud-markdown')&&(!link.closest(bodySelector)||link.closest('.sidebar,.backlinks,.toc,.page-header,.page-footer,.home-tiles,.home-hitokoto'))){link.querySelectorAll('[data-link-icon]').forEach(icon=>icon.remove());return}
  applyContentLinkPolicy(link)
  const href=link.getAttribute('href')||'',kind=linkIconKind(href,location.href,articles)
  link.querySelectorAll('.external-icon').forEach(icon=>icon.remove())

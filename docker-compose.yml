@@ -105,6 +105,7 @@ services:
       PUBLIC_DIR: /public/current
       KNOWLEDGE_DIRECTORY: /knowledge
       KNOWLEDGE_MCP_TOKEN_FILE: /data/auth/knowledge-mcp.token
+      STARBUD_TOKEN_FILE: /data/auth/starbud-chat.token
       AUTH_DIR: /data/auth
       FRIEND_AVATAR_TEMP_DIR: /data/avatar-tmp
       TZ: Asia/Shanghai

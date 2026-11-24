@@ -1,5 +1,13 @@
 @use "../../styles/variables.scss" as *;
 
+.starbud-hover-panel[popover] {
+  inset: 0 auto auto 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
 @keyframes dropin {
   0% {
     opacity: 0;
