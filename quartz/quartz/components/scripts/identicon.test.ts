@@ -12,7 +12,8 @@ test("avatars stay hidden until selected and decoded; missing avatars use local 
   })
   let requests = 0
   const sources: string[] = []
-  Object.assign(globalThis, { fetch: async (url: string) => ({ ok: true, json: async () => ({ hash: url.includes("e".repeat(64)) ? "c".repeat(32) : "d".repeat(32) }) }) })
+  const md5 = "a".repeat(32), missingSha256 = "b".repeat(64), sha256 = "e".repeat(64)
+  const avatarURL = (hash: string) => `https://weavatar.com/avatar/${hash}?d=404&s=160`
   class Probe {
     naturalWidth = 80
     referrerPolicy = ""
@@ -21,7 +22,7 @@ test("avatars stay hidden until selected and decoded; missing avatars use local 
     set src(value: string) {
       requests++
       sources.push(value)
-      queueMicrotask(() => (value.includes("a".repeat(32)) || value.includes("cn.cravatar.com/avatar/" + "c".repeat(32))) ? this.onload?.() : this.onerror?.())
+      queueMicrotask(() => (value === avatarURL(md5) || value === avatarURL(sha256)) ? this.onload?.() : this.onerror?.())
     }
   }
   Object.assign(globalThis, { Image: Probe })
@@ -40,43 +41,43 @@ test("avatars stay hidden until selected and decoded; missing avatars use local 
       set src(value: string) { attributes.set("src", value) },
     } as unknown as HTMLImageElement
   }
-  const registered = image(), missing = image(), cravatar = image(), cravatarSha = image()
-  bindIdenticon(registered, "visitor", "a".repeat(32))
-  bindIdenticon(missing, "visitor", "b".repeat(64))
-  bindIdenticon(cravatar, "visitor", "c".repeat(32))
-  bindIdenticon(cravatarSha, "visitor", "e".repeat(64))
+  const registered = image(), missing = image(), registeredSha = image(), duplicateSha = image()
+  bindIdenticon(registered, "visitor", md5)
+  bindIdenticon(missing, "visitor", missingSha256)
+  bindIdenticon(registeredSha, "visitor", sha256)
+  bindIdenticon(duplicateSha, "visitor", sha256)
   assert.equal(registered.src, "")
   assert.equal(missing.src, "")
   assert.equal(registered.style.visibility, "hidden")
   assert.equal(missing.style.visibility, "hidden")
   await new Promise(resolve => setTimeout(resolve, 0))
-  assert.match(registered.src, /^https:\/\/cn.cravatar.com\/avatar\//)
-  assert.ok(sources.every(source => source.startsWith("https://cn.cravatar.com/avatar/")))
+  assert.equal(registered.src, avatarURL(md5))
+  assert.deepEqual(sources, [md5, missingSha256, sha256].map(avatarURL))
   assert.equal(registered.dataset.identiconSeed, undefined)
   assert.match(missing.src, /^data:image\/svg\+xml,/)
   assert.equal(registered.style.visibility, "")
   assert.equal(missing.style.visibility, "")
   bindIdenticon(registered, "visitor")
   bindIdenticon(missing, "visitor")
-  bindIdenticon(cravatar, "visitor")
-  bindIdenticon(cravatarSha, "visitor")
-  assert.equal(cravatarSha.src, cravatar.src)
-  assert.match(cravatar.src, /^https:\/\/cn\.cravatar\.com\/avatar\//)
-  assert.equal(cravatar.style.visibility, "")
+  bindIdenticon(registeredSha, "visitor")
+  bindIdenticon(duplicateSha, "visitor")
+  assert.equal(registeredSha.src, avatarURL(sha256))
+  assert.equal(duplicateSha.src, registeredSha.src)
+  assert.equal(registeredSha.style.visibility, "")
   assert.equal(requests, 3)
   // Artalk may regenerate src when its theme changes; preserve the decision.
-  missing.src = commentAvatar("b".repeat(64))
+  missing.src = commentAvatar(missingSha256)
   bindIdenticon(missing, "visitor")
   assert.match(missing.src, /^data:image\/svg\+xml,/)
-  Object.assign(document, { querySelectorAll: () => [registered, missing, cravatar] })
-  const cravatarSource = cravatar.src
+  Object.assign(document, { querySelectorAll: () => [registered, missing, registeredSha] })
+  const shaSource = registeredSha.src
   const registeredSource = registered.src
   listeners.get("themechange")!()
   assert.equal(registered.src, registeredSource)
-  assert.equal(cravatar.src, cravatarSource)
-  cravatar.src = commentAvatar("c".repeat(32))
-  bindIdenticon(cravatar, "visitor")
-  assert.equal(cravatar.src, cravatarSource)
+  assert.equal(registeredSha.src, shaSource)
+  registeredSha.src = commentAvatar(sha256)
+  bindIdenticon(registeredSha, "visitor")
+  assert.equal(registeredSha.src, shaSource)
   assert.equal(requests, 3)
   assert.equal(registered.dataset.identiconSeed, undefined)
   assert.match(missing.src, /^data:image\/svg\+xml,/)

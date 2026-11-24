@@ -1,9 +1,8 @@
-// Resolve avatars through Cravatar; otherwise generate the site-owned avatar.
+// Resolve avatars through WeAvatar; otherwise generate the site-owned avatar.
 const avatarCache = new Map<string, string>()
 const avatarChecks = new Map<string, Promise<boolean>>()
 const boundAvatars = new WeakMap<HTMLImageElement, string>()
 const selectedAvatars = new WeakMap<HTMLImageElement, string | null>()
-const md5Checks = new Map<string, Promise<string>>()
 const avatarPrefix = "data:image/svg+xml,"
 const adminAvatar = "/static/avatars/goblincwl-profile-transparent-v1.webp"
 // Recognize both current SHA-256 and legacy MD5 email hashes; the caller must
@@ -44,28 +43,8 @@ function hasRemoteAvatar(source: string): Promise<boolean> {
   return check
 }
 
-async function cravatarSource(seed: string): Promise<string | null> {
-  let hash = seed
-  if (hash.length === 64) {
-    let pending = md5Checks.get(hash)
-    if (!pending) {
-      pending = (async () => {
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 5000)
-        try {
-          const response = await fetch('/api/comments/avatar-hash?hash=' + encodeURIComponent(hash), { signal: controller.signal, credentials: 'omit' })
-          if (!response.ok) return ''
-          const value = await response.json()
-          return typeof value.hash === 'string' && /^[a-f0-9]{32}$/.test(value.hash) ? value.hash : ''
-        } catch { return '' } finally { clearTimeout(timeout) }
-      })()
-      if (md5Checks.size >= 256) md5Checks.delete(md5Checks.keys().next().value!)
-      md5Checks.set(hash, pending)
-    }
-    hash = await pending
-  }
-  if (!/^[a-f0-9]{32}$/.test(hash)) return null
-  const source = `https://cn.cravatar.com/avatar/${hash}?d=404&s=160`
+async function weAvatarSource(hash: string): Promise<string | null> {
+  const source = `https://weavatar.com/avatar/${hash}?d=404&s=160`
   return await hasRemoteAvatar(source) ? source : null
 }
 
@@ -143,8 +122,7 @@ export function bindIdenticon(image: HTMLImageElement, fallbackSeed: string, exp
     image.removeAttribute("srcset")
     return
   }
-  // A selected Cravatar uses MD5 even when the original Artalk seed is SHA-256.
-  // Do not reinterpret its URL as a new identity when the src observer runs.
+  // Ignore src mutations from an avatar that this observer already selected.
   if (!explicitSeed && boundAvatars.has(image) && selectedAvatars.get(image) === original) return
   let generatedSeed: string | undefined
   if (original.startsWith(avatarPrefix)) {
@@ -175,7 +153,7 @@ export function bindIdenticon(image: HTMLImageElement, fallbackSeed: string, exp
     selectedAvatars.delete(image)
     const visibility = image.style.visibility
     image.style.visibility = "hidden"
-    void cravatarSource(seed).then(async (available) => {
+    void weAvatarSource(seed).then(async (available) => {
       if (boundAvatars.get(image) !== binding) return
       selectedAvatars.set(image, available)
       image.src = available || identicon(seed)

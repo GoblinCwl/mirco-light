@@ -437,7 +437,7 @@ Artalk 用户回复通知使用 `artalk/templates/reply.html`，Compose 只读�
 
 评论总数与排序由 Artalk、Bilibili 共用 `commentToolbar` 组件及 `commentShared.toolbar` 样式。保留最新／最早／热门三项，不展示原生 Artalk 下拉。Artalk 委托原生 date_desc／date_asc／vote；Bilibili 时间排序使用 mode=2 的 next／prev 游标，最早从 prev=1 开始并反转单页，不先抓取全部评论。热门复用 B 站 mode=3 原生排序；总数取平台 all_count（含回复），切换排序清空旧列表和游标、取消旧请求，各排序独立缓存。
 
-评论头像统一只检测 Cravatar（cn.cravatar.com，d=404，由该服务处理其 Gravatar／QQ 回退），不可用才使用前端生成头像；浏览器不独立请求 Gravatar。管理员固定头像不受影响。Artalk 的 SHA-256 邮箱哈希由后端读取用户资料后映射到 MD5，映射通过已有缓存合并并缓存五分钟；公开接口只返回指定用户对应的头像哈希，不返回邮箱或用户列表。各头像在探测和解码完成后展示，远程头像不随主题切换被覆盖；评论区与管理列表共用 identicon 模块。
+本站普通评论用 Artalk 提供的 SHA-256 或历史 MD5 哈希向 WeAvatar（weavatar.com，d=404）请求头像。头像不存在或加载失败时使用前端生成的 SVG。管理员使用固定站内头像。各头像在探测和解码完成后展示，远程头像不随主题切换被覆盖。评论区与管理列表共用 identicon 模块。
 
 RSS 订阅弹框两行展示「全部／文章」，文章订阅链接为 `/articles.xml`，两行共用复制、打开交互与移动端行布局。文章订阅先按类型和公开权限筛选，再按发布时间取最新 20 篇，不添加分类 emoji；默认 `/index.xml`、首页三篇混合预览及 head 自动发现继续使用原地址，不额外增加自动发现标签。
 
