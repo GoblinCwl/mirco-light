@@ -49,6 +49,15 @@ dialog.activity-details.agent-chat-dialog {
   }
 
   .activity-details-header {
+    gap: .25rem;
+
+    > [data-agent-chat-close] { margin-left: 0; }
+    > [data-agent-chat-clear]:disabled {
+      color: var(--gray);
+      background: transparent;
+      opacity: .45;
+      cursor: default;
+    }
     .agent-chat-heading {
       display: flex;
       align-items: baseline;
@@ -164,6 +173,36 @@ dialog.activity-details.agent-chat-dialog {
   .agent-chat-composer {
     flex: 0 0 auto;
     padding: .75rem 1.25rem 1rem;
+  }
+
+  .agent-chat-page-context {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    box-sizing: border-box;
+    width: fit-content;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0 0 .45rem auto;
+    padding: .2rem .5rem;
+    border: 1px solid color-mix(in srgb, var(--secondary) 20%, var(--lightgray));
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--secondary) 8%, var(--moreLight));
+    color: var(--secondary);
+    font: .8rem/1.4 var(--bodyFont);
+    white-space: nowrap;
+
+    .agent-chat-page-icon {
+      display: flex;
+      flex: none;
+      svg { width: .95em; height: .95em; }
+    }
+  }
+
+  .agent-chat-page-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .agent-chat-visitor-avatar:empty { background: transparent; }

@@ -20,11 +20,13 @@ import (
 	"goblincwl/quartz-server/internal/visitors"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 )
 
 type Server struct {
 	knowledgeMCP      http.Handler
+	starbudReads      sync.Map
 	Starbud           *starbud.Service
 	TaskRuns          *taskruns.Tracker
 	ArticleDirectory  string
@@ -66,6 +68,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /articles.xml", s.rss)
 	mux.HandleFunc("GET /friends.xml", s.friendRSS)
 	mux.HandleFunc("POST /api/starbud/chat", s.chatWithStarbud)
+	mux.HandleFunc("POST /api/starbud/chat/context", s.submitStarbudContext)
 	mux.HandleFunc("GET /api/starbud/quota", s.starbudQuota)
 	if s.knowledgeMCP != nil {
 		mux.Handle(knowledgeMCPPath, s.knowledgeMCP)

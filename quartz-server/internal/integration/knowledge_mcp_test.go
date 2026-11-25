@@ -16,6 +16,7 @@ import (
 	"goblincwl/quartz-server/internal/content"
 	"goblincwl/quartz-server/internal/httpapi"
 	"goblincwl/quartz-server/internal/journal"
+	"goblincwl/quartz-server/internal/settings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -24,12 +25,17 @@ func TestKnowledgeMCPUsesLivePublicIndex(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
 	store := content.Store{DB: db, Origin: "https://site.test"}
+	for key, value := range map[string]string{"profile.email": "owner@site.test", "profile.qq": "0123456789"} {
+		if _, err := (settings.Store{DB: db}).Save(ctx, key, value); err != nil {
+			t.Fatal(err)
+		}
+	}
 	items := []content.Item{
 		{SourceID: "Memo/a", Slug: "Memo/a", Href: "/Memo/a", Title: "Article A", Links: []string{"Memo/b", "Memo/locked", "Repo/sample"}, Content: "vector corpus marker", Description: "Article synopsis", Tags: []string{"Shared"}, PublishedAt: "2026-11-23T16:00:00Z"},
 		{SourceID: "Memo/b", Slug: "Memo/b", Href: "/Memo/b", Title: "Article B", Links: []string{"Memo/a", "Memo/alias"}, Tags: []string{"Shared"}, PublishedAt: "2026-11-24T15:59:59Z"},
-		{SourceID: "Memo/locked", Slug: "Memo/locked", Title: "Protected", Encrypted: true, Links: []string{"Memo/a"}, Tags: []string{"Private"}},
+		{SourceID: "Memo/locked", Slug: "Memo/locked", Title: "Protected", Encrypted: true, Links: []string{"Memo/a"}, Tags: []string{"Private"}, Extra: map[string]any{"filePath": "Memo/locked.md"}},
 	}
-	items[0].Extra = map[string]any{"aliases": []string{"Memo/alias"}}
+	items[0].Extra = map[string]any{"aliases": []string{"Memo/alias", "about"}}
 	items[0].Extra["filePath"] = "Memo/a.md"
 	root := t.TempDir()
 	snapshot := &content.ArticleSnapshot{Store: store, Path: filepath.Join(root, "articles.json"), KnowledgeDirectory: filepath.Join(root, "knowledge")}
@@ -44,6 +50,12 @@ func TestKnowledgeMCPUsesLivePublicIndex(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := snapshot.Import(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, "UPDATE content SET description=?, search_text=? WHERE id=?", "locked body marker", "locked body marker", "article:Memo/locked"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(snapshot.KnowledgeDirectory, "current", "Memo", "locked.md"), []byte("---\nwork_id: \"article:Memo/locked\"\n---\n\nlocked body marker"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	for kind, records := range map[string][]content.Item{
@@ -116,7 +128,7 @@ func TestKnowledgeMCPUsesLivePublicIndex(t *testing.T) {
 			t.Fatalf("%s failed: %+v (%v)", name, result, err)
 		}
 		raw, err := json.Marshal(result.StructuredContent)
-		if err != nil || strings.Contains(string(raw), "vector corpus marker") {
+		if err != nil || strings.Contains(string(raw), "vector corpus marker") || strings.Contains(string(raw), "locked body marker") {
 			t.Fatalf("invalid index output: %s (%v)", raw, err)
 		}
 		if err := json.Unmarshal(raw, output); err != nil {
@@ -137,12 +149,26 @@ func TestKnowledgeMCPUsesLivePublicIndex(t *testing.T) {
 	}
 	result := lookup("article:Memo/a")
 	if !result.Found || result.Work == nil || result.Work.URL != "https://site.test/Memo/a" ||
-		len(result.Work.Links) != 2 || !slices.ContainsFunc(result.Work.Links, func(ref content.KnowledgeWorkRef) bool { return ref.Type == "repo" }) ||
+		len(result.Work.Links) != 3 || !slices.ContainsFunc(result.Work.Links, func(ref content.KnowledgeWorkRef) bool { return ref.Type == "repo" }) ||
+		!slices.ContainsFunc(result.Work.Links, func(ref content.KnowledgeWorkRef) bool {
+			return ref.WorkID == "article:Memo/locked" && ref.RequiresUnlock
+		}) ||
 		len(result.Work.Backlinks) != 1 || result.Work.Backlinks[0].WorkID != "article:Memo/b" {
 		t.Fatalf("unexpected lookup result: %+v", result.Work)
 	}
-	if lookup("article:Memo/locked").Found {
-		t.Fatal("protected work was returned")
+	var aliasLookup struct {
+		Found  bool                   `json:"found"`
+		WorkID string                 `json:"work_id"`
+		Work   *content.KnowledgeWork `json:"work"`
+	}
+	call("lookup_work", map[string]any{"source_url": "https://site.test/about.html?pure=true#top"}, &aliasLookup)
+	if !aliasLookup.Found || aliasLookup.Work == nil || aliasLookup.WorkID != result.Work.WorkID || aliasLookup.Work.URL != result.Work.URL {
+		t.Fatalf("alias should resolve to canonical work: %+v", aliasLookup)
+	}
+	if protected := lookup("article:Memo/locked"); !protected.Found || protected.Work == nil ||
+		!protected.Work.RequiresUnlock || protected.Work.Title != "Protected" || protected.Work.URL != "https://site.test/Memo/locked/" ||
+		len(protected.Work.Links) != 0 || len(protected.Work.Backlinks) != 0 || !slices.Equal(protected.Work.Tags, []string{"Private"}) || protected.Work.Description != "" {
+		t.Fatalf("unexpected locked work metadata: %+v", protected.Work)
 	}
 	readBody := func(arguments map[string]any) content.KnowledgeBody {
 		t.Helper()
@@ -167,11 +193,14 @@ func TestKnowledgeMCPUsesLivePublicIndex(t *testing.T) {
 		t.Fatalf("incorrect continuation: %+v", rest)
 	}
 	for _, input := range []map[string]any{
-		{"work_id": "article:Memo/locked"}, {"source_url": "/Memo/locked"}, {"work_id": "repo:sample"},
+		{"work_id": "article:Memo/locked"}, {"source_url": "/Memo/locked?p=example"},
 	} {
-		if locked := readBody(input); locked.Found || locked.Available || locked.Markdown != "" {
+		if locked := readBody(input); !locked.Found || !locked.RequiresUnlock || locked.Available || locked.Markdown != "" || locked.URL != "https://site.test/Memo/locked/" {
 			t.Fatalf("unexpected article export: %+v", locked)
 		}
+	}
+	if repo := readBody(map[string]any{"work_id": "repo:sample"}); !repo.Found || repo.RequiresUnlock || repo.Available {
+		t.Fatalf("repository should have no article export: %+v", repo)
 	}
 	if empty := readBody(map[string]any{"work_id": "article:Memo/b"}); !empty.Found || empty.Available || empty.Markdown != "" {
 		t.Fatalf("missing export should retain the index match: %+v", empty)
@@ -185,29 +214,72 @@ func TestKnowledgeMCPUsesLivePublicIndex(t *testing.T) {
 		}
 	}
 	var list content.KnowledgePage[content.KnowledgeSummary]
+	call("search_works", map[string]any{"query": "/about"}, &list)
+	if list.Total != 1 || list.Items[0].WorkID != result.Work.WorkID {
+		t.Fatalf("unexpected exact alias search: %+v", list)
+	}
+	call("search_works", map[string]any{"query": "/about", "type": "share"}, &list)
+	if list.Total != 0 {
+		t.Fatalf("alias search should respect filters: %+v", list)
+	}
 	call("list_works", map[string]any{"type": "article", "directory": "Memo", "tag": "#shared", "from": "2026-11-24", "to": "2026-11-24", "sort": "title_desc", "page_size": 1}, &list)
 	if list.Total != 2 || !list.HasMore || len(list.Items) != 1 || list.Items[0].WorkID != "article:Memo/b" {
 		t.Fatalf("unexpected filtered page: %+v", list)
 	}
 	for _, kind := range []string{"share", "repo", "video"} {
 		call("list_works", map[string]any{"type": kind}, &list)
-		if list.Total != 1 || len(list.Items) != 1 || lookup(list.Items[0].WorkID).Work.Type != kind {
+		want := 1
+		if kind == "share" {
+			want = 2
+		}
+		if list.Total != want || len(list.Items) != want || lookup(list.Items[0].WorkID).Work.Type != kind {
 			t.Fatalf("unexpected %s results: %+v", kind, list)
+		}
+	}
+	call("list_works", map[string]any{"type": "share", "requires_unlock": true}, &list)
+	if list.Total != 1 || !list.Items[0].RequiresUnlock {
+		t.Fatalf("locked share should be returned: %+v", list)
+	}
+	lockedShare := list.Items[0]
+	if share := lookup(lockedShare.WorkID); !share.Found || share.Work == nil || !share.Work.RequiresUnlock || share.Work.Description != "" {
+		t.Fatalf("unexpected locked share metadata: %+v", share.Work)
+	}
+	call("search_works", map[string]any{"type": "share", "query": "locked files"}, &list)
+	if list.Total != 1 || list.Items[0].WorkID != lockedShare.WorkID || !list.Items[0].RequiresUnlock {
+		t.Fatalf("locked share title should be searchable: %+v", list)
+	}
+	for _, input := range []map[string]any{{"work_id": lockedShare.WorkID}, {"source_url": lockedShare.URL}} {
+		if result := readBody(input); !result.Found || result.Type != "share" || !result.RequiresUnlock || result.Available || result.Markdown != "" {
+			t.Fatalf("unexpected locked share content: %+v", result)
 		}
 	}
 	call("search_works", map[string]any{"query": "VECTOR marker"}, &list)
 	if list.Total != 1 || list.Items[0].WorkID != "article:Memo/a" {
 		t.Fatalf("unexpected keyword matches: %+v", list)
 	}
+	call("search_works", map[string]any{"query": "protected"}, &list)
+	if list.Total != 1 || !list.Items[0].RequiresUnlock || list.Items[0].Title != "Protected" {
+		t.Fatalf("locked title should be searchable: %+v", list)
+	}
+	call("search_works", map[string]any{"query": "locked body marker"}, &list)
+	if list.Total != 0 {
+		t.Fatalf("locked body must not be searchable: %+v", list)
+	}
 	var stats content.KnowledgeStatistics
 	call("get_statistics", map[string]any{}, &stats)
-	if stats.Total != 5 || stats.ByType["article"] != 2 || stats.ByType["share"] != 1 || len(stats.ByDirectory) != 4 {
+	if stats.Total != 7 || stats.UnlockedTotal != 5 || stats.LockedTotal != 2 ||
+		stats.ByType["article"] != 3 || stats.ByType["share"] != 2 || stats.LockedByType["article"] != 1 ||
+		stats.LockedByType["share"] != 1 || len(stats.ByDirectory) != 4 {
 		t.Fatalf("unexpected statistics: %+v", stats)
 	}
 	var tags content.KnowledgePage[content.KnowledgeTag]
 	call("list_tags", map[string]any{"query": "shared"}, &tags)
 	if tags.Total != 1 || tags.Items[0].Count != 3 {
 		t.Fatalf("unexpected tag counts: %+v", tags)
+	}
+	call("list_tags", map[string]any{"query": "Private"}, &tags)
+	if tags.Total != 1 || tags.Items[0].Count != 2 || tags.Items[0].LockedCount != 2 {
+		t.Fatalf("unexpected locked tag counts: %+v", tags)
 	}
 	for _, tc := range []struct {
 		input       map[string]any
@@ -218,12 +290,16 @@ func TestKnowledgeMCPUsesLivePublicIndex(t *testing.T) {
 		{map[string]any{"page": "友链", "section": "latest_posts"}, "Public post", "Pending post"},
 		{map[string]any{"page": "视界", "section": "works", "type": "repo"}, "Repository", "Article A"},
 		{map[string]any{"page": "标签页", "section": "tags", "tag": "shar"}, `"tag":"Shared"`, `"tag":"Private"`},
+		{map[string]any{"page": "流光", "section": "tags", "requires_unlock": true}, `"locked_count":2`, `"tag":"Shared"`},
 		{map[string]any{"page": "https://site.test/tags/?tag=Shared", "section": "works", "type": "article"}, "Article A", "Repository"},
-		{map[string]any{"page": "流光", "section": "works", "tag": "#Private"}, `"items":[]`, "Protected"},
+		{map[string]any{"page": "流光", "section": "works", "tag": "#Private"}, `"requires_unlock":true`, "Article A"},
 		{map[string]any{"page": "/", "section": "calendar", "month": "2026-11"}, "Special day", "private calendar marker"},
+		{map[string]any{"page": "首页"}, `"id":"contact"`, "owner@site.test"},
+		{map[string]any{"page": "/", "section": "contact"}, `"email":"owner@site.test","name":"GoblinCwl","qq":"0123456789"`, "profile.qqLink"},
 		{map[string]any{"page": "/observatory/", "section": "journal"}, `"count":3`, "private journal marker"},
 		{map[string]any{"page": "https://external.test/friends/"}, `"found":false`, "latest_posts"},
 		{map[string]any{"page": "/observatory/admin"}, `"found":false`, "journal"},
+		{map[string]any{"page": "/about"}, `"work_id":"article:Memo/a"`, `"page":`},
 	} {
 		var output json.RawMessage
 		call("get_page_context", tc.input, &output)

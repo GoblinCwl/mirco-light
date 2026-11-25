@@ -6,10 +6,11 @@ import (
 )
 
 type KnowledgeWorkRef struct {
-	WorkID string `json:"work_id"`
-	Type   string `json:"type"`
-	Title  string `json:"title"`
-	URL    string `json:"source_url"`
+	WorkID         string `json:"work_id"`
+	Type           string `json:"type"`
+	Title          string `json:"title"`
+	URL            string `json:"source_url"`
+	RequiresUnlock bool   `json:"requires_unlock,omitempty"`
 }
 
 type KnowledgeSummary struct {
@@ -28,10 +29,17 @@ type KnowledgeWork struct {
 }
 
 // LookupKnowledgeWork exposes public records and their public relationships.
-func (s Store) LookupKnowledgeWork(ctx context.Context, id string) (*KnowledgeWork, error) {
+func (s Store) LookupKnowledgeWork(ctx context.Context, id, sourceURL string) (*KnowledgeWork, error) {
 	records, err := s.knowledgeRecords(ctx, "", nil)
 	if err != nil {
 		return nil, err
+	}
+	if sourceURL != "" {
+		record, err := knowledgeRecordForURL(records, s.Origin, sourceURL)
+		if err != nil || record == nil {
+			return nil, err
+		}
+		return knowledgeRelations(records, *record, s.Origin), nil
 	}
 	for _, record := range records {
 		if record.ID == id {
@@ -42,20 +50,28 @@ func (s Store) LookupKnowledgeWork(ctx context.Context, id string) (*KnowledgeWo
 }
 
 func knowledgeRef(record Record, origin string) KnowledgeWorkRef {
-	return KnowledgeWorkRef{WorkID: record.ID, Type: record.Type, Title: record.Title, URL: strings.TrimRight(origin, "/") + record.Href}
+	return KnowledgeWorkRef{WorkID: record.ID, Type: record.Type, Title: record.Title, URL: strings.TrimRight(origin, "/") + record.Href, RequiresUnlock: record.Encrypted}
 }
 
 func knowledgeSummary(record Record, origin string) KnowledgeSummary {
-	return KnowledgeSummary{
+	result := KnowledgeSummary{
 		KnowledgeWorkRef: knowledgeRef(record, origin), Directory: knowledgeDirectory(record.Slug),
-		Description: excerpt(clip(record.Description, 300)), Tags: record.Tags, PublishedAt: record.Published, UpdatedAt: record.Updated,
+		Tags: record.Tags, PublishedAt: record.Published, UpdatedAt: record.Updated,
 	}
+	if record.Encrypted {
+		return result
+	}
+	result.Description = excerpt(clip(record.Description, 300))
+	return result
 }
 
 func knowledgeRelations(records []Record, target Record, origin string) *KnowledgeWork {
 	result := &KnowledgeWork{
 		KnowledgeSummary: knowledgeSummary(target, origin),
 		Links:            []KnowledgeWorkRef{}, Backlinks: []KnowledgeWorkRef{},
+	}
+	if target.Encrypted {
+		return result
 	}
 	routes := relationRoutes(records, "", nil)
 	targetSlug := relationKey(target.Slug)
@@ -71,6 +87,9 @@ func knowledgeRelations(records []Record, target Record, origin string) *Knowled
 		}
 		if outgoing[relationKey(record.Slug)] {
 			result.Links = append(result.Links, knowledgeRef(record, origin))
+		}
+		if record.Encrypted {
+			continue
 		}
 		for _, link := range record.Links {
 			if slug, ok := routes[relationKey(link)]; ok && slug == targetSlug {

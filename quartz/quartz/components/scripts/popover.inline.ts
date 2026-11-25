@@ -1,5 +1,5 @@
 import { hoverDismissal } from './hoverDismissal'
-import { isNavigationLink } from "../../util/previewPolicy"
+import { isNonPreviewLink } from "../../util/previewPolicy"
 import { attachVideoPreview } from "./videoPreview"
 import {repoHoverContent,repoHoverAvailable} from "./repoHover"
 import { computePosition, flip, inline, shift } from "@floating-ui/dom"
@@ -57,7 +57,7 @@ async function mouseEnterHandler(
   { clientX, clientY }: { clientX: number; clientY: number },
 ) {
   const link = this
-  if (isNavigationLink(link.href, location.href)) return
+  if (isNonPreviewLink(link.href, location.href)) return
   // Tags are navigation/filter links, never content preview targets. Check the
   // destination too, covering Markdown links and dynamically rendered tags.
   if (link.classList.contains("tag-link") || link.closest(".tags") ||
@@ -128,61 +128,47 @@ async function mouseEnterHandler(
   }
 
   const request=driveHoverRequest=new AbortController()
+  const response = await fetchCanonical(targetUrl,{signal:request.signal}).catch(()=>undefined)
+  if (!response?.ok || request.signal.aborted || activeAnchor!==link) return
+  const contentType=response.headers.get("Content-Type") || "text/html"
+  const mime=contentType.split(";")[0].trim().toLowerCase()
   const popoverElement = document.createElement("div")
   popoverElement.id = popoverId
   popoverElement.classList.add("popover")
   const popoverInner = document.createElement("div")
   popoverInner.classList.add("popover-inner")
-  popoverInner.append(previewLoading())
   popoverElement.appendChild(popoverInner)
-  showPopover(popoverElement)
-  const cancel=()=>popoverElement.remove()
-  request.signal.addEventListener("abort",cancel,{once:true})
-  const response = await fetchCanonical(targetUrl,{signal:request.signal}).catch(()=>undefined)
-  if (!response?.ok || request.signal.aborted || activeAnchor!==link) {popoverElement.remove();return}
-  const contentType=response.headers.get("Content-Type") || "text/html"
-  const [contentTypeCategory, typeInfo]=contentType.split(";")[0].split("/")
   popoverInner.dataset.contentType=contentType
-  popoverInner.replaceChildren()
-  switch (contentTypeCategory) {
-    case "image":
-      const img = document.createElement("img")
-      img.src = targetUrl.toString()
-      img.alt = targetUrl.pathname
+  if (mime.startsWith("image/")) {
+    const img = document.createElement("img")
+    img.src = targetUrl.toString()
+    img.alt = targetUrl.pathname
 
-      popoverInner.appendChild(img)
-      break
-    case "application":
-      switch (typeInfo) {
-        case "pdf":
-          const pdf = document.createElement("iframe")
-          pdf.src = targetUrl.toString()
-          popoverInner.appendChild(pdf)
-          break
-        default:
-          break
-      }
-      break
-    default:
-      const contents = await response.text()
-      const html = p.parseFromString(contents, "text/html")
-      if (html.getElementById("lock")) {popoverElement.remove();return}
-      normalizeRelativeURLs(html, targetUrl)
-      // prepend all IDs inside popovers to prevent duplicates
-      html.querySelectorAll("[id]").forEach((el) => {
-        const targetID = `popover-internal-${el.id}`
-        el.id = targetID
-      })
-      const elts = [...html.getElementsByClassName("popover-hint")]
-      if (elts.length === 0) {popoverElement.remove();return}
+    popoverInner.appendChild(img)
+  } else if (mime === "application/pdf") {
+    const pdf = document.createElement("iframe")
+    pdf.src = targetUrl.toString()
+    popoverInner.appendChild(pdf)
+  } else if (mime === "text/html" || mime === "application/xhtml+xml") {
+    const contents = await response.text().catch(() => "")
+    if (request.signal.aborted || activeAnchor!==link) return
+    const html = p.parseFromString(contents, "text/html")
+    if (html.getElementById("lock")) return
+    normalizeRelativeURLs(html, targetUrl)
+    // prepend all IDs inside popovers to prevent duplicates
+    html.querySelectorAll("[id]").forEach((el) => {
+      const targetID = `popover-internal-${el.id}`
+      el.id = targetID
+    })
+    const elts = [...html.getElementsByClassName("popover-hint")]
+    if (elts.length === 0) return
 
-      elts.forEach((elt) => popoverInner.appendChild(elt))
+    elts.forEach((elt) => popoverInner.appendChild(elt))
+  } else {
+    return
   }
 
-  if(request.signal.aborted || activeAnchor!==link){popoverElement.remove();return}
-  request.signal.removeEventListener("abort",cancel)
-  void setPosition(popoverElement)
-  scrollToHeading(popoverElement)
+  showPopover(popoverElement)
   popoverInner.querySelectorAll('img').forEach(img=>img.addEventListener('load',()=>void setPosition(popoverElement),{once:true,signal:request.signal}))
 
 }
@@ -216,7 +202,7 @@ document.addEventListener("nav", () => {
     const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a.internal,a[data-drive-hover],a[data-repo-hover]") : null
     if (!link) { if(activeAnchor)dismissal.schedule(); return }
     if (event.relatedTarget instanceof Node && link.contains(event.relatedTarget)) return
-    if (isNavigationLink(link.href, location.href)) return
+    if (isNonPreviewLink(link.href, location.href)) return
     if (link.closest(".starbud-markdown") && (!matchMedia("(hover: hover) and (pointer: fine)").matches ||
       link.closest('.agent-chat-message[aria-live="off"]'))) return
     const bvid = link.dataset.starbudVideoPreview

@@ -25,6 +25,7 @@ import { encryptedIcon, updateTitleLock } from "../../util/encryptedIcon"
 import { formatDateWithSeconds, formatDirectoryDate, SITE_DATE_TIME_ZONE } from "../../util/formatDate"
 import { DRIVE_ORIGIN, DriveFile, driveGuestFileUrl, driveDownloadUrl, driveSize, joinDrivePath } from "./openlistShared"
 import { DriveError, DriveUser, driveDirectoryTitle, drivePathKey, drivePathKinds, driveHref, drivePassword, drivePasswordKey, drivePasswords, rememberDriveShareCode, forgetDriveShareCode, driveRequest, driveRoute, driveToken, cachedDriveUser, requireDriveUser, setDriveToken } from "./driveClient"
+import { readableStarbudFile, readStarbudFile, setStarbudSharePage } from "./starbudUnlocked"
 import { renderDriveMetadata } from "./driveMetadata"
 import { DriveEntry, driveEntryHref, driveShareName, driveShareProtected, driveShareMedia, fetchDriveEntries } from "./driveEntries"
 import { fileIcon, fileIconForName, node } from "./driveUi"
@@ -541,7 +542,26 @@ document.addEventListener("nav", () => {
     await filePreview.load(meta, link, { view, requestPath: requestPath(path), password: password(), user, mediaShare: mediaEnabled, cover: currentMedia?.type === "Movie" ? currentMedia.backdrop || "" : currentMedia?.image }, signal)
   }
 
+  const exposeStarbudShare = (items: DriveFile[], directory: boolean, signal: AbortSignal) => {
+    if (view !== "share" || !driveShareProtected(share) || !password()) return
+    setStarbudSharePage(root, {
+      href: driveHref("share", "/", share),
+      text: () => [get("header").innerText, get("readme").innerText].filter(Boolean).join("\n\n"),
+      files: items.map(file => ({
+        name: file.name,
+        size: file.size,
+        is_dir: file.is_dir,
+        read: !file.is_dir && readableStarbudFile(file.name, file.size) ? async requestSignal => {
+          const target = directory ? joinDrivePath(path, file.name) : path
+          const active = AbortSignal.any([signal, requestSignal])
+          return readStarbudFile(await fileUrl(file, target, active), active)
+        } : undefined,
+      })),
+    })
+  }
+
   const load = async (refresh = false): Promise<boolean> => {
+    setStarbudSharePage(root)
 
     filePreview.clear(directoryPage === false ? { name: path.split("/").filter(Boolean).at(-1) || shareRootName, is_dir: false, size: 0, modified: "" } : undefined)
     closeContextMenu(); stopMedia(); thumbnailController.abort(); get("image-items").replaceChildren()
@@ -689,7 +709,7 @@ document.addEventListener("nav", () => {
       if (view === "share" && path === "/") await setupSharePage(signal).catch(() => { if (!signal.aborted) console.warn("分享评论暂时不可用") })
       if (!meta.is_dir) {
         renderDriveMetadata(get("header"), showMetadata ? meta.header : undefined); renderDriveMetadata(get("readme"), showMetadata ? meta.readme : undefined)
-        show("content"); await renderFile(meta, signal); return !signal.aborted
+        show("content"); exposeStarbudShare([meta], false, signal); await renderFile(meta, signal); return !signal.aborted
       }
       type Listing = { content: DriveFile[] | null; total: number; write: boolean; header?: string; readme?: string }
       let data: Listing
@@ -702,7 +722,7 @@ document.addEventListener("nav", () => {
       files = data.content || []; total = data.total; writable = Boolean(data.write)
       renderDriveMetadata(get("header"), showMetadata ? data.header ?? meta.header : undefined); renderDriveMetadata(get("readme"), showMetadata ? data.readme ?? meta.readme : undefined)
       get("listing").hidden = false; get("preview").hidden = true; list.hidden = false
-      renderFiles(); show("content"); return true
+      renderFiles(); show("content"); exposeStarbudShare(files, true, signal); return true
     } catch (error) {
       if (signal.aborted) return false
       mediaNamesReady = true; mediaModePending = false

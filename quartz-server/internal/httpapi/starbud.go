@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,6 +33,13 @@ func (s *Server) chatWithStarbud(w http.ResponseWriter, r *http.Request) {
 		JSON(w, 400, map[string]string{"error": err.Error()})
 		return
 	}
+	if input.Unlock != nil {
+		if r.Header.Get("Accept") != starbud.StreamType || !input.Unlock.Unlocked || !s.starbudUnlockMatches(r.Context(), input) {
+			JSON(w, 400, map[string]string{"error": "当前页面的解锁状态已变化，请重新打开页面后再试"})
+			return
+		}
+		input.TurnID = rand.Text()
+	}
 	input.ClientIP = visitors.NormalizeIP(clientIP(r))
 	if r.Header.Get("Accept") == starbud.StreamType {
 		s.streamStarbud(w, r, user, ip, input)
@@ -59,9 +67,21 @@ func (s *Server) starbudChatError(w http.ResponseWriter, err error) {
 }
 
 func (s *Server) streamStarbud(w http.ResponseWriter, r *http.Request, user, ip string, input starbud.Input) {
+	var reads *starbudReadTurn
+	if input.TurnID != "" {
+		reads = &starbudReadTurn{user: user, ip: ip, pending: make(map[string]bool)}
+		s.starbudReads.Store(input.TurnID, reads)
+		defer s.starbudReads.Delete(input.TurnID)
+	}
 	started := false
 	control := http.NewResponseController(w)
 	send := func(event starbud.StreamEvent) error {
+		if event.Type == "read_request" {
+			if reads == nil || !reads.register(event) {
+				return starbud.ErrUnavailable
+			}
+			event.TurnID = input.TurnID
+		}
 		if !started {
 			w.Header().Set("Content-Type", starbud.StreamType+"; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store, no-transform")

@@ -309,6 +309,7 @@ async function decrypt() {
     }
 
     article.innerHTML = contentHtml
+    article.dataset.starbudUnlocked = ""
     // Bound painting work in table-heavy documents without skipping layout or
     // estimating heights; headings and browser find keep their real positions.
     article.toggleAttribute("data-large-document", article.querySelectorAll("table").length >= 64)

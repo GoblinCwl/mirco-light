@@ -20,7 +20,7 @@ function AgentIcon() {
   )
 }
 
-const AgentChat: QuartzComponent = () => (
+const AgentChat: QuartzComponent = ({ cfg, fileData }) => (
   <>
     <button class="agent-chat-trigger" type="button" aria-label="星芽"
       aria-haspopup="dialog" aria-controls="agent-chat-dialog" aria-expanded="false">
@@ -32,6 +32,11 @@ const AgentChat: QuartzComponent = () => (
           <strong id="agent-chat-title"><AgentIcon /><span>星芽</span></strong>
           <span id="agent-chat-description" class="agent-chat-description">诞生于微光集深处，由知识与记忆孕育而成的生命。</span>
         </h2>
+        <button data-agent-chat-clear type="button" aria-label="清空历史" title="清空历史" aria-haspopup="dialog" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 6h16M9 6V4h6v2M6 6l1 14h10l1-14M10 10v6m4-6v6" />
+          </svg>
+        </button>
         <button data-agent-chat-close type="button" aria-label="关闭">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path d="m6 6 12 12M18 6 6 18" />
@@ -49,6 +54,10 @@ const AgentChat: QuartzComponent = () => (
         <div class="agent-chat-history" role="log" aria-label="聊天记录"></div>
       </div>
       <form class="agent-chat-composer">
+        <div class="agent-chat-page-context" data-title-suffix={cfg.pageTitleSuffix ?? ""} data-article={fileData.relativePath?.endsWith(".md") ? "" : undefined}>
+          <span class="agent-chat-page-icon" aria-hidden="true" />
+          <span class="agent-chat-page-name" />
+        </div>
         <div class="agent-chat-input">
           <span class="agent-chat-quota-control">
             <span class="agent-chat-quota" role="progressbar" tabindex={0} aria-label="今日对话额度" aria-valuetext="正在读取今日对话额度">

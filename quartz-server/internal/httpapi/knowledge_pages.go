@@ -10,18 +10,20 @@ import (
 	"goblincwl/quartz-server/internal/community"
 	"goblincwl/quartz-server/internal/content"
 	"goblincwl/quartz-server/internal/journal"
+	"goblincwl/quartz-server/internal/settings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type pageContextInput struct {
-	Page       string `json:"page" jsonschema:"页面名称、站内路径或完整站内链接，例如 友链 或 /friends/"`
-	Section    string `json:"section,omitempty" jsonschema:"模块 ID；省略时只返回页面说明和模块清单"`
-	Limit      int    `json:"limit,omitempty" jsonschema:"每页条数，默认 5，最多 20"`
-	PageNumber int    `json:"page_number,omitempty" jsonschema:"页码，默认 1；按 next_page 继续查询"`
-	Type       string `json:"type,omitempty" jsonschema:"视界和流光的作品类型筛选，article、share、repo 或 video"`
-	Tag        string `json:"tag,omitempty" jsonschema:"仅用于流光；tags 模块按标签名搜索；works 模块要求完整标签名，省略时使用页面 URL 中的 tag"`
-	Month      string `json:"month,omitempty" jsonschema:"仅用于星历，YYYY-MM，默认北京时间当月"`
+	Page           string `json:"page" jsonschema:"页面名称、站内路径或完整站内链接，例如 友链 或 /friends/"`
+	Section        string `json:"section,omitempty" jsonschema:"模块 ID；省略时只返回页面说明和模块清单"`
+	Limit          int    `json:"limit,omitempty" jsonschema:"每页条数，默认 5，最多 20"`
+	PageNumber     int    `json:"page_number,omitempty" jsonschema:"页码，默认 1；按 next_page 继续查询"`
+	Type           string `json:"type,omitempty" jsonschema:"视界和流光的作品类型筛选，article、share、repo 或 video"`
+	RequiresUnlock *bool  `json:"requires_unlock,omitempty" jsonschema:"仅用于作品和标签列表；true 只看需要解锁的作品，false 只看无需解锁的作品"`
+	Tag            string `json:"tag,omitempty" jsonschema:"仅用于流光；tags 模块按标签名搜索；works 模块要求完整标签名，省略时使用页面 URL 中的 tag"`
+	Month          string `json:"month,omitempty" jsonschema:"仅用于星历，YYYY-MM，默认北京时间当月"`
 }
 
 type pageSection struct {
@@ -39,17 +41,20 @@ type specialPage struct {
 }
 
 type pageContextOutput struct {
-	Found    bool         `json:"found"`
-	Page     *specialPage `json:"page,omitempty"`
-	Section  *pageSection `json:"section,omitempty"`
-	Items    any          `json:"items,omitempty"`
-	NextPage int          `json:"next_page,omitempty"`
-	Month    string       `json:"month,omitempty"`
-	Tag      string       `json:"tag,omitempty"`
+	Found    bool                      `json:"found"`
+	Page     *specialPage              `json:"page,omitempty"`
+	Section  *pageSection              `json:"section,omitempty"`
+	Items    any                       `json:"items,omitempty"`
+	NextPage int                       `json:"next_page,omitempty"`
+	Month    string                    `json:"month,omitempty"`
+	Tag      string                    `json:"tag,omitempty"`
+	Contact  *pageContact              `json:"contact,omitempty"`
+	Work     *content.KnowledgeSummary `json:"work,omitempty"`
 }
 
 var specialPages = []specialPage{
 	{"/", "首页", "微光集的入口，提供内容导览、近期更新和站主的日常记录。", []pageSection{
+		{"contact", "站主联系方式", "查询首页公开显示的站主昵称、联系邮箱和 QQ 号。", true},
 		{"discover", "拾遗", "从文章、分享、仓库、视频随机挑选作品；刷新可更换，访客屏幕上的结果以当次展示为准。", false},
 		{"recent", "流新", "最近更新的公开作品。", true},
 		{"calendar", "星历", "按月浏览日历。可查询指定月份的公开特殊日日期与名称。", true},
@@ -114,6 +119,16 @@ func pageQueryError(message string) error {
 func (s *Server) pageContext(ctx context.Context, _ *mcp.CallToolRequest, input pageContextInput) (*mcp.CallToolResult, pageContextOutput, error) {
 	page, selectedTag := s.resolveSpecialPage(input.Page)
 	if page == nil {
+		address := strings.TrimSpace(input.Page)
+		if strings.HasPrefix(address, "/") || strings.HasPrefix(address, "https://") || strings.HasPrefix(address, "http://") {
+			work, err := s.knowledgeIndex().LookupKnowledgeWork(ctx, "", address)
+			if err != nil && !errors.Is(err, content.ErrKnowledgeQuery) {
+				return indexResult(s, pageContextOutput{}, err)
+			}
+			if work != nil {
+				return nil, pageContextOutput{Found: true, Work: &work.KnowledgeSummary}, nil
+			}
+		}
 		return nil, pageContextOutput{}, nil
 	}
 	result := pageContextOutput{Found: true, Page: page, Tag: selectedTag}
@@ -152,8 +167,17 @@ func (s *Server) pageContext(ctx context.Context, _ *mcp.CallToolRequest, input 
 func (s *Server) loadPageSection(ctx context.Context, input pageContextInput, result *pageContextOutput) error {
 	offset := (input.PageNumber - 1) * input.Limit
 	switch input.Section {
+	case "contact":
+		values, err := (settings.Store{DB: s.DB}).Read(ctx, true)
+		if err != nil {
+			return err
+		}
+		name, _ := values["profile.name"].(string)
+		email, _ := values["profile.email"].(string)
+		qq, _ := values["profile.qq"].(string)
+		result.Contact = &pageContact{Name: name, Email: email, QQ: qq}
 	case "tags":
-		tags, err := s.knowledgeIndex().ListKnowledgeTags(ctx, content.KnowledgeFilters{Type: input.Type},
+		tags, err := s.knowledgeIndex().ListKnowledgeTags(ctx, content.KnowledgeFilters{Type: input.Type, RequiresUnlock: input.RequiresUnlock},
 			content.KnowledgePagination{Page: input.PageNumber, PageSize: input.Limit}, input.Tag)
 		result.Items = tags.Items
 		if tags.HasMore && input.PageNumber < 100 {
@@ -161,7 +185,7 @@ func (s *Server) loadPageSection(ctx context.Context, input pageContextInput, re
 		}
 		return err
 	case "works", "recent":
-		filters := content.KnowledgeFilters{Type: input.Type}
+		filters := content.KnowledgeFilters{Type: input.Type, RequiresUnlock: input.RequiresUnlock}
 		if result.Page.Path == "/tags/" {
 			filters.Tag = strings.TrimSpace(strings.TrimPrefix(input.Tag, "#"))
 			if filters.Tag == "" {
@@ -257,6 +281,12 @@ func setPageItems[T any](result *pageContextOutput, input pageContextInput, item
 	if end < len(items) && input.PageNumber < 100 {
 		result.NextPage = input.PageNumber + 1
 	}
+}
+
+type pageContact struct {
+	Name  string `json:"name,omitempty"`
+	Email string `json:"email,omitempty"`
+	QQ    string `json:"qq,omitempty"`
 }
 
 type pageFriend struct {

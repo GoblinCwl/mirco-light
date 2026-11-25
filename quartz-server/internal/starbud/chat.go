@@ -30,11 +30,19 @@ type Message struct {
 	Text string `json:"text"`
 }
 
+type Unlock struct {
+	WorkID   string `json:"work_id"`
+	Unlocked bool   `json:"unlocked"`
+}
+
 type Input struct {
-	ClientIP string    `json:"-"`
-	Message  string    `json:"message"`
-	PageURL  string    `json:"page_url"`
-	History  []Message `json:"history"`
+	PrivateHistory bool      `json:"private_history,omitempty"`
+	Unlock         *Unlock   `json:"unlocked_context,omitempty"`
+	TurnID         string    `json:"-"`
+	ClientIP       string    `json:"-"`
+	Message        string    `json:"message"`
+	PageURL        string    `json:"page_url"`
+	History        []Message `json:"history"`
 }
 
 type Service struct {
@@ -123,7 +131,7 @@ func (s Service) reserve(ctx context.Context, at time.Time, user, ip string, inp
 		}
 	}
 	var recordID int64
-	if input != nil {
+	if input != nil && input.Unlock == nil && !input.PrivateHistory {
 		result, err := tx.ExecContext(ctx, `INSERT INTO starbud_chat_records
 			(conversation_id,page_url,question,created_at,client_ip) VALUES (?,?,?,?,NULLIF(?,''))`,
 			user, input.PageURL, input.Message, at.UTC().Format("2006-01-02T15:04:05.000Z"), input.ClientIP)
@@ -201,8 +209,14 @@ func readReply(body io.Reader) (string, error) {
 }
 
 type StreamEvent struct {
-	Type string `json:"type"`
-	Text string `json:"text,omitempty"`
+	Type      string `json:"type"`
+	Text      string `json:"text,omitempty"`
+	TurnID    string `json:"turn_id,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
+	Action    string `json:"action,omitempty"`
+	Query     string `json:"query,omitempty"`
+	FileRef   string `json:"file_ref,omitempty"`
+	Cursor    int    `json:"cursor,omitempty"`
 }
 
 func (s Service) StreamReply(ctx context.Context, now time.Time, user, ip string, in Input, send func(StreamEvent) error) error {
@@ -254,7 +268,7 @@ func relayStream(body io.Reader, send func(StreamEvent) error) error {
 			return ErrUnavailable
 		}
 		switch event.Type {
-		case "ready", "reset", "delta", "done":
+		case "ready", "reset", "delta", "done", "read_request":
 			if err := send(event); err != nil {
 				return err
 			}
@@ -269,31 +283,15 @@ func relayStream(body io.Reader, send func(StreamEvent) error) error {
 }
 
 func (s Service) requestReply(ctx context.Context, now time.Time, user, ip string, in Input, accept string) (*http.Response, int64, error) {
-	values, err := s.ReadSettings(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
-	base, _ := values["api.astrbot.url"].(string)
-	key, _ := values["api.astrbot.token"].(string)
-	if base == "" || key == "" || s.BridgeToken == "" {
-		return nil, 0, ErrUnavailable
-	}
-	body, err := json.Marshal(struct {
+	payload := struct {
 		Input
-		Visitor string `json:"visitor"`
-	}{in, user})
+		Visitor      string `json:"visitor"`
+		Continuation string `json:"turn_id,omitempty"`
+	}{in, user, in.TurnID}
+	req, err := s.bridgeRequest(ctx, "chat", accept, payload)
 	if err != nil {
 		return nil, 0, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(base, "/")+
-		"/api/v1/plugins/extensions/astrbot_plugin_starbud/chat", bytes.NewReader(body))
-	if err != nil {
-		return nil, 0, ErrUnavailable
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", accept)
-	req.Header.Set("X-API-Key", key)
-	req.Header.Set("X-Starbud-Token", s.BridgeToken)
 	recordID, err := s.reserve(ctx, now, user, ip, &in)
 	if err != nil {
 		return nil, 0, err
@@ -307,4 +305,54 @@ func (s Service) requestReply(ctx context.Context, now time.Time, user, ip strin
 		return nil, recordID, ErrUnavailable
 	}
 	return res, recordID, nil
+}
+
+type ContextResult struct {
+	TurnID    string          `json:"turn_id"`
+	RequestID string          `json:"request_id"`
+	Result    json.RawMessage `json:"result"`
+}
+
+func (s Service) SubmitContext(ctx context.Context, result ContextResult) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	req, err := s.bridgeRequest(ctx, "context", "application/json", result)
+	if err != nil {
+		return err
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return ErrUnavailable
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
+		return ErrUnavailable
+	}
+	return nil
+}
+
+func (s Service) bridgeRequest(ctx context.Context, route, accept string, payload any) (*http.Request, error) {
+	values, err := s.ReadSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	base, _ := values["api.astrbot.url"].(string)
+	key, _ := values["api.astrbot.token"].(string)
+	if base == "" || key == "" || s.BridgeToken == "" {
+		return nil, ErrUnavailable
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(base, "/")+
+		"/api/v1/plugins/extensions/astrbot_plugin_starbud/"+route, bytes.NewReader(data))
+	if err != nil {
+		return nil, ErrUnavailable
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", accept)
+	req.Header.Set("X-API-Key", key)
+	req.Header.Set("X-Starbud-Token", s.BridgeToken)
+	return req, nil
 }

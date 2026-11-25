@@ -12,12 +12,13 @@ import (
 )
 
 type KnowledgeFilters struct {
-	Type      string `json:"type,omitempty" jsonschema:"作品类型 article、share、repo 或 video，省略为全部"`
-	Tag       string `json:"tag,omitempty" jsonschema:"完整标签名，支持带 # 前缀"`
-	Directory string `json:"directory,omitempty" jsonschema:"索引目录路径，例如 Memo/Obsidian，包含子目录；/ 只匹配根目录"`
-	From      string `json:"from,omitempty" jsonschema:"起始时间，接受 YYYY-MM-DD 或 RFC3339，包含该时间"`
-	To        string `json:"to,omitempty" jsonschema:"结束时间，接受 YYYY-MM-DD 或 RFC3339，包含该时间；日期包含整天"`
-	DateField string `json:"date_field,omitempty" jsonschema:"时间筛选字段 published 或 updated，默认 published；日期按北京时间"`
+	Type           string `json:"type,omitempty" jsonschema:"作品类型 article、share、repo 或 video，省略为全部"`
+	Tag            string `json:"tag,omitempty" jsonschema:"完整标签名，支持带 # 前缀"`
+	Directory      string `json:"directory,omitempty" jsonschema:"索引目录路径，例如 Memo/Obsidian，包含子目录；/ 只匹配根目录"`
+	From           string `json:"from,omitempty" jsonschema:"起始时间，接受 YYYY-MM-DD 或 RFC3339，包含该时间"`
+	To             string `json:"to,omitempty" jsonschema:"结束时间，接受 YYYY-MM-DD 或 RFC3339，包含该时间；日期包含整天"`
+	DateField      string `json:"date_field,omitempty" jsonschema:"时间筛选字段 published 或 updated，默认 published；日期按北京时间"`
+	RequiresUnlock *bool  `json:"requires_unlock,omitempty" jsonschema:"true 只查询需要解锁的作品，false 只查询无需解锁的作品；省略包含两类"`
 }
 
 type KnowledgePagination struct {
@@ -34,19 +35,24 @@ type KnowledgePage[T any] struct {
 }
 
 type KnowledgeDirectoryCount struct {
-	Directory string `json:"directory"`
-	Count     int    `json:"count"`
+	Directory   string `json:"directory"`
+	Count       int    `json:"count"`
+	LockedCount int    `json:"locked_count"`
 }
 
 type KnowledgeStatistics struct {
-	Total       int                       `json:"total"`
-	ByType      map[string]int            `json:"by_type"`
-	ByDirectory []KnowledgeDirectoryCount `json:"by_directory"`
+	Total         int                       `json:"total"`
+	UnlockedTotal int                       `json:"unlocked_total"`
+	LockedTotal   int                       `json:"locked_total"`
+	ByType        map[string]int            `json:"by_type"`
+	LockedByType  map[string]int            `json:"locked_by_type"`
+	ByDirectory   []KnowledgeDirectoryCount `json:"by_directory"`
 }
 
 type KnowledgeTag struct {
-	Tag   string `json:"tag"`
-	Count int    `json:"count"`
+	Tag         string `json:"tag"`
+	Count       int    `json:"count"`
+	LockedCount int    `json:"locked_count"`
 }
 
 var ErrKnowledgeQuery = errors.New("invalid knowledge index query")
@@ -64,17 +70,35 @@ func knowledgeDirectory(slug string) string {
 
 // Use the same normalized index text as site search and return only metadata.
 func (s Store) knowledgeRecords(ctx context.Context, kind string, terms []string) ([]Record, error) {
-	where := " WHERE encrypted=0"
+	conditions := make([]string, 0, len(terms)+1)
 	args := make([]any, 0, len(terms)+1)
 	if kind != "" {
-		where += " AND type=?"
+		conditions = append(conditions, "type=?")
 		args = append(args, kind)
 	}
 	for _, term := range terms {
-		where += " AND LOCATE(?, search_text COLLATE utf8mb4_bin)>0"
+		conditions = append(conditions, "(encrypted=1 OR LOCATE(?, search_text COLLATE utf8mb4_bin)>0)")
 		args = append(args, term)
 	}
-	return selectRecords(ctx, s.DB, true, where, args)
+	where := ""
+	if len(conditions) > 0 {
+		where = " WHERE " + strings.Join(conditions, " AND ")
+	}
+	records, err := selectRecords(ctx, s.DB, true, where, args)
+	if err != nil || len(terms) == 0 {
+		return records, err
+	}
+	// Even if an older index row still contains search text, only the visible
+	// title may match a search for a locked article.
+	return slices.DeleteFunc(records, func(record Record) bool {
+		if !record.Encrypted {
+			return false
+		}
+		title := normalize(record.Title)
+		return slices.ContainsFunc(terms, func(term string) bool {
+			return !strings.Contains(title, term)
+		})
+	}), nil
 }
 
 func knowledgeDate(value string, end bool) (time.Time, bool, error) {
@@ -111,6 +135,12 @@ func (f KnowledgeFilters) predicate() (func(Record) bool, error) {
 	}
 	tag := normalize(strings.TrimPrefix(strings.TrimSpace(f.Tag), "#"))
 	return func(record Record) bool {
+		if f.Type != "" && record.Type != f.Type {
+			return false
+		}
+		if f.RequiresUnlock != nil && record.Encrypted != *f.RequiresUnlock {
+			return false
+		}
 		if directory != "" {
 			current := knowledgeDirectory(record.Slug)
 			if current != directory && !strings.HasPrefix(current, directory+"/") {
@@ -208,6 +238,26 @@ func (s Store) ListKnowledgeWorks(ctx context.Context, filters KnowledgeFilters,
 }
 
 func (s Store) SearchKnowledgeWorks(ctx context.Context, filters KnowledgeFilters, page KnowledgePagination, query string) (KnowledgePage[KnowledgeSummary], error) {
+	query = strings.TrimSpace(query)
+	if strings.HasPrefix(query, "/") || strings.HasPrefix(query, "https://") || strings.HasPrefix(query, "http://") {
+		page, err := normalizeKnowledgePagination(page)
+		if err != nil {
+			return KnowledgePage[KnowledgeSummary]{}, err
+		}
+		match, err := filters.predicate()
+		if err != nil {
+			return KnowledgePage[KnowledgeSummary]{}, err
+		}
+		record, err := s.knowledgeWorkRecord(ctx, "", query)
+		if err != nil {
+			return KnowledgePage[KnowledgeSummary]{}, err
+		}
+		items := []KnowledgeSummary{}
+		if record != nil && match(*record) {
+			items = append(items, knowledgeSummary(*record, s.Origin))
+		}
+		return knowledgePage(items, page), nil
+	}
 	terms := strings.Fields(normalize(query))
 	if len(terms) == 0 || len(terms) > 20 || utf8.RuneCountInString(query) > 200 {
 		return KnowledgePage[KnowledgeSummary]{}, errors.Join(ErrKnowledgeQuery, errors.New("query 需为 1 至 200 字且最多 20 个关键词"))
@@ -261,14 +311,27 @@ func (s Store) GetKnowledgeStatistics(ctx context.Context, filters KnowledgeFilt
 	if err != nil {
 		return KnowledgeStatistics{}, err
 	}
-	result := KnowledgeStatistics{Total: len(records), ByType: map[string]int{"article": 0, "share": 0, "repo": 0, "video": 0}, ByDirectory: []KnowledgeDirectoryCount{}}
-	directories := map[string]int{}
+	result := KnowledgeStatistics{
+		Total: len(records), ByType: map[string]int{"article": 0, "share": 0, "repo": 0, "video": 0},
+		LockedByType: map[string]int{"article": 0, "share": 0, "repo": 0, "video": 0}, ByDirectory: []KnowledgeDirectoryCount{},
+	}
+	directories := map[string]KnowledgeDirectoryCount{}
 	for _, record := range records {
 		result.ByType[record.Type]++
-		directories[knowledgeDirectory(record.Slug)]++
+		directory := knowledgeDirectory(record.Slug)
+		count := directories[directory]
+		count.Directory = directory
+		count.Count++
+		if record.Encrypted {
+			result.LockedTotal++
+			result.LockedByType[record.Type]++
+			count.LockedCount++
+		}
+		directories[directory] = count
 	}
-	for directory, count := range directories {
-		result.ByDirectory = append(result.ByDirectory, KnowledgeDirectoryCount{directory, count})
+	result.UnlockedTotal = result.Total - result.LockedTotal
+	for _, count := range directories {
+		result.ByDirectory = append(result.ByDirectory, count)
 	}
 	slices.SortFunc(result.ByDirectory, func(a, b KnowledgeDirectoryCount) int { return cmp.Compare(a.Directory, b.Directory) })
 	return result, nil
@@ -284,17 +347,23 @@ func (s Store) ListKnowledgeTags(ctx context.Context, filters KnowledgeFilters, 
 		return KnowledgePage[KnowledgeTag]{}, err
 	}
 	query = normalize(strings.TrimPrefix(strings.TrimSpace(query), "#"))
-	counts := map[string]int{}
+	counts := map[string]KnowledgeTag{}
 	for _, record := range records {
 		for _, tag := range unique(record.Tags) {
 			if strings.Contains(normalize(tag), query) {
-				counts[tag]++
+				count := counts[tag]
+				count.Tag = tag
+				count.Count++
+				if record.Encrypted {
+					count.LockedCount++
+				}
+				counts[tag] = count
 			}
 		}
 	}
 	items := make([]KnowledgeTag, 0, len(counts))
-	for tag, count := range counts {
-		items = append(items, KnowledgeTag{tag, count})
+	for _, count := range counts {
+		items = append(items, count)
 	}
 	slices.SortFunc(items, func(a, b KnowledgeTag) int {
 		if a.Count != b.Count {

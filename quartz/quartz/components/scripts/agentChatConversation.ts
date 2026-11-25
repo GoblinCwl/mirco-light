@@ -1,16 +1,20 @@
+import { driveActionDialog } from "./driveActionDialog"
 import { artalkIdentityChange, artalkUserStorageKey, readCachedArtalkIdentity } from "./artalkIdentity"
 import { identicon, resolveCommentAvatar } from "./identicon"
 import { preloadStarbudMarkdown, renderStarbudMarkdown, starbudMarkdownReady } from "./starbudMarkdown"
 import { sharedState } from "./sharedRequest"
+import { currentStarbudUnlock, type StarbudReadRequest } from "./starbudUnlocked"
 import { browserId } from "./visitorRecording"
+import { articleLinkRoutes, linkIconSVG } from "../../util/linkIcons"
 
-type Turn = { id: string; question: string; answer?: string; partial?: string }
+type Turn = { id: string; question: string; sentAt?: number; answer?: string; partial?: string }
+type HistoryKind = "turns" | "privateTurns"
 const changeEvent = "starbud-conversation"
 const streamEvent = "starbud-stream"
 const unavailable = "星芽暂时无法回复，请稍后再试"
 const exhaustedPlaceholder = "今日次数已用完，零点恢复"
 
-async function readReply(response: Response, update: (text: string) => void) {
+async function readReply(response: Response, update: (text: string) => void, readContext: (event: StarbudReadRequest) => Promise<void>) {
   if (!response.headers.get("Content-Type")?.startsWith("text/event-stream")) {
     const data = await response.json()
     if (response.ok && typeof data.reply === "string") return data.reply
@@ -31,6 +35,7 @@ async function readReply(response: Response, update: (text: string) => void) {
         buffer = buffer.slice(newline + 1)
         if (!line.startsWith("data: ")) continue
         const event = JSON.parse(line.slice(6))
+        if (event.type === "read_request") void readContext(event).catch(() => {})
         if (event.type === "error") throw new Error(unavailable)
         if (event.type === "done" && typeof event.text === "string" && event.text.trim()) return event.text
         if (event.type === "delta" && typeof event.text === "string") {
@@ -50,10 +55,15 @@ async function readReply(response: Response, update: (text: string) => void) {
 export function setupStarbudConversation(dialog: HTMLDialogElement, signal: AbortSignal) {
   const user = browserId()
   const storage = `starbud-chat:v1:${user}`
-  const state = sharedState(storage, () => ({ pending: "", draft: "", error: "", turns: [] as Turn[] }))
+  const historyKeys = { turns: storage, privateTurns: `starbud-chat-private:v1:${user}` }
+  const state = sharedState(storage, () => ({ pending: "", draft: "", error: "", turns: [] as Turn[], privateTurns: [] as Turn[] }))
+  const clear = dialog.querySelector<HTMLButtonElement>("[data-agent-chat-clear]")
   const thread = dialog.querySelector<HTMLElement>(".agent-chat-thread")!
   const history = dialog.querySelector<HTMLElement>(".agent-chat-history")!
   const form = dialog.querySelector<HTMLFormElement>(".agent-chat-composer")!
+  const pageContext = form.querySelector<HTMLElement>(".agent-chat-page-context")!
+  const pageIcon = pageContext.querySelector<HTMLElement>(".agent-chat-page-icon")!
+  const pageName = pageContext.querySelector<HTMLElement>(".agent-chat-page-name")!
   const input = form.querySelector("textarea")!
   const entry = form.querySelector(".agent-chat-entry")!
   const placeholder = entry.querySelector<HTMLElement>(".agent-chat-placeholder")!
@@ -72,6 +82,29 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
   let liveRow: HTMLElement | undefined
   let liveFrame = 0
   let opening = 0
+
+  const refreshPageContext = () => {
+    const page = new URL(location.href)
+    const tag = /^\/tags\/?$/.test(page.pathname) ? page.searchParams.get("tag")?.trim() : ""
+    const selectedTag = tag && new TextEncoder().encode(tag).length <= 600 ? tag : ""
+    const path = page.pathname + (selectedTag ? `?${new URLSearchParams({ tag: selectedTag })}` : "")
+    const suffix = pageContext.dataset.titleSuffix || ""
+    const title = suffix && document.title.endsWith(suffix) ? document.title.slice(0, -suffix.length) : document.title
+    const label = (page.pathname === "/" ? "首页" : title.trim() || page.pathname) + (selectedTag ? ` · #${selectedTag}` : "")
+    const articles = pageContext.hasAttribute("data-article") ? articleLinkRoutes([page.pathname]) : undefined
+    pageIcon.innerHTML = linkIconSVG(page.href, page.origin, articles) ?? ""
+    pageName.textContent = label
+    pageContext.title = `${label}\n${path}`
+    return path
+  }
+
+  const updatePageContextIfOpen = () => { if (dialog.open) refreshPageContext() }
+  const titleObserver = new MutationObserver(updatePageContextIfOpen)
+  const titleElement = document.head.querySelector("title")
+  if (titleElement) {
+    titleObserver.observe(titleElement, { childList: true, characterData: true, subtree: true })
+  }
+  window.addEventListener("popstate", updatePageContextIfOpen, { signal })
 
   const fillVisitorAvatar = (slot: HTMLElement) => {
     if (!visitorAvatar) {
@@ -119,22 +152,26 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     updateSlots()
   }
 
-  const read = () => {
+  const read = (kind: HistoryKind = "turns") => {
     try {
-      const parsed: unknown = JSON.parse(localStorage.getItem(storage) || "null")
+      const parsed: unknown = JSON.parse(localStorage.getItem(historyKeys[kind]) || "null")
       if (Array.isArray(parsed)) {
-        state.turns = parsed.filter(turn => turn && typeof turn.id === "string" && typeof turn.question === "string" &&
+        state[kind] = parsed.filter(turn => turn && typeof turn.id === "string" && typeof turn.question === "string" &&
+          (turn.sentAt === undefined || Number.isFinite(turn.sentAt)) &&
           (turn.answer === undefined || typeof turn.answer === "string") &&
           (turn.partial === undefined || typeof turn.partial === "string"))
       }
     } catch { /* Keep the in-memory history when browser storage is unavailable. */ }
-    return state.turns
+    return state[kind]
   }
-  const hasMarkdown = () => !!state.draft || read().some(turn => turn.answer || turn.partial)
+  const mergeHistory = (unlockedTurns: Turn[]) => [...read(), ...unlockedTurns]
+    .sort((a, b) => (a.sentAt ?? 0) - (b.sentAt ?? 0))
+  const displayedTurns = () => mergeHistory(read("privateTurns"))
+  const hasMarkdown = () => !!state.draft || displayedTurns().some(turn => turn.answer || turn.partial)
   if (hasMarkdown()) void preloadStarbudMarkdown()
-  const write = (turns: Turn[]) => {
-    state.turns = turns
-    try { localStorage.setItem(storage, JSON.stringify(turns)) } catch { /* The current tab keeps its in-memory history. */ }
+  const write = (kind: HistoryKind, turns: Turn[]) => {
+    state[kind] = turns
+    try { localStorage.setItem(historyKeys[kind], JSON.stringify(turns)) } catch { /* The current tab keeps its in-memory history. */ }
     document.dispatchEvent(new Event(changeEvent))
   }
   const addMessage = (text: string, kind: "reply" | "visitor" | "error" = "reply", interrupted = false) => {
@@ -197,6 +234,7 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     placeholder.textContent = exhausted ? exhaustedPlaceholder : defaultPlaceholder
     input.setAttribute("aria-placeholder", placeholder.textContent)
     send.disabled = !!state.pending || exhausted || !input.value.trim()
+    if (clear) clear.disabled = !!state.pending || !(state.turns.length || state.privateTurns.length)
   }
   const showQuota = () => {
     const percentage = remaining === undefined ? 0 : Math.max(0, Math.round((1 - remaining / limit) * 100))
@@ -245,7 +283,7 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     const follow = forceScroll || nearBottom()
     liveRow = undefined
     history.replaceChildren()
-    for (const turn of read()) {
+    for (const turn of displayedTurns()) {
       addMessage(turn.question, "visitor")
       if (turn.answer) addMessage(turn.answer)
       else if (turn.id === state.pending) {
@@ -259,37 +297,63 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     if (dialog.open) thread.scrollTop = follow ? thread.scrollHeight : previousScroll
   }
 
+  clear?.addEventListener("click", () => {
+    const confirmation = driveActionDialog("清空历史", signal)
+    confirmation.note("清空当前浏览器中的星芽对话记录？")
+    confirmation.submit.textContent = "清空"
+    confirmation.submit.classList.add("is-danger")
+    confirmation.run(async () => {
+      for (const kind of ["turns", "privateTurns"] as const) {
+        try { localStorage.removeItem(historyKeys[kind]) } catch { /* Storage may be unavailable. */ }
+        state[kind] = []
+      }
+      state.error = ""
+      document.dispatchEvent(new Event(changeEvent))
+    })
+  }, { signal })
+
   form.addEventListener("submit", async event => {
     event.preventDefault()
     const question = input.value.trim()
     if (!question || state.pending || remaining === 0) return
-    const turns = read()
-    const context: { role: string; text: string }[] = []
-    let bytes = 0
-    const encoder = new TextEncoder()
-    for (const turn of [...turns].reverse()) {
-      if (!turn.answer) continue
-      bytes += encoder.encode(turn.question).length + encoder.encode(turn.answer).length
-      if (bytes > 36000 || context.length >= 12) break
-      context.unshift({ role: "user", text: turn.question }, { role: "assistant", text: turn.answer })
-    }
-    const turn: Turn = { question, id: crypto.randomUUID() }
+    const turn: Turn = { question, id: crypto.randomUUID(), sentAt: Date.now() }
     state.pending = turn.id
     state.draft = ""
     state.error = ""
-    input.value = ""
-    write([...turns, turn])
-    thread.scrollTop = thread.scrollHeight
+    refreshSend()
     let answer: string | undefined
+    let recordedKind: HistoryKind | undefined
+    let unlock: Awaited<ReturnType<typeof currentStarbudUnlock>>
+    const pageURL = refreshPageContext()
     try {
-      const page = new URL(location.href)
-      const selectedTag = /^\/tags\/?$/.test(page.pathname) ? page.searchParams.get("tag") : null
-      const pageURL = page.pathname + (selectedTag ? `?${new URLSearchParams({ tag: selectedTag })}` : "")
+      unlock = await currentStarbudUnlock(signal)
+      signal.throwIfAborted()
+      if (pageURL !== refreshPageContext()) throw Error("页面已切换，请重新发送")
+      const privateTurns = read("privateTurns")
+      const privateIds = new Set(privateTurns.map(item => item.id))
+      const previousTurns = mergeHistory(privateTurns)
+      let privateHistory = false
+      const context: { role: string; text: string }[] = []
+      let bytes = 0
+      const encoder = new TextEncoder()
+      for (const turn of [...previousTurns].reverse()) {
+        if (!turn.answer) continue
+        bytes += encoder.encode(turn.question).length + encoder.encode(turn.answer).length
+        if (bytes > 36000 || context.length >= 12) break
+        privateHistory ||= privateIds.has(turn.id)
+        context.unshift({ role: "user", text: turn.question }, { role: "assistant", text: turn.answer })
+      }
+      input.value = ""
+      recordedKind = unlock || privateHistory ? "privateTurns" : "turns"
+      write(recordedKind, [...read(recordedKind), turn])
+      thread.scrollTop = thread.scrollHeight
+      const timeout = AbortSignal.timeout(110000)
+      const chatSignal = unlock ? AbortSignal.any([signal, timeout]) : timeout
       const response = await fetch("/api/starbud/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "text/event-stream", "X-Visitor-ID": user },
-        body: JSON.stringify({ message: question, page_url: pageURL, history: context }),
-        signal: AbortSignal.timeout(110000),
+        body: JSON.stringify({ message: question, page_url: pageURL, history: context, private_history: privateHistory || undefined, unlocked_context: unlock?.descriptor }),
+        signal: chatSignal,
       })
       if (response.status === 429) {
         ++quotaCheck
@@ -301,15 +365,33 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
       answer = await readReply(response, text => {
         state.draft = text
         document.dispatchEvent(new Event(streamEvent))
+      }, async request => {
+        if (!unlock) return
+        const requestSignal = AbortSignal.any([chatSignal, AbortSignal.timeout(7000)])
+        let result
+        try {
+          result = await unlock.read(request, requestSignal)
+        } catch {
+          result = { error: "当前内容读取失败" }
+        }
+        if (chatSignal.aborted) return
+        if (!unlock.valid()) result = { error: "页面已切换或锁定" }
+        await fetch("/api/starbud/chat/context", {
+          method: "POST", cache: "no-store", signal: chatSignal,
+          headers: { "Content-Type": "application/json", "X-Visitor-ID": user },
+          body: JSON.stringify({ turn_id: request.turn_id, request_id: request.request_id, result }),
+        })
       })
     } catch (error) {
-      state.error = error instanceof Error && error.name === "Error" ? error.message : unavailable
+      if (!signal.aborted) state.error = error instanceof Error && error.name === "Error" ? error.message : unavailable
     } finally {
       const partial = !answer ? state.draft.trim() : ""
       state.pending = ""
       state.draft = ""
-      if (answer || partial) {
-        write(read().map(item => item.id === turn.id ? { ...item, answer, partial: partial || undefined } : item))
+      if (recordedKind && (answer || partial)) {
+        write(recordedKind, read(recordedKind).map(item =>
+          item.id === turn.id ? { ...item, answer, partial: partial || undefined } : item,
+        ))
       } else document.dispatchEvent(new Event(changeEvent))
     }
   }, { signal })
@@ -335,7 +417,10 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
   document.addEventListener("themechange", updateAvatarIfOpen, { signal })
   document.addEventListener(artalkIdentityChange, updateAvatarIfOpen, { signal })
   window.addEventListener("storage", event => {
-    if (event.key === storage || event.key === null) {
+    if (event.key === null || event.key === historyKeys.turns || event.key === historyKeys.privateTurns) {
+      for (const kind of ["turns", "privateTurns"] as const) {
+        if (event.key === null || event.key === historyKeys[kind] && event.newValue === null) state[kind] = []
+      }
       if (dialog.open) {
         render()
         void refreshQuota()
@@ -344,11 +429,13 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     if (event.key === artalkUserStorageKey || event.key === null) updateAvatarIfOpen()
   }, { signal })
   signal.addEventListener("abort", () => {
+    titleObserver.disconnect()
     clearTimeout(quotaTimer)
     clearTimeout(liveFrame)
   }, { once: true })
   return async () => {
     const ticket = ++opening
+    refreshPageContext()
     void refreshVisitorAvatar()
     void refreshQuota()
     thread.removeAttribute("aria-busy")

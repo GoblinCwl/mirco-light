@@ -45,7 +45,7 @@ func (s *Server) gateway(next http.Handler) http.Handler {
 		}
 		if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" || r.Method == "DELETE" {
 			limit := int64(1000000)
-			if strings.HasPrefix(path, "/api/drive/share-") || path == "/api/starbud/chat" {
+			if strings.HasPrefix(path, "/api/drive/share-") || strings.HasPrefix(path, "/api/starbud/chat") {
 				limit = 128 << 10
 			}
 			if strings.HasPrefix(path, "/api/public/quartz/jellyfin/") {

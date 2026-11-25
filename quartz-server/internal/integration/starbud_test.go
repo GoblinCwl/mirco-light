@@ -1,10 +1,14 @@
 package integration
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,7 +17,9 @@ import (
 	"testing"
 	"time"
 
+	"goblincwl/quartz-server/internal/content"
 	"goblincwl/quartz-server/internal/datamanager"
+	"goblincwl/quartz-server/internal/httpapi"
 	"goblincwl/quartz-server/internal/starbud"
 	"goblincwl/quartz-server/internal/visitors"
 )
@@ -152,5 +158,126 @@ func TestStarbudDailyQuotaIsAtomic(t *testing.T) {
 	checkQuota(at, strings.Repeat("b", 64), starbud.UserLimit)
 	if err := store.Reserve(ctx, at.Add(time.Minute), user, ip); err != nil {
 		t.Fatalf("Beijing midnight did not reset quota: %v", err)
+	}
+}
+
+func TestStarbudReadsUnlockedPageWithinOneTurn(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	const origin = "https://site.test"
+	const browser = "36ed4a5a-349c-41db-ada3-98aa0b5227b3"
+	const other = "ac02fd3e-a19b-4897-a3ee-31ad9b110689"
+	const requestID = "7f2992d86680490cb6ba6c93a41d9a27"
+	const excerpt = "synthetic private passage"
+	store := content.Store{DB: db, Origin: origin}
+	if err := store.Sync(ctx, "article", []content.Item{{
+		SourceID: "Memo/locked", Slug: "Memo/locked", Title: "Protected", Encrypted: true,
+		Extra: map[string]any{"aliases": []string{"locked-alias"}},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	work, err := store.LookupKnowledgeWork(ctx, "", "/locked-alias")
+	if err != nil || work == nil {
+		t.Fatalf("indexed alias: %v, %v", work, err)
+	}
+
+	result := make(chan starbud.ContextResult, 1)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/context") {
+			var payload starbud.ContextResult
+			if json.NewDecoder(r.Body).Decode(&payload) != nil {
+				w.WriteHeader(400)
+				return
+			}
+			result <- payload
+			w.WriteHeader(204)
+			return
+		}
+		var input struct {
+			TurnID  string `json:"turn_id"`
+			PageURL string `json:"page_url"`
+		}
+		raw, _ := io.ReadAll(r.Body)
+		if json.Unmarshal(raw, &input) != nil || len(input.TurnID) != 26 ||
+			input.PageURL != origin+"/locked-alias" || bytes.Contains(raw, []byte(excerpt)) || bytes.Contains(raw, []byte("test-pass")) {
+			t.Error("initial request carries an invalid context")
+			w.WriteHeader(400)
+			return
+		}
+		w.Header().Set("Content-Type", starbud.StreamType)
+		fmt.Fprintf(w, "data: {\"type\":\"read_request\",\"action\":\"find_text\",\"request_id\":%q}\n\n", requestID)
+		_ = http.NewResponseController(w).Flush()
+		select {
+		case answer := <-result:
+			if answer.TurnID != input.TurnID || answer.RequestID != requestID || !bytes.Contains(answer.Result, []byte(excerpt)) {
+				t.Error("bridge received an invalid result")
+			}
+			fmt.Fprint(w, "data: {\"type\":\"done\",\"text\":\"received\"}\n\n")
+		case <-r.Context().Done():
+		case <-time.After(time.Second * 8):
+			t.Error("context callback timed out")
+		}
+	}))
+	defer upstream.Close()
+	visitor := &visitors.Store{Secret: []byte("01234567890123456789012345678901")}
+	service := &starbud.Service{DB: db, BridgeToken: "test", ReadSettings: func(context.Context) (map[string]any, error) {
+		return map[string]any{"api.astrbot.url": upstream.URL, "api.astrbot.token": "test"}, nil
+	}}
+	server := httptest.NewServer((&httpapi.Server{DB: db, Origin: origin, Starbud: service, Visitors: visitor, Log: slog.Default()}).Handler())
+	defer server.Close()
+	client := &http.Client{Timeout: 10 * time.Second}
+	post := func(path, id, host string, payload any) *http.Response {
+		t.Helper()
+		encoded, _ := json.Marshal(payload)
+		req, err := http.NewRequest(http.MethodPost, server.URL+path, bytes.NewReader(encoded))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Accept", starbud.StreamType)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Origin", host)
+		req.Header.Set("X-Visitor-ID", id)
+		response, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { response.Body.Close() })
+		return response
+	}
+	unlock := &starbud.Unlock{WorkID: work.WorkID, Unlocked: true}
+	if res := post("/api/starbud/chat", browser, origin, starbud.Input{Message: "question", PageURL: "/other", Unlock: unlock}); res.StatusCode != 400 {
+		t.Fatalf("wrong page: %d", res.StatusCode)
+	}
+	res := post("/api/starbud/chat", browser, origin, starbud.Input{Message: "question", PageURL: "/locked-alias?p=test-pass", Unlock: unlock})
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		t.Fatalf("chat: %d", res.StatusCode)
+	}
+	line, err := bufio.NewReader(res.Body).ReadString('\n')
+	var event starbud.StreamEvent
+	if err != nil || json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &event) != nil || event.RequestID != requestID || event.TurnID == "" {
+		t.Fatalf("read request: %q, %v", line, err)
+	}
+	payload := starbud.ContextResult{TurnID: event.TurnID, RequestID: event.RequestID, Result: json.RawMessage(`{"text":"` + excerpt + `"}`)}
+	for _, test := range []struct {
+		id, origin string
+		status     int
+	}{
+		{browser, "https://elsewhere.test", 403}, {other, origin, 404}, {browser, origin, 204}, {browser, origin, 404},
+	} {
+		res := post("/api/starbud/chat/context", test.id, test.origin, payload)
+		if res.StatusCode != test.status {
+			t.Fatalf("callback status = %d, want %d", res.StatusCode, test.status)
+		}
+		res.Body.Close()
+	}
+	user, ip := visitor.Identity("127.0.0.1", browser), visitor.IPIdentity("127.0.0.1")
+	quota, err := service.Quota(ctx, time.Now(), user, ip)
+	if err != nil || quota.Remaining != starbud.UserLimit-1 {
+		t.Fatalf("quota: %+v, %v", quota, err)
+	}
+	turns, err := starbud.ListTurns(ctx, db, user, 1)
+	if err != nil || turns.Total != 0 {
+		t.Fatalf("private turn archive: total %d, %v", turns.Total, err)
 	}
 }

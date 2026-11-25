@@ -1,6 +1,6 @@
 import { applyContentLinkPolicy } from "../../util/linkPolicy"
 import { splitChineseAutolinks } from "../../util/markdownAutolinks"
-import { isNavigationLink } from "../../util/previewPolicy"
+import { isNonPreviewLink } from "../../util/previewPolicy"
 import { projectReference } from "../../util/projectReference"
 import { loadMarkdownRuntime, runtime } from "./markdownRuntime"
 
@@ -56,8 +56,7 @@ export function renderStarbudMarkdown(host: HTMLElement, text: string, updated?:
       }
       if (!href.startsWith("#")) anchor.href = url.href
       applyContentLinkPolicy(anchor)
-      if (href.startsWith("#") || url.origin !== location.origin || isNavigationLink(url.href, location.href) ||
-          /^\/(?:api|artalk)(?:\/|$)/.test(url.pathname)) continue
+      if (href.startsWith("#") || isNonPreviewLink(url.href, location.href)) continue
       const project = projectReference(url.href, location.origin)
       anchor.classList.add("internal")
       if (project?.slug.startsWith("Repo/")) anchor.dataset.repoHover = "true"
