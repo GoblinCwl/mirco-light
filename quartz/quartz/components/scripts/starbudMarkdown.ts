@@ -18,6 +18,30 @@ export function starbudMarkdownReady() {
   return !!(runtime.marked && runtime.DOMPurify)
 }
 
+function syncMarkdown(host: HTMLElement, fragment: DocumentFragment) {
+  // Preserve the rendered prefix so streaming does not evict links, images or their focus.
+  let current = host.firstChild
+  while (current && fragment.firstChild) {
+    const next = fragment.firstChild
+    if (!current.isEqualNode(next)) {
+      const oldText = current.firstChild
+      const newText = next.firstChild
+      if (!(current instanceof HTMLParagraphElement && next instanceof HTMLParagraphElement) ||
+          current.hasAttributes() || next.hasAttributes() ||
+          !(oldText instanceof Text && newText instanceof Text) || oldText.nextSibling || newText.nextSibling) break
+      oldText.data = newText.data
+    }
+    current = current.nextSibling
+    next.remove()
+  }
+  while (current) {
+    const after = current.nextSibling
+    current.remove()
+    current = after
+  }
+  host.append(fragment)
+}
+
 export function renderStarbudMarkdown(host: HTMLElement, text: string, updated?: () => void) {
   const render = () => {
     const marked = runtime.marked!
@@ -65,7 +89,7 @@ export function renderStarbudMarkdown(host: HTMLElement, text: string, updated?:
         anchor.dataset.noPopover = "true"
       }
     }
-    host.replaceChildren(fragment)
+    syncMarkdown(host, fragment)
     host.classList.remove("is-plain")
     updated?.()
   }

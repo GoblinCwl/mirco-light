@@ -13,6 +13,9 @@ const changeEvent = "starbud-conversation"
 const streamEvent = "starbud-stream"
 const unavailable = "星芽暂时无法回复，请稍后再试"
 const exhaustedPlaceholder = "今日次数已用完，零点恢复"
+const draftInterval = 64
+const draftBufferDelay = 140
+const draftDrainTime = 550
 
 async function readReply(response: Response, update: (text: string) => void, readContext: (event: StarbudReadRequest) => Promise<void>) {
   if (!response.headers.get("Content-Type")?.startsWith("text/event-stream")) {
@@ -81,6 +84,12 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
   let visitorAvatar: { source: string; seed: string } | undefined
   let liveRow: HTMLElement | undefined
   let liveFrame = 0
+  let lastDraftFrame = 0
+  let shownDraft = ""
+  let draftResumeAt = 0
+  let draftDrainUntil = 0
+  let resolveDraftDrain: (() => void) | undefined
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)")
   let opening = 0
 
   const refreshPageContext = () => {
@@ -213,9 +222,9 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     if (!liveRow) return
     const follow = nearBottom()
     const bubble = liveRow.querySelector<HTMLElement>(".agent-chat-bubble")!
-    if (state.draft) {
+    if (shownDraft) {
       liveRow.classList.remove("is-pending")
-      paintReply(bubble, state.draft)
+      paintReply(bubble, shownDraft)
     } else if (!liveRow.classList.contains("is-pending")) {
       liveRow.classList.add("is-pending")
       bubble.textContent = "星芽正在回复"
@@ -226,6 +235,55 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
       bubble.append(dots)
     }
     if (dialog.open && follow) thread.scrollTop = thread.scrollHeight
+  }
+  const stopDraftFrames = () => {
+    cancelAnimationFrame(liveFrame)
+    liveFrame = 0
+    lastDraftFrame = 0
+    draftResumeAt = 0
+    draftDrainUntil = 0
+    resolveDraftDrain?.()
+    resolveDraftDrain = undefined
+  }
+  const scheduleDraft = () => {
+    if (!dialog.open || document.hidden || !liveRow || liveFrame || shownDraft === state.draft) return
+    if (!draftResumeAt && !draftDrainUntil && !reducedMotion.matches) {
+      const now = performance.now()
+      if (!lastDraftFrame || now - lastDraftFrame >= draftBufferDelay) draftResumeAt = now + draftBufferDelay
+    }
+    liveFrame = requestAnimationFrame(now => {
+      liveFrame = 0
+      if (!dialog.open || document.hidden || !liveRow) {
+        stopDraftFrames()
+        return
+      }
+      if (!reducedMotion.matches && (now < draftResumeAt || now - lastDraftFrame < draftInterval)) {
+        scheduleDraft()
+        return
+      }
+      lastDraftFrame = now
+      const backlog = state.draft.length - shownDraft.length
+      const target = draftDrainUntil ? Math.max(draftInterval, draftDrainUntil - now) : 700
+      const batch = reducedMotion.matches ? backlog : Math.ceil(backlog * draftInterval / target)
+      let end = Math.min(state.draft.length, shownDraft.length + batch)
+      const next = state.draft.charCodeAt(end)
+      if (next >= 0xdc00 && next <= 0xdfff) end++
+      shownDraft = state.draft.slice(0, end)
+      paintDraft()
+      if (shownDraft === state.draft) {
+        draftResumeAt = 0
+        resolveDraftDrain?.()
+        resolveDraftDrain = undefined
+      } else scheduleDraft()
+    })
+  }
+  const drainDraft = () => {
+    if (signal.aborted || !dialog.open || document.hidden || !liveRow || shownDraft === state.draft) return
+    draftDrainUntil = performance.now() + draftDrainTime
+    return new Promise<void>(resolve => {
+      resolveDraftDrain = resolve
+      scheduleDraft()
+    })
   }
   const refreshSend = () => {
     const exhausted = remaining === 0
@@ -295,6 +353,7 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     if (!state.pending && state.error) addMessage(state.error, "error")
     refreshSend()
     if (dialog.open) thread.scrollTop = follow ? thread.scrollHeight : previousScroll
+    scheduleDraft()
   }
 
   clear?.addEventListener("click", () => {
@@ -318,6 +377,7 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     if (!question || state.pending || remaining === 0) return
     const turn: Turn = { question, id: crypto.randomUUID(), sentAt: Date.now() }
     state.pending = turn.id
+    shownDraft = ""
     state.draft = ""
     state.error = ""
     refreshSend()
@@ -385,6 +445,9 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     } catch (error) {
       if (!signal.aborted) state.error = error instanceof Error && error.name === "Error" ? error.message : unavailable
     } finally {
+      if (answer) await drainDraft()
+      stopDraftFrames()
+      shownDraft = ""
       const partial = !answer ? state.draft.trim() : ""
       state.pending = ""
       state.draft = ""
@@ -407,11 +470,18 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
     if (!state.pending) void refreshQuota()
   }, { signal })
   document.addEventListener(streamEvent, () => {
-    if (!dialog.open || liveFrame) return
-    liveFrame = window.setTimeout(() => {
-      liveFrame = 0
+    if (!dialog.open) return
+    if (!state.draft.startsWith(shownDraft)) {
+      stopDraftFrames()
+      shownDraft = ""
       paintDraft()
-    }, 65)
+    }
+    scheduleDraft()
+  }, { signal })
+  dialog.addEventListener("close", stopDraftFrames, { signal })
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopDraftFrames()
+    else scheduleDraft()
   }, { signal })
   const updateAvatarIfOpen = () => { if (dialog.open) void refreshVisitorAvatar() }
   document.addEventListener("themechange", updateAvatarIfOpen, { signal })
@@ -431,7 +501,7 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
   signal.addEventListener("abort", () => {
     titleObserver.disconnect()
     clearTimeout(quotaTimer)
-    clearTimeout(liveFrame)
+    stopDraftFrames()
   }, { once: true })
   return async () => {
     const ticket = ++opening
@@ -449,6 +519,7 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
       }
     }
     if (!dialog.open) return
+    shownDraft = state.draft
     render(true)
   }
 }
