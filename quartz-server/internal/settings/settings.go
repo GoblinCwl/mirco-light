@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -132,6 +133,13 @@ func validate(key string, value any) (any, error) {
 			if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil || u.Fragment != "" {
 				return nil, errors.New("请输入完整的 HTTP 或 HTTPS 接收地址，不含用户名、密码或锚点")
 			}
+		}
+		if key == "api.astrbot.starbudBotId" {
+			v = strings.TrimSpace(v)
+			if v == "" || strings.ContainsAny(v, ":!") || strings.IndexFunc(v, unicode.IsControl) != -1 {
+				return nil, errors.New("请填写有效的星芽机器人 ID")
+			}
+			return v, nil
 		}
 		if key == "external.favicons" {
 			return validateFavicons(v)

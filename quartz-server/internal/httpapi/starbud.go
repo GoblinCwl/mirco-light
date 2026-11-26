@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"goblincwl/quartz-server/internal/starbud"
@@ -138,49 +137,4 @@ func (s *Server) starbudQuota(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	JSON(w, 200, quota)
-}
-
-func (s *Server) starbudAdmin(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
-	if id != "" && !starbud.ValidConversationID(id) || r.Method == http.MethodDelete && id == "" {
-		JSON(w, 400, map[string]string{"error": "会话标识无效"})
-		return
-	}
-	ctx := r.Context()
-	switch r.Method {
-	case http.MethodGet:
-		page := 1
-		if value := r.URL.Query().Get("page"); value != "" {
-			parsed, err := strconv.Atoi(value)
-			if err != nil || parsed < 1 {
-				JSON(w, 400, map[string]string{"error": "页码无效"})
-				return
-			}
-			page = parsed
-		}
-		if id == "" {
-			result, err := starbud.ListConversations(ctx, s.DB, page)
-			if err != nil {
-				s.fail(w, err)
-				return
-			}
-			JSON(w, 200, result)
-		} else {
-			result, err := starbud.ListTurns(ctx, s.DB, id, page)
-			if err != nil {
-				s.fail(w, err)
-				return
-			}
-			JSON(w, 200, result)
-		}
-	case http.MethodDelete:
-		if err := starbud.DeleteConversation(ctx, s.DB, id); err != nil {
-			s.fail(w, err)
-			return
-		}
-		JSON(w, 200, map[string]bool{"ok": true})
-	default:
-		w.Header().Set("Allow", "GET, DELETE")
-		JSON(w, 405, map[string]string{"error": "请求方式不支持"})
-	}
 }

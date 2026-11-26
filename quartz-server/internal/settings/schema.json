@@ -259,6 +259,17 @@
     "help": "AstrBot 中具有 plugin 权限的 API Key。"
   },
   {
+    "key": "api.astrbot.starbudBotId",
+    "public": false,
+    "group": "服务接入",
+    "category": "AstrBot",
+    "label": "星芽机器人 ID",
+    "type": "text",
+    "default": "starbud",
+    "max": 128,
+    "help": "填写 AstrBot 中已启用的星芽机器人 ID。"
+  },
+  {
     "key": "api.napcat.url",
     "public": false,
     "group": "服务接入",

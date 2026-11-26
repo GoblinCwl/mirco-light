@@ -24,7 +24,7 @@ import (
 	"goblincwl/quartz-server/internal/visitors"
 )
 
-func TestStarbudArchivesCompletedAndInterruptedReplies(t *testing.T) {
+func TestStarbudChargesCompletedAndInterruptedReplies(t *testing.T) {
 	db := testDB(t)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", starbud.StreamType)
@@ -50,34 +50,13 @@ func TestStarbudArchivesCompletedAndInterruptedReplies(t *testing.T) {
 			t.Fatalf("%s: %v", question, err)
 		}
 	}
-	conversations, err := starbud.ListConversations(ctx, db, 1)
-	if err != nil || conversations.Total != 1 || len(conversations.Items) != 1 ||
-		conversations.Items[0].ID != user || conversations.Items[0].Turns != 2 ||
-		conversations.Items[0].IP != "2001:db8::1" || conversations.Items[0].IPSource != "chat" {
-		t.Fatalf("conversations: %+v, error: %v", conversations, err)
-	}
-	turns, err := starbud.ListTurns(ctx, db, user, 1)
-	if err != nil || len(turns.Items) != 2 {
-		t.Fatalf("turns: %+v, error: %v", turns, err)
-	}
-	for index, want := range []struct{ status, answer string }{
-		{"已回复", "星芽的完整回复"}, {"回复中断", "星芽"},
-	} {
-		value := turns.Items[index]
-		if value.Status != want.status || value.Answer == nil || *value.Answer != want.answer || value.PageURL != "https://goblincwl.site/test" {
-			t.Fatalf("archive: %+v", value)
-		}
-	}
-	if err := starbud.DeleteConversation(ctx, db, user); err != nil {
-		t.Fatal(err)
-	}
-	deleted, err := starbud.ListTurns(ctx, db, user, 1)
-	if err != nil || deleted.Total != 0 {
-		t.Fatalf("deleted turns: %+v, error: %v", deleted, err)
+	var archived int
+	if err := db.QueryRow("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='starbud_chat_records'").Scan(&archived); err != nil || archived != 0 {
+		t.Fatalf("site archive count: %d, %v", archived, err)
 	}
 	quota, err := store.Quota(ctx, time.Now(), user, ip)
 	if err != nil || quota.Remaining != starbud.UserLimit-2 {
-		t.Fatalf("quota after archive deletion: %+v, error: %v", quota, err)
+		t.Fatalf("quota after both replies: %+v, error: %v", quota, err)
 	}
 }
 
@@ -276,8 +255,8 @@ func TestStarbudReadsUnlockedPageWithinOneTurn(t *testing.T) {
 	if err != nil || quota.Remaining != starbud.UserLimit-1 {
 		t.Fatalf("quota: %+v, %v", quota, err)
 	}
-	turns, err := starbud.ListTurns(ctx, db, user, 1)
-	if err != nil || turns.Total != 0 {
-		t.Fatalf("private turn archive: total %d, %v", turns.Total, err)
+	var archived int
+	if err := db.QueryRow("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='starbud_chat_records'").Scan(&archived); err != nil || archived != 0 {
+		t.Fatalf("site archive count: %d, %v", archived, err)
 	}
 }

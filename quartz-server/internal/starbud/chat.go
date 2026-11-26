@@ -8,11 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+	"unicode"
 )
 
 const UserLimit = 10
@@ -41,6 +41,7 @@ type Input struct {
 	TurnID         string    `json:"-"`
 	ClientIP       string    `json:"-"`
 	Message        string    `json:"message"`
+	SenderName     string    `json:"sender_name,omitempty"`
 	PageURL        string    `json:"page_url"`
 	History        []Message `json:"history"`
 }
@@ -53,6 +54,12 @@ type Service struct {
 
 func Prepare(in Input, origin string) (Input, error) {
 	in.Message = strings.TrimSpace(in.Message)
+	in.SenderName = strings.Join(strings.Fields(in.SenderName), " ")
+	if len([]rune(in.SenderName)) > 64 || strings.ContainsFunc(in.SenderName, func(c rune) bool {
+		return unicode.IsControl(c) || unicode.Is(unicode.Cf, c)
+	}) {
+		in.SenderName = ""
+	}
 	if in.Message == "" || len([]rune(in.Message)) > 2000 || len(in.History) > 12 || len(in.History)%2 != 0 {
 		return in, errors.New("消息格式无效，单条消息最多 2000 字")
 	}
@@ -90,14 +97,13 @@ func Prepare(in Input, origin string) (Input, error) {
 }
 
 func (s Service) Reserve(ctx context.Context, at time.Time, user, ip string) error {
-	_, err := s.reserve(ctx, at, user, ip, nil)
-	return err
+	return s.reserve(ctx, at, user, ip, "")
 }
 
-func (s Service) reserve(ctx context.Context, at time.Time, user, ip string, input *Input) (int64, error) {
+func (s Service) reserve(ctx context.Context, at time.Time, user, ip string, clientIP string) error {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer tx.Rollback()
 	day := at.In(beijing).Format(time.DateOnly)
@@ -107,59 +113,30 @@ func (s Service) reserve(ctx context.Context, at time.Time, user, ip string, inp
 		limit    int
 	}{{"ip", ip, IPLimit}, {"user", user, UserLimit}} {
 		var address string
-		if bucket.kind == "ip" && input != nil {
-			address = input.ClientIP
+		if bucket.kind == "ip" {
+			address = clientIP
 		}
 		_, err = tx.ExecContext(ctx, `INSERT INTO starbud_daily_usage(day,scope,identity,turns,ip_address)
 			VALUES (?,?,?,0,NULLIF(?,''))
 			ON DUPLICATE KEY UPDATE ip_address=COALESCE(NULLIF(?,''),ip_address)`,
 			day, bucket.kind, bucket.identity, address, address)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		result, err := tx.ExecContext(ctx, `UPDATE starbud_daily_usage SET turns=turns+1
 			WHERE day=? AND scope=? AND identity=? AND turns<?`, day, bucket.kind, bucket.identity, bucket.limit)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		count, err := result.RowsAffected()
 		if err != nil {
-			return 0, err
+			return err
 		}
 		if count != 1 {
-			return 0, ErrLimit
+			return ErrLimit
 		}
 	}
-	var recordID int64
-	if input != nil && input.Unlock == nil && !input.PrivateHistory {
-		result, err := tx.ExecContext(ctx, `INSERT INTO starbud_chat_records
-			(conversation_id,page_url,question,created_at,client_ip) VALUES (?,?,?,?,NULLIF(?,''))`,
-			user, input.PageURL, input.Message, at.UTC().Format("2006-01-02T15:04:05.000Z"), input.ClientIP)
-		if err != nil {
-			return 0, err
-		}
-		if recordID, err = result.LastInsertId(); err != nil {
-			return 0, err
-		}
-	}
-	return recordID, tx.Commit()
-}
-
-func (s Service) finishRecord(ctx context.Context, id int64, answer string, complete bool) {
-	if id == 0 {
-		return
-	}
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
-	defer cancel()
-	var status = "未能回复"
-	if complete {
-		status = "已回复"
-	} else if strings.TrimSpace(answer) != "" {
-		status = "回复中断"
-	}
-	if _, err := s.DB.ExecContext(ctx, `UPDATE starbud_chat_records SET answer=NULLIF(?,''),status=? WHERE id=?`, answer, status, id); err != nil {
-		slog.Error("starbud archive update failed", "id", id, "error", err)
-	}
+	return tx.Commit()
 }
 
 type Quota struct {
@@ -187,15 +164,12 @@ func (s Service) Quota(ctx context.Context, at time.Time, user, ip string) (Quot
 var client = &http.Client{Timeout: 100 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 
 func (s Service) Reply(ctx context.Context, now time.Time, user, ip string, in Input) (string, error) {
-	res, recordID, err := s.requestReply(ctx, now, user, ip, in, "application/json")
+	res, err := s.requestReply(ctx, now, user, ip, in, "application/json")
 	if err != nil {
-		s.finishRecord(ctx, recordID, "", false)
 		return "", err
 	}
 	defer res.Body.Close()
-	answer, err := readReply(res.Body)
-	s.finishRecord(ctx, recordID, answer, err == nil)
-	return answer, err
+	return readReply(res.Body)
 }
 
 func readReply(body io.Reader) (string, error) {
@@ -220,10 +194,7 @@ type StreamEvent struct {
 }
 
 func (s Service) StreamReply(ctx context.Context, now time.Time, user, ip string, in Input, send func(StreamEvent) error) error {
-	res, recordID, err := s.requestReply(ctx, now, user, ip, in, StreamType)
-	var answer strings.Builder
-	var complete bool
-	defer func() { s.finishRecord(ctx, recordID, answer.String(), complete) }()
+	res, err := s.requestReply(ctx, now, user, ip, in, StreamType)
 	if err != nil {
 		return err
 	}
@@ -234,25 +205,9 @@ func (s Service) StreamReply(ctx context.Context, now time.Time, user, ip string
 		if err != nil {
 			return err
 		}
-		answer.WriteString(text)
-		complete = true
 		return send(StreamEvent{Type: "done", Text: text})
 	}
-	return relayStream(res.Body, func(event StreamEvent) error {
-		switch event.Type {
-		case "delta":
-			if answer.Len()+len(event.Text) <= 48<<10 {
-				answer.WriteString(event.Text)
-			}
-		case "done":
-			answer.Reset()
-			answer.WriteString(event.Text)
-			complete = strings.TrimSpace(event.Text) != ""
-		case "reset":
-			answer.Reset()
-		}
-		return send(event)
-	})
+	return relayStream(res.Body, send)
 }
 
 func relayStream(body io.Reader, send func(StreamEvent) error) error {
@@ -282,29 +237,31 @@ func relayStream(body io.Reader, send func(StreamEvent) error) error {
 	return ErrUnavailable
 }
 
-func (s Service) requestReply(ctx context.Context, now time.Time, user, ip string, in Input, accept string) (*http.Response, int64, error) {
-	payload := struct {
-		Input
-		Visitor      string `json:"visitor"`
-		Continuation string `json:"turn_id,omitempty"`
-	}{in, user, in.TurnID}
+type bridgeChat struct {
+	Input
+	Visitor      string `json:"visitor"`
+	Continuation string `json:"turn_id,omitempty"`
+	BotID        string `json:"bot_id"`
+}
+
+func (s Service) requestReply(ctx context.Context, now time.Time, user, ip string, in Input, accept string) (*http.Response, error) {
+	payload := bridgeChat{Input: in, Visitor: user, Continuation: in.TurnID}
 	req, err := s.bridgeRequest(ctx, "chat", accept, payload)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	recordID, err := s.reserve(ctx, now, user, ip, &in)
-	if err != nil {
-		return nil, 0, err
+	if err := s.reserve(ctx, now, user, ip, in.ClientIP); err != nil {
+		return nil, err
 	}
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, recordID, ErrUnavailable
+		return nil, ErrUnavailable
 	}
 	if res.StatusCode != http.StatusOK {
 		res.Body.Close()
-		return nil, recordID, ErrUnavailable
+		return nil, ErrUnavailable
 	}
-	return res, recordID, nil
+	return res, nil
 }
 
 type ContextResult struct {
@@ -341,12 +298,20 @@ func (s Service) bridgeRequest(ctx context.Context, route, accept string, payloa
 	if base == "" || key == "" || s.BridgeToken == "" {
 		return nil, ErrUnavailable
 	}
+	if chat, ok := payload.(bridgeChat); ok {
+		botID, _ := values["api.astrbot.starbudBotId"].(string)
+		chat.BotID = strings.TrimSpace(botID)
+		if chat.BotID == "" {
+			chat.BotID = "starbud"
+		}
+		payload = chat
+	}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(base, "/")+
-		"/api/v1/plugins/extensions/astrbot_plugin_starbud/"+route, bytes.NewReader(data))
+		"/api/v1/plugins/extensions/astrbot_plugin_microlight/starbud/"+route, bytes.NewReader(data))
 	if err != nil {
 		return nil, ErrUnavailable
 	}

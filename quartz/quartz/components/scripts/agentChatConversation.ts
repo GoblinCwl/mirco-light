@@ -352,7 +352,7 @@ export function setupStarbudConversation(dialog: HTMLDialogElement, signal: Abor
       const response = await fetch("/api/starbud/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "text/event-stream", "X-Visitor-ID": user },
-        body: JSON.stringify({ message: question, page_url: pageURL, history: context, private_history: privateHistory || undefined, unlocked_context: unlock?.descriptor }),
+        body: JSON.stringify({ message: question, page_url: pageURL, sender_name: readCachedArtalkIdentity()?.name, history: context, private_history: privateHistory || undefined, unlocked_context: unlock?.descriptor }),
         signal: chatSignal,
       })
       if (response.status === 429) {

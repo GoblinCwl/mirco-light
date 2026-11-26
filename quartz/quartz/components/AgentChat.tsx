@@ -30,7 +30,7 @@ const AgentChat: QuartzComponent = ({ cfg, fileData }) => (
       <div class="activity-details-header">
         <h2 class="agent-chat-heading">
           <strong id="agent-chat-title"><AgentIcon /><span>星芽</span></strong>
-          <span id="agent-chat-description" class="agent-chat-description">诞生于微光集深处，由知识与记忆孕育而成的生命。</span>
+          <span id="agent-chat-description" class="agent-chat-description">知识与记忆孕育而成的意识</span>
         </h2>
         <button data-agent-chat-clear type="button" aria-label="清空历史" title="清空历史" aria-haspopup="dialog" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
