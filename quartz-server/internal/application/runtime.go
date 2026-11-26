@@ -88,15 +88,6 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	if readErr != nil {
 		return nil, readErr
 	}
-	if path := os.Getenv("STARBUD_TOKEN_FILE"); path != "" {
-		key, err := os.ReadFile(path)
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-		if token := strings.TrimSpace(string(key)); token != "" {
-			app.Starbud = &starbud.Service{DB: app.DB, ReadSettings: read, BridgeToken: token}
-		}
-	}
 	config := taskconfig.New(values)
 	root = taskconfig.With(root, config)
 	app.TaskRuns = taskruns.New(app.DB)
@@ -124,6 +115,8 @@ func New(ctx context.Context, app *httpapi.Server, options Options) (runtime *Ru
 	if err != nil {
 		return nil, err
 	}
+	notificationStore := notifications.Store{DB: app.DB, Key: app.Credentials.Key}
+	app.Starbud = &starbud.Service{DB: app.DB, ReadSettings: read, ReadToken: notificationStore.Token}
 	app.Credentials.GiteaURL = func(ctx context.Context) (string, error) {
 		values, err := read(ctx)
 		if err != nil {

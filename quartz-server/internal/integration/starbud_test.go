@@ -27,6 +27,11 @@ import (
 func TestStarbudChargesCompletedAndInterruptedReplies(t *testing.T) {
 	db := testDB(t)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-API-Key") != "test" || r.Header.Get("X-MicroLight-Token") != "test-site-token" {
+			t.Error("missing AstrBot API key or MicroLight API token")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		w.Header().Set("Content-Type", starbud.StreamType)
 		fmt.Fprint(w, "data: {\"type\":\"delta\",\"text\":\"星芽\"}\n\n")
 		body, _ := io.ReadAll(r.Body)
@@ -35,7 +40,7 @@ func TestStarbudChargesCompletedAndInterruptedReplies(t *testing.T) {
 		}
 	}))
 	defer upstream.Close()
-	store := starbud.Service{DB: db, BridgeToken: "test", ReadSettings: func(context.Context) (map[string]any, error) {
+	store := starbud.Service{DB: db, ReadToken: func(context.Context) (string, error) { return "test-site-token", nil }, ReadSettings: func(context.Context) (map[string]any, error) {
 		return map[string]any{"api.astrbot.url": upstream.URL, "api.astrbot.token": "test"}, nil
 	}}
 	ctx := context.Background()
@@ -162,6 +167,11 @@ func TestStarbudReadsUnlockedPageWithinOneTurn(t *testing.T) {
 
 	result := make(chan starbud.ContextResult, 1)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-API-Key") != "test" || r.Header.Get("X-MicroLight-Token") != "test-site-token" {
+			t.Error("missing AstrBot API key or MicroLight API token")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		if strings.HasSuffix(r.URL.Path, "/context") {
 			var payload starbud.ContextResult
 			if json.NewDecoder(r.Body).Decode(&payload) != nil {
@@ -199,7 +209,7 @@ func TestStarbudReadsUnlockedPageWithinOneTurn(t *testing.T) {
 	}))
 	defer upstream.Close()
 	visitor := &visitors.Store{Secret: []byte("01234567890123456789012345678901")}
-	service := &starbud.Service{DB: db, BridgeToken: "test", ReadSettings: func(context.Context) (map[string]any, error) {
+	service := &starbud.Service{DB: db, ReadToken: func(context.Context) (string, error) { return "test-site-token", nil }, ReadSettings: func(context.Context) (map[string]any, error) {
 		return map[string]any{"api.astrbot.url": upstream.URL, "api.astrbot.token": "test"}, nil
 	}}
 	server := httptest.NewServer((&httpapi.Server{DB: db, Origin: origin, Starbud: service, Visitors: visitor, Log: slog.Default()}).Handler())

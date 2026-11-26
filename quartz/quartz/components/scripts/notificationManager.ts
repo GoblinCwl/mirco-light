@@ -9,7 +9,7 @@ export function setupAPIToken(card:HTMLElement,signal:AbortSignal,request:Reques
  const row=document.createElement('div'),copy=document.createElement('div'),label=document.createElement('label'),help=document.createElement('small'),controls=document.createElement('div'),password=document.createElement('div'),generate=document.createElement('button'),copyToken=document.createElement('button'),state=document.createElement('small')
  row.className='stellar-setting-row';row.dataset.fieldType='password';copy.className='stellar-setting-copy';controls.className='stellar-setting-control';password.className='stellar-setting-password'
  const address=document.createElement('small');
- label.textContent='API Token';help.textContent='用于本站 API 的 Bearer 鉴权。'
+ label.textContent='API Token';help.textContent='用于本站 API、站务通知和星芽对话。'
  const input=adminPassword(password,'MicroLight API Token','',true);input.readOnly=true;input.placeholder='尚未生成';input.id='stellar-api-token';label.htmlFor=input.id
  generate.type=copyToken.type='button';generate.textContent='生成 Token';copyToken.textContent='复制';copyToken.disabled=true;generate.disabled=true;state.setAttribute('role','status')
  copy.append(label,help,address,state);controls.append(password,generate,copyToken);row.append(copy,controls);card.append(row)

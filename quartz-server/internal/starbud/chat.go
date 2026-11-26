@@ -49,7 +49,7 @@ type Input struct {
 type Service struct {
 	DB           *sql.DB
 	ReadSettings func(context.Context) (map[string]any, error)
-	BridgeToken  string
+	ReadToken    func(context.Context) (string, error)
 }
 
 func Prepare(in Input, origin string) (Input, error) {
@@ -295,7 +295,14 @@ func (s Service) bridgeRequest(ctx context.Context, route, accept string, payloa
 	}
 	base, _ := values["api.astrbot.url"].(string)
 	key, _ := values["api.astrbot.token"].(string)
-	if base == "" || key == "" || s.BridgeToken == "" {
+	if base == "" || key == "" || s.ReadToken == nil {
+		return nil, ErrUnavailable
+	}
+	token, err := s.ReadToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if token == "" {
 		return nil, ErrUnavailable
 	}
 	if chat, ok := payload.(bridgeChat); ok {
@@ -318,6 +325,6 @@ func (s Service) bridgeRequest(ctx context.Context, route, accept string, payloa
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", accept)
 	req.Header.Set("X-API-Key", key)
-	req.Header.Set("X-Starbud-Token", s.BridgeToken)
+	req.Header.Set("X-MicroLight-Token", token)
 	return req, nil
 }
